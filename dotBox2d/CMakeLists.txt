@@ -1,0 +1,19 @@
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} DOTBOX2D_SOURCE_FILES)
+
+add_library(dotBox2d ${DOTBOX2D_SOURCE_FILES})
+
+target_include_directories(dotBox2d
+PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# set(CMAKE_CXX_FLAGS "-std=c++11")
+set_target_properties(dotBox2d 
+PROPERTIES
+    LINKER_LANGUAGE CXX
+	CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+    # VERSION ${PROJECT_VERSION}
+    # SOVERSION ${PROJECT_VERSION_MAJOR}
+)

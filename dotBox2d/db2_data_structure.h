@@ -79,7 +79,10 @@ struct dotB2Joint
 
 struct dotB2Wrold
 {
-    dotB2Vec2 gravity{0.0f, 0.0f};
+    struct
+    {
+        dotB2Vec2 gravity{0.0f, 0.0f};
+    } raw;
 };
 
 struct dotBox2d
@@ -100,6 +103,13 @@ struct dotBox2d
         int locB2Fixture;
         int locB2Vec2;
     } raw;
+
+    dotB2Wrold *world{nullptr};
+    dotB2Body *bodys{nullptr};
+    dotB2Fixture *fixtures{nullptr};
+    dotB2Vec2 *vec2s{nullptr};
+
+    ~dotBox2d();
 
     auto load(char *filePath) -> void;
 };

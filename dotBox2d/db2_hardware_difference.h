@@ -5,8 +5,9 @@ class hardwareDifference
 {
 public:
     static auto isBigEndian() -> bool;
-    static auto convertLittleToBigEndian(int *i) -> void;
-    static auto convertBigToLittleEndian(int *i) -> void;
+    //static auto convertLittleToBigEndian(int *i) -> void;
+    //static auto convertBigToLittleEndian(int *i) -> void;
+    static auto fromDiskToMenory(char *source, char *destination, char length) -> void;
 
     static auto getMemoryAlignment() -> long long;
 };

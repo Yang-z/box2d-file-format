@@ -7,6 +7,10 @@ auto hardwareDifference::isBigEndian() -> bool
     return isBigEndian;
 }
 
+auto hardwareDifference::fromDiskToMenory(char* source, char* destination, char length)->void{
+    
+}
+
 auto hardwareDifference::getMemoryAlignment() -> long long
 {
     struct packTester

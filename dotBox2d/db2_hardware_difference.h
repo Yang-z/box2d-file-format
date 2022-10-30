@@ -1,15 +1,10 @@
-#ifndef DB2_HARDWARE_DIFFERENCE_H
-#define DB2_HARDWARE_DIFFERENCE_H
+#pragma once
 
 class hardwareDifference
 {
 public:
+    static auto getDataStructureAlignment(bool packed = false) -> long long;
+
     static auto isBigEndian() -> bool;
-    //static auto convertLittleToBigEndian(int *i) -> void;
-    //static auto convertBigToLittleEndian(int *i) -> void;
-    static auto fromDiskToMenory(char *source, char *destination, char length) -> void;
-
-    static auto getMemoryAlignment() -> long long;
+    static auto reverseEndian(char *source, int length) -> void;
 };
-
-#endif

@@ -3,122 +3,120 @@
 
 #include <fstream>
 #include <algorithm>
-
-struct chunkTypes
-{
-    char BXTW[4]{'B','X', 'T', 'W'};
-    char WRLD[4]{'W','R', 'L', 'D'};
-    char BODY[4]{'B','O', 'D', 'Y'};
-    char FXTR[4]{'F','X', 'T', 'R'};
-    char VECT[4]{'V','E', 'C', 'T'};
-
-} ChunkTypes;
+// #include <arpa/inet.h>
 
 // care about Data Structure Alignment?
-auto dotBox2d::load(char *filePath) -> void
+auto dotBox2d::load(const char *filePath) -> void
 {
     std::ifstream fs{filePath, std::ios::binary};
-    if (!fs) return;
+    if (!fs)
+        return;
 
     fs.read((char *)&(this->head), sizeof(this->head));
-    
+
     int chunkLength{0};
-    char chunkType[4]{'N','U','L', 'L'};
+    char chunkType[4]{'N', 'U', 'L', 'L'};
     int CRC{0};
 
-    while(true){
+    int count{0};
+    while (true)
+    {
         fs.read((char *)&chunkLength, sizeof(chunkLength));
-        if(fs.eof()) break;
-        fs.read(chunkType, sizeof(chunkType) * 4);
+        if (fs.eof())
+            break;
+        fs.read(chunkType, sizeof(chunkType));
 
-        if(std::equal(chunkType, chunkType + 4, ChunkTypes.BXTW))
+        if (std::equal(chunkType, chunkType + 4, this->chunkTypes.INFO))
         {
-            fs.read((char *)&(this->version), chunkLength);
-
-        }else if(std::equal(chunkType, chunkType + 4, ChunkTypes.WRLD))
+            fs.read((char *)&(this->info), chunkLength);
+        }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.WRLD))
         {
-            this->countWorld = chunkLength/sizeof(dotB2Wrold);
+            count = chunkLength / sizeof(dotB2Wrold);
+            this->info.count.world = count;
             if (this->worlds == nullptr)
-                this->worlds = new dotB2Wrold[this->countWorld];
+                this->worlds = new dotB2Wrold[count];
             fs.read((char *)(this->worlds), chunkLength);
-
-        }else if(std::equal(chunkType, chunkType + 4, ChunkTypes.BODY))
+        }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.BODY))
         {
-            this->countbody = chunkLength/sizeof(dotB2Body);
+            count = chunkLength / sizeof(dotB2Body);
+            this->info.count.body = count;
             if (this->bodies == nullptr)
-                this->bodies = new dotB2Body[this->countbody];
+                this->bodies = new dotB2Body[count];
             fs.read((char *)(this->bodies), chunkLength);
-
-        }else if(std::equal(chunkType, chunkType + 4, ChunkTypes.FXTR))
+        }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.FXTR))
         {
-            this->countFixture = chunkLength/sizeof(dotB2Fixture);
+            count = chunkLength / sizeof(dotB2Fixture);
+            this->info.count.fixture = count;
             if (this->fixtures == nullptr)
-                this->fixtures = new dotB2Fixture[this->countFixture];
+                this->fixtures = new dotB2Fixture[count];
             fs.read((char *)(this->fixtures), chunkLength);
-
-        }else if(std::equal(chunkType, chunkType + 4, ChunkTypes.VECT))
+        }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.VECT))
         {
-            this->countVec2 = chunkLength/sizeof(dotB2Vec2);
+            count = chunkLength / sizeof(dotB2Vec2);
+            this->info.count.vec2 = count;
             if (this->vec2s == nullptr)
-                this->vec2s = new dotB2Vec2[this->countVec2];
+                this->vec2s = new dotB2Vec2[count];
             fs.read((char *)(this->vec2s), chunkLength);
-
-        }else
+        }
+        else
         {
             /* handle user data */
         }
 
         fs.read((char *)&CRC, sizeof(CRC));
         /* do CRC check here */
-
     };
     fs.close();
     /* do endian transfer? */
 }
 
 // care about Data Structure Alignment?
-auto dotBox2d::save(char *filePath) -> void
+auto dotBox2d::save(const char *filePath) -> void
 {
-    std::ofstream fs{filePath, std::ios::binary|std::ios::out};
+    std::ofstream fs{filePath, std::ios::binary | std::ios::out};
     if (!fs)
         return;
 
     fs.write((char *)&(this->head), sizeof(this->head));
-    
+
     int chunkLength{0};
     int CRC{0};
-    
-    chunkLength = sizeof(this->version);
+
+    chunkLength = sizeof(dotB2Info);
     fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(ChunkTypes.BXTW), 4);
-    fs.write((char *)&(this->version), chunkLength);
+    fs.write((char *)(this->chunkTypes.INFO), 4);
+    fs.write((char *)&(this->info), chunkLength);
     /* handle CRC here*/
     fs.write((char *)&CRC, 4);
 
-    chunkLength = sizeof(dotB2Wrold) * this->countWorld;
+    chunkLength = sizeof(dotB2Wrold) * this->info.count.world;
     fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(ChunkTypes.WRLD), 4);
+    fs.write((char *)(this->chunkTypes.WRLD), 4);
     fs.write((char *)&(this->worlds), chunkLength);
     /* handle CRC here*/
     fs.write((char *)&CRC, 4);
 
-    chunkLength = sizeof(dotB2Body) * this->countbody;
+    chunkLength = sizeof(dotB2Body) * this->info.count.body;
     fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(ChunkTypes.BODY), 4);
+    fs.write((char *)(this->chunkTypes.BODY), 4);
     fs.write((char *)&(this->bodies), chunkLength);
     /* handle CRC here*/
     fs.write((char *)&CRC, 4);
 
-    chunkLength = sizeof(dotB2Fixture) * this->countFixture;
+    chunkLength = sizeof(dotB2Fixture) * this->info.count.fixture;
     fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(ChunkTypes.FXTR), 4);
+    fs.write((char *)(this->chunkTypes.FXTR), 4);
     fs.write((char *)&(this->fixtures), chunkLength);
     /* handle CRC here*/
     fs.write((char *)&CRC, 4);
 
-    chunkLength = sizeof(dotB2Vec2) * this->countVec2;
+    chunkLength = sizeof(dotB2Vec2) * this->info.count.vec2;
     fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(ChunkTypes.VECT), 4);
+    fs.write((char *)(this->chunkTypes.VECT), 4);
     fs.write((char *)&(this->fixtures), chunkLength);
     /* handle CRC here*/
     fs.write((char *)&CRC, 4);

@@ -22,19 +22,24 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 
 |Chunk type|Date stored|
 |----|----|
-|BXTW|dotBox2d|
+|INFO|dotBox2dInfo|
 |WRLD|dotB2Wrold[]|
 |BODY|dotB2Body[]|
 |FXTR|dotB2Fixture[]|
 |VECT|dotB2Vec2[]|
 
 ### Chunk data
-#### BXTW
-BXTW is short for Box Two Dimension, and it stores the data defined by dotBox2d::raw. See:
+#### INFO
+INFO is short for dotBox2d information, and it stores the data defined by dotBox2dInfo. See:
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |version.dotBox2d|1 byte *3|char * 3||
 |version.box2d|1 byte *3|char * 3||
+|count.world|4 bytes|int||
+|count.body|4 bytes|int||
+|count.fixture|4 bytes|int||
+|count.joint|4 bytes|int||
+|count.vec2|4 bytes|int||
 
 #### WRLD
 WRLD, short for World, it's data unit is dotB2Wrold::raw.

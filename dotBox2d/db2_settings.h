@@ -2,6 +2,8 @@
 
 #define DB2_NOTE(note)
 
+#define ENDIAN_SENSITIVE
+
 #define DB2_PACK_SIZE 8
 #define DB2_PRAGMA(p) _Pragma(#p)
 #define DB2_PRAGMA_PACK(s) DB2_PRAGMA(pack(s))

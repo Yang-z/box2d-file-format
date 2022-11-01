@@ -5,7 +5,7 @@
 
 auto test_hardware_difference() -> void
 {
-    std::cout << "is big endian: " << hardwareDifference::isBigEndian() << std::endl;
+    std::cout << "is little endian: " << hardwareDifference::isLittleEndian() << std::endl;
     std::cout << "Date Structure Alignment offset: " << hardwareDifference::getDataStructureAlignment() << std::endl;
     std::cout << "Date Structure Alignment offset (packed): " << hardwareDifference::getDataStructureAlignment(true) << std::endl;
 }
@@ -13,9 +13,8 @@ auto test_hardware_difference() -> void
 auto test_data_structure() -> void
 {
     auto db2 = new dotBox2d();
-
-    // db2->save("./test.b2");
-    db2->load("./test.b2");
+    db2->save("./test.b2");
+    // db2->load("./test.b2");
 
     return;
 }

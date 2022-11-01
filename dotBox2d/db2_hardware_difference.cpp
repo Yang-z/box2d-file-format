@@ -1,6 +1,7 @@
 #include "db2_hardware_difference.h"
 
 #include "db2_settings.h"
+// #include <arpa/inet.h>
 
 auto hardwareDifference::getDataStructureAlignment(bool packed) -> long long
 {
@@ -22,30 +23,24 @@ auto hardwareDifference::getDataStructureAlignment(bool packed) -> long long
 
     if (!packed)
     {
-        static long long offset = (long long)&(((tester *)0)->n);
+        static const auto offset = (long long)&(((tester *)0)->n);
         return offset;
     }
     else
     {
-        /*
-        // packed ignored
-        static const auto __attribute__((packed)) p = tester{};
-        static long long offset_packed = (long long)&(p.n) - (long long)&(p.c);
-        */
-
-        static long long offset_packed = (long long)&(((tester_p *)0)->n);
+        static const auto offset_packed = (long long)&(((tester_p *)0)->n);
         return offset_packed;
     }
 }
 
-auto hardwareDifference::isBigEndian() -> bool
+auto hardwareDifference::isLittleEndian() -> bool
 {
-    static long long x = 1;
-    static bool isBigEndian = (((char *)&x) == 0);
-    return isBigEndian;
+    static const unsigned long x = 1;
+    static const bool isLittleEndian = (*((char *)&x) == 1);
+    return isLittleEndian;
 }
 
-auto hardwareDifference::reverseEndian(char *source, int length) -> void
+auto hardwareDifference::reverseEndian(char *source, unsigned long long length) -> void
 {
     int start = 0;
     int end = length - 1;

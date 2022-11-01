@@ -7,7 +7,7 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 |value|purpose|
 |----|----|
 |B2|Has the high bit set to detect transmission systems that do not support 8-bit data and to reduce the chance that a text file is mistakenly interpreted as a B2 file, or vice versa.|
-|42 32 00|In ASCII, the first two letters B2, allowing a person to identify the format easily if it is viewed in a text editor.|
+|42 32 (64 or 44)|In ASCII, the letters B2d (or B2D for big endian coded), allowing a person to identify the format easily if it is viewed in a text editor.|
 |0D 0A|A DOS-style line ending (CRLF) to detect DOS-Unix line ending conversion of the data.|
 |1A|A byte that stops display of the file under DOS when the command type has been used—the end-of-file character.|
 |0A|A Unix-style line ending (LF) to detect Unix-DOS line ending conversion.|
@@ -33,6 +33,8 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 INFO is short for dotBox2d information, and it stores the data defined by dotBox2dInfo. See:
 |Data|Length|C++ type|default value|
 |----|----|----|----|
+|packSize|1 byte|char|8|
+|isLittleEndian|1 byte|bool|true|
 |version.dotBox2d|1 byte *3|char * 3||
 |version.box2d|1 byte *3|char * 3||
 |count.world|4 bytes|int||
@@ -63,11 +65,11 @@ BODY, the chunk data of which is an array of it's data unit dotB2Body::raw.
 |angularVelocity|4 bytes|float|0.0f|
 |linearDamping|4 bytes|float|0.0f|
 |angularDamping|4 bytes|float|0.0f|
-|allowSleep|1/8 bytes|bool|true|
-|awake|1/8 bytes|bool|true|
-|fixedRotation|1/8 bytes|bool|false|
-|bullet|1/8 bytes|bool|false|
-|enabled|1/8 bytes|bool|true|
+|allowSleep|1 byte|bool|true|
+|awake|1 byte|bool|true|
+|fixedRotation|1 byte|bool|false|
+|bullet|1 byte|bool|false|
+|enabled|1 byte|bool|true|
 |gravityScale|4 bytes|float|1.0f|
 |_fixtures.start|4 bytes|int||
 |_fixtures.end|4 bytes|int||
@@ -80,7 +82,7 @@ FXTR is short for Fixture, and it's data unit is dotB2Fixture::raw.
 |restitution|4 bytes|float|0.0f|
 |restitutionThreshold|4 bytes|float|1.0f|
 |density|4 bytes|float|0.0f|
-|isSensor|1 bytes|bool|0|
+|isSensor|1 bytes|bool|false|
 |filter.categoryBits|2 bytes|unsigned short|0x0001|
 |filter.maskBits|2 bytes|unsigned short|0xFFFF|
 |filter.groupIndex|2 bytes|signed short|0|

@@ -12,8 +12,8 @@ DB2_PRAGMA_PACK_ON
 
 ENDIAN_SENSITIVE struct dotB2Vec2
 {
-    float x;
-    float y;
+    float x{-0.0f};
+    float y{-0.0f};
 } DB2_NOTE(sizeof(dotB2Vec2));
 
 ENDIAN_SENSITIVE struct dotB2Fixture
@@ -30,14 +30,14 @@ ENDIAN_SENSITIVE struct dotB2Fixture
     unsigned short filter_maskBits{0xFFFF};
     signed short filter_groupIndex{0};
 
-    int shape_type;
-    float shape_radius;
+    int shape_type{-0};
+    float shape_radius{-0.0f};
     // bool shape_oneSided;?
 
-    int shape_vec2s_start;
-    int shape_vec2s_end;
+    int shape_vec2s_start{-0};
+    int shape_vec2s_end{-0};
 
-    unsigned long long userData{0};
+    unsigned long long userData{-0};
 } DB2_NOTE(sizeof(dotB2Fixture));
 
 ENDIAN_SENSITIVE struct dotB2Body
@@ -59,15 +59,15 @@ ENDIAN_SENSITIVE struct dotB2Body
     /* 3 bytes gape*/
     float gravityScale{1.0f};
 
-    int fixture_start;
-    int fixture_end;
+    int fixture_start{-0};
+    int fixture_end{-0};
 
-    unsigned long long userData{0};
+    unsigned long long userData{-0};
 } DB2_NOTE(sizeof(dotB2Body));
 
 ENDIAN_SENSITIVE struct dotB2Joint
 {
-    int type;
+    int type{-0};
     /* data */
 } DB2_NOTE(sizeof(dotB2Joint));
 
@@ -76,11 +76,11 @@ ENDIAN_SENSITIVE struct dotB2Wrold
     float gravity_x{0.0f};
     float gravity_y{0.0f};
 
-    int body_start;
-    int body_end;
+    int body_start{-0};
+    int body_end{-0};
 
-    int joint_start;
-    int joint_end;
+    int joint_start{-0};
+    int joint_end{-0};
 } DB2_NOTE(sizeof(dotB2Wrold));
 
 struct dotB2Info
@@ -126,6 +126,7 @@ class dotBox2d
         const char VECT[4]{'V', 'E', 'C', 'T'};
     } DB2_NOTE(sizeof(ChunkTypes));
 
+public:
     const dotBox2d::ChunkTypes chunkTypes{};
 
     unsigned char head[8]{0xB2, 0x42, 0x32, 0x64, 0x0D, 0x0A, 0x1A, 0x0A};
@@ -137,6 +138,7 @@ class dotBox2d
     dotB2Body *joint{nullptr};
     dotB2Vec2 *vec2{nullptr};
 
+    dotBox2d(const char* file=nullptr);
     ~dotBox2d();
 
 public:

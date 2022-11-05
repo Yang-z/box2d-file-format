@@ -7,16 +7,21 @@
 
 #include <boost/pfr.hpp> //reflect
 
-template <class T>
-auto read(T *trunk, int chunkLength, int countType) -> void
+dotBox2d::dotBox2d(const char *file)
 {
-    count = chunkLength / sizeof(T);
-    this->info.count.countType = count; /*refrash count*/
-    if (this->trunk == nullptr)
-        this->trunk = new T[count];
-    fs.read((char *)(this->trunk), chunkLength);
+    if (file)
+        dotBox2d::load(file);
 }
 
+template <class T>
+auto db2Read(std::ifstream &fs, T *&trunk, int &chunkLength, int &count) -> void
+{
+    int _count = chunkLength / sizeof(T);
+    count = _count; /*refrash count*/
+    trunk = (T *)malloc(chunkLength);
+    if (trunk != nullptr)
+        fs.read((char *)(trunk), chunkLength);
+}
 auto dotBox2d::load(const char *filePath) -> void
 {
     std::ifstream fs{filePath, std::ios::binary};
@@ -38,10 +43,11 @@ auto dotBox2d::load(const char *filePath) -> void
         fs.read((char *)&chunkLength, sizeof(chunkLength));
         if (fs.eof())
             break;
-        fs.read(chunkType, sizeof(chunkType));
 
         if (shouldReverseEndian)
             hardwareDifference::reverseEndian((char *)&chunkLength, sizeof(chunkLength));
+
+        fs.read(chunkType, sizeof(chunkType));
 
         if (std::equal(chunkType, chunkType + 4, this->chunkTypes.INFO))
         {
@@ -49,55 +55,22 @@ auto dotBox2d::load(const char *filePath) -> void
             assert(this->info.isLittleEndian == isFileLittleEndian);
         }
 
-#define DB2_ELSE_IF(chunk_type, count_type, type, struct_type)                  \
-    else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.chunk_type)) \
-    {                                                                           \
-        count = chunkLength / sizeof(struct_type);                              \
-        this->info.count.count_type = count; /*refrash count*/                  \
-        if (this->type == nullptr)                                              \
-            this->type = new struct_type[count];                                \
-        fs.read((char *)(this->type), chunkLength);                             \
-    }
-
-        DB2_ELSE_IF(WRLD, world, world, dotB2Wrold)
-        DB2_ELSE_IF(BODY, body, body, dotB2Body)
-        DB2_ELSE_IF(FXTR, fixture, fixture, dotB2Fixture)
-        DB2_ELSE_IF(VECT, vec2, vec2, dotB2Vec2)
-#undef DB2_ELSE_IF
-
-        // else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.WRLD))
-        // {
-        //     count = chunkLength / sizeof(dotB2Wrold);
-        //     this->info.count.world = count;
-        //     if (this->world == nullptr)
-        //         this->world = new dotB2Wrold[count];
-        //     fs.read((char *)(this->world), chunkLength);
-        // }
-        // else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.BODY))
-        // {
-        //     count = chunkLength / sizeof(dotB2Body);
-        //     this->info.count.body = count;
-        //     if (this->body == nullptr)
-        //         this->body = new dotB2Body[count];
-        //     fs.read((char *)(this->body), chunkLength);
-        // }
-        // else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.FXTR))
-        // {
-        //     count = chunkLength / sizeof(dotB2Fixture);
-        //     this->info.count.fixture = count;
-        //     if (this->fixture == nullptr)
-        //         this->fixture = new dotB2Fixture[count];
-        //     fs.read((char *)(this->fixture), chunkLength);
-        // }
-        // else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.VECT))
-        // {
-        //     count = chunkLength / sizeof(dotB2Vec2);
-        //     this->info.count.vec2 = count;
-        //     if (this->vec2 == nullptr)
-        //         this->vec2 = new dotB2Vec2[count];
-        //     fs.read((char *)(this->vec2), chunkLength);
-        // }
-
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.WRLD))
+        {
+            db2Read(fs, this->world, chunkLength, this->info.count.world);
+        }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.BODY))
+        {
+            db2Read(fs, this->body, chunkLength, this->info.count.body);
+        }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.FXTR))
+        {
+            db2Read(fs, this->fixture, chunkLength, this->info.count.fixture);
+        }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.VECT))
+        {
+            db2Read(fs, this->vec2, chunkLength, this->info.count.vec2);
+        }
         else
         {
             /* handle user data */
@@ -115,6 +88,17 @@ auto dotBox2d::load(const char *filePath) -> void
     }
 }
 
+template <class T>
+auto db2Write(std::ofstream &fs, T *chunk, int count, char const *chunkType) -> void
+{
+    int chunkLength = sizeof(*chunk) * count;
+    fs.write((char *)&chunkLength, sizeof(chunkLength));
+    fs.write((char *)chunkType, 4);
+    fs.write((char *)chunk, chunkLength);
+    /* handle CRC here*/
+    int CRC{0};
+    fs.write((char *)&CRC, sizeof(CRC));
+}
 auto dotBox2d::save(const char *filePath) -> void
 {
     std::ofstream fs{filePath, std::ios::binary | std::ios::out};
@@ -123,101 +107,67 @@ auto dotBox2d::save(const char *filePath) -> void
 
     fs.write((char *)&(this->head), sizeof(this->head));
 
-    int chunkLength{0};
-    int CRC{0};
-
-    chunkLength = sizeof(dotB2Info);
-    fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(this->chunkTypes.INFO), 4);
-    fs.write((char *)&(this->info), chunkLength);
-    /* handle CRC here*/
-    fs.write((char *)&CRC, 4);
-
-    chunkLength = sizeof(dotB2Wrold) * this->info.count.world;
-    fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(this->chunkTypes.WRLD), 4);
-    fs.write((char *)&(this->world), chunkLength);
-    /* handle CRC here*/
-    fs.write((char *)&CRC, 4);
-
-    chunkLength = sizeof(dotB2Body) * this->info.count.body;
-    fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(this->chunkTypes.BODY), 4);
-    fs.write((char *)&(this->body), chunkLength);
-    /* handle CRC here*/
-    fs.write((char *)&CRC, 4);
-
-    chunkLength = sizeof(dotB2Fixture) * this->info.count.fixture;
-    fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(this->chunkTypes.FXTR), 4);
-    fs.write((char *)&(this->fixture), chunkLength);
-    /* handle CRC here*/
-    fs.write((char *)&CRC, 4);
-
-    chunkLength = sizeof(dotB2Vec2) * this->info.count.vec2;
-    fs.write((char *)&chunkLength, 4);
-    fs.write((char *)(this->chunkTypes.VECT), 4);
-    fs.write((char *)&(this->fixture), chunkLength);
-    /* handle CRC here*/
-    fs.write((char *)&CRC, 4);
+    db2Write(fs, &this->info, 1, this->chunkTypes.INFO);
+    db2Write(fs, this->world, this->info.count.world, this->chunkTypes.WRLD);
+    db2Write(fs, this->body, this->info.count.body, this->chunkTypes.BODY);
+    db2Write(fs, this->fixture, this->info.count.fixture, this->chunkTypes.FXTR);
+    // db2Write(fs, &this->joint, this->info.count.joint, this->chunkTypes.JOIN);
+    db2Write(fs, this->vec2, this->info.count.vec2, this->chunkTypes.VECT);
 
     /* handle user data */
 
     fs.close();
 }
 
+template <class T>
+auto dotReverseEndian(T &chunk) -> void
+{
+    boost::pfr::for_each_field(
+        chunk,
+        [](auto &field)
+        {
+            hardwareDifference::reverseEndian((char *)&field, sizeof(chunk));
+        });
+}
+template <class T>
+auto dotReverseEndian_batch(T *chunk_arr, int count) -> void
+{
+    for (int i = 0; i < count; i++)
+        dotReverseEndian(chunk_arr[i]);
+}
 auto dotBox2d::reverseEndian() -> void
 {
     this->head[3] = (this->head[3] == 'D') ? 'd' : 'D';
     this->info.isLittleEndian = !this->info.isLittleEndian;
     assert((this->head[3] == 'd') == (this->info.isLittleEndian));
 
-#define DB2_FOR(type) \
-    for (int i = 0; i < this->info.count.type; i++)
-
-#define DB2_REVERSE(struct)                                                     \
-    boost::pfr::for_each_field(                                                 \
-        this->struct,                                                           \
-        [](auto &field)                                                         \
-        {                                                                       \
-            hardwareDifference::reverseEndian((char *)&(field), sizeof(field)); \
-        })
-
-#define DB2_REVERSE_ALL(arr) \
-    DB2_FOR(arr) { DB2_REVERSE(arr[i]); }
-
-    DB2_REVERSE(info.count);
-    DB2_REVERSE_ALL(vec2);
-    DB2_REVERSE_ALL(fixture);
-    DB2_REVERSE_ALL(body);
-    DB2_REVERSE_ALL(joint);
-    DB2_REVERSE_ALL(world);
-
-#undef DB2_FOR
-#undef DB2_REVERSE
-#undef DB2_REVERSE_ALL
+    dotReverseEndian(this->info.count);
+    dotReverseEndian_batch(this->world, this->info.count.world);
+    dotReverseEndian_batch(this->body, this->info.count.body);
+    dotReverseEndian_batch(this->fixture, this->info.count.fixture);
+    dotReverseEndian_batch(this->vec2, this->info.count.vec2);
 }
 
 dotBox2d::~dotBox2d()
 {
     if (this->world)
     {
-        delete this->world;
+        free(this->world);
         this->world = nullptr;
     }
     if (this->body)
     {
-        delete[] this->body;
+        free(this->body);
         this->body = nullptr;
     }
     if (this->fixture)
     {
-        delete[] this->fixture;
+        free(this->fixture);
         this->fixture = nullptr;
     }
     if (this->vec2)
     {
-        delete[] this->vec2;
+        free(this->vec2);
         this->vec2 = nullptr;
     }
 }

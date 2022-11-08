@@ -10,11 +10,11 @@ DB2_PRAGMA_PACK_ON
 //     int end;
 // } DB2_NOTE(sizeof(dotRange));
 
-ENDIAN_SENSITIVE struct dotB2Vec2
-{
-    float x{-0.0f};
-    float y{-0.0f};
-} DB2_NOTE(sizeof(dotB2Vec2));
+// ENDIAN_SENSITIVE struct dotB2Vec2
+// {
+//     float x{-0.0f};
+//     float y{-0.0f};
+// } DB2_NOTE(sizeof(dotB2Vec2));
 
 ENDIAN_SENSITIVE struct dotB2Fixture
 {
@@ -34,8 +34,8 @@ ENDIAN_SENSITIVE struct dotB2Fixture
     float shape_radius{-0.0f};
     // bool shape_oneSided;?
 
-    int shape_vec2s_start{-0};
-    int shape_vec2s_end{-0};
+    int shape_vec_begin{-0};
+    int shape_vec_end{-0};
 
     unsigned long long userData{-0};
 } DB2_NOTE(sizeof(dotB2Fixture));
@@ -59,7 +59,7 @@ ENDIAN_SENSITIVE struct dotB2Body
     /* 3 bytes gape*/
     float gravityScale{1.0f};
 
-    int fixture_start{-0};
+    int fixture_begin{-0};
     int fixture_end{-0};
 
     unsigned long long userData{-0};
@@ -67,8 +67,15 @@ ENDIAN_SENSITIVE struct dotB2Body
 
 ENDIAN_SENSITIVE struct dotB2Joint
 {
-    int type{-0};
-    /* data */
+    int type{0};
+    int bodyA{-0}; // index
+    int bodyB{-0}; // index
+    bool collideConnected{false};
+
+    int para; // index, and for a specified type of joint, the length is fixed.
+
+    unsigned long long userData{-0};
+
 } DB2_NOTE(sizeof(dotB2Joint));
 
 ENDIAN_SENSITIVE struct dotB2Wrold
@@ -76,10 +83,10 @@ ENDIAN_SENSITIVE struct dotB2Wrold
     float gravity_x{0.0f};
     float gravity_y{0.0f};
 
-    int body_start{-0};
+    int body_begin{-0};
     int body_end{-0};
 
-    int joint_start{-0};
+    int joint_begin{-0};
     int joint_end{-0};
 } DB2_NOTE(sizeof(dotB2Wrold));
 
@@ -100,7 +107,7 @@ struct dotB2Info
         int body{0};
         int fixture{0};
         int joint{0};
-        int vec2{0};
+        int vec{0};
     } count DB2_NOTE(sizeof(count));
 
     // struct
@@ -121,6 +128,7 @@ class dotBox2d
     {
         const char INFO[4]{'I', 'N', 'F', 'O'};
         const char WRLD[4]{'W', 'R', 'L', 'D'};
+        const char JOIN[4]{'J', 'O', 'I', 'N'};
         const char BODY[4]{'B', 'O', 'D', 'Y'};
         const char FXTR[4]{'F', 'X', 'T', 'R'};
         const char VECT[4]{'V', 'E', 'C', 'T'};
@@ -136,9 +144,9 @@ public:
     dotB2Body *body{nullptr};
     dotB2Fixture *fixture{nullptr};
     dotB2Body *joint{nullptr};
-    dotB2Vec2 *vec2{nullptr};
+    float *vec{nullptr};
 
-    dotBox2d(const char* file=nullptr);
+    dotBox2d(const char *file = nullptr);
     ~dotBox2d();
 
 public:

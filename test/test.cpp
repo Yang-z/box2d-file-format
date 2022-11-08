@@ -5,7 +5,7 @@
 
 auto test_hardware_difference() -> void
 {
-    std::cout << "is little endian: " << hardwareDifference::isLittleEndian() << std::endl;
+    std::cout << "Is little endian: " << (hardwareDifference::isLittleEndian() ? "true" : "false") << std::endl;
     std::cout << "Date Structure Alignment offset: " << hardwareDifference::getDataStructureAlignment() << std::endl;
     std::cout << "Date Structure Alignment offset (packed): " << hardwareDifference::getDataStructureAlignment(true) << std::endl;
 }

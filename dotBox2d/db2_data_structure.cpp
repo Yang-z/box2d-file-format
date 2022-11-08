@@ -59,6 +59,10 @@ auto dotBox2d::load(const char *filePath) -> void
         {
             db2Read(fs, this->world, chunkLength, this->info.count.world);
         }
+        else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.JOIN))
+        {
+            db2Read(fs, this->joint, chunkLength, this->info.count.joint);
+        }
         else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.BODY))
         {
             db2Read(fs, this->body, chunkLength, this->info.count.body);
@@ -69,7 +73,7 @@ auto dotBox2d::load(const char *filePath) -> void
         }
         else if (std::equal(chunkType, chunkType + 4, this->chunkTypes.VECT))
         {
-            db2Read(fs, this->vec2, chunkLength, this->info.count.vec2);
+            db2Read(fs, this->vec, chunkLength, this->info.count.vec);
         }
         else
         {
@@ -109,10 +113,10 @@ auto dotBox2d::save(const char *filePath) -> void
 
     db2Write(fs, &this->info, 1, this->chunkTypes.INFO);
     db2Write(fs, this->world, this->info.count.world, this->chunkTypes.WRLD);
+    db2Write(fs, &this->joint, this->info.count.joint, this->chunkTypes.JOIN);
     db2Write(fs, this->body, this->info.count.body, this->chunkTypes.BODY);
     db2Write(fs, this->fixture, this->info.count.fixture, this->chunkTypes.FXTR);
-    // db2Write(fs, &this->joint, this->info.count.joint, this->chunkTypes.JOIN);
-    db2Write(fs, this->vec2, this->info.count.vec2, this->chunkTypes.VECT);
+    db2Write(fs, this->vec, this->info.count.vec, this->chunkTypes.VECT);
 
     /* handle user data */
 
@@ -143,9 +147,10 @@ auto dotBox2d::reverseEndian() -> void
 
     dotReverseEndian(this->info.count);
     dotReverseEndian_batch(this->world, this->info.count.world);
+    dotReverseEndian_batch(this->joint, this->info.count.joint);
     dotReverseEndian_batch(this->body, this->info.count.body);
     dotReverseEndian_batch(this->fixture, this->info.count.fixture);
-    dotReverseEndian_batch(this->vec2, this->info.count.vec2);
+    dotReverseEndian_batch(this->vec, this->info.count.vec);
 }
 
 dotBox2d::~dotBox2d()
@@ -165,9 +170,9 @@ dotBox2d::~dotBox2d()
         free(this->fixture);
         this->fixture = nullptr;
     }
-    if (this->vec2)
+    if (this->vec)
     {
-        free(this->vec2);
-        this->vec2 = nullptr;
+        free(this->vec);
+        this->vec = nullptr;
     }
 }

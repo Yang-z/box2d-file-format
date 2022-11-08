@@ -24,13 +24,14 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 |----|----|
 |INFO|dotBox2dInfo|
 |WRLD|dotB2Wrold[]|
+|JOIN|dotB2Joint[]|
 |BODY|dotB2Body[]|
 |FXTR|dotB2Fixture[]|
-|VECT|dotB2Vec2[]|
+|VECT|float[]|
 
-### Chunk data
+### Chunk Data
 #### INFO
-INFO is short for dotBox2d information, and it stores the data defined by dotBox2dInfo. See:
+INFO is short for dotBox2d information, and it stores the data defined by dotB2Info. See:
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |packSize|1 byte|char|8|
@@ -44,7 +45,7 @@ INFO is short for dotBox2d information, and it stores the data defined by dotBox
 |count.vec2|4 bytes|int||
 
 #### WRLD
-WRLD, short for World, it's data unit is dotB2Wrold::raw.
+WRLD, short for World, it's data unit is dotB2Wrold.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |gravity.x|4 bytes|float||
@@ -52,8 +53,19 @@ WRLD, short for World, it's data unit is dotB2Wrold::raw.
 |_bodies.start|4 byte|int||
 |_bodies.start|4 byte|int||
 
+#### JOIN
+JOIN is short for joint, and it's data unit is dotB2Joint.
+|Data|Length|C++ type|default value|
+|----|----|----|----|
+|type|4 bytes|int|0(e_unknownJoint)|
+|bodyA|4 bytes|int||
+|bodyB|4 bytes|int||
+|collideConnected|1 bytes|bool|false|
+|_para|4 bytes|int||
+|_userData|8 bytes|unsigned long long||
+
 #### BODY
-BODY, the chunk data of which is an array of it's data unit dotB2Body::raw.
+BODY, the chunk data of which is an array of it's data unit dotB2Body.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |type|4 bytes|int|0|
@@ -73,9 +85,10 @@ BODY, the chunk data of which is an array of it's data unit dotB2Body::raw.
 |gravityScale|4 bytes|float|1.0f|
 |_fixtures.start|4 bytes|int||
 |_fixtures.end|4 bytes|int||
+|_userData|8 bytes|unsigned long long||
 
 #### FXTR
-FXTR is short for Fixture, and it's data unit is dotB2Fixture::raw.
+FXTR is short for Fixture, and it's data unit is dotB2Fixture.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |friction|4 bytes|float|0.2f|
@@ -88,14 +101,14 @@ FXTR is short for Fixture, and it's data unit is dotB2Fixture::raw.
 |filter.groupIndex|2 bytes|signed short|0|
 |shape.type|4 bytes|int||
 |shape.radius|4 bytes|float||
-|_shape.vec2s.start|4 bytes|int||
-|_shape.vec2s.end|4 bytes|int||
+|_shape.vec.start|4 bytes|int||
+|_shape.vec.end|4 bytes|int||
+|_userData|8 bytes|unsigned long long||
 
 #### VECT
-VECT, short for Vector, stores an array of it's data unit, dotB2Vec2.
+VECT, short for Vector, stores an array of it's data unit, float.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
-|x|4 bytes|float||
-|y|4 bytes|float||
+|[any]|4 bytes|float||
 
 

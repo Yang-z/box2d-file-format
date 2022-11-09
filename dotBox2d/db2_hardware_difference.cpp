@@ -42,15 +42,15 @@ auto hardwareDifference::isLittleEndian() -> bool
 
 auto hardwareDifference::reverseEndian(char *source, unsigned long long length) -> void
 {
-    int start = 0;
+    int begin = 0;
     int end = length - 1;
     char temp{};
-    while (start > end)
+    while (begin > end)
     {
-        temp = source[start];
-        source[start] = source[end];
+        temp = source[begin];
+        source[begin] = source[end];
         source[end] = temp;
-        ++start;
+        ++begin;
         --end;
     }
 }

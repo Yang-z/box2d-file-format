@@ -1,20 +1,9 @@
 #pragma once
 
 #include "db2_settings.h"
+#include "db2_container.h"
 
 DB2_PRAGMA_PACK_ON
-
-// struct dotRange
-// {
-//     int start;
-//     int end;
-// } DB2_NOTE(sizeof(dotRange));
-
-// ENDIAN_SENSITIVE struct dotB2Vec2
-// {
-//     float x{-0.0f};
-//     float y{-0.0f};
-// } DB2_NOTE(sizeof(dotB2Vec2));
 
 ENDIAN_SENSITIVE struct dotB2Fixture
 {
@@ -101,22 +90,14 @@ struct dotB2Info
         const char box2d[3]{2, 4, 1};
     } version DB2_NOTE(sizeof(version));
 
-    ENDIAN_SENSITIVE struct Count
-    {
-        int world{0};
-        int body{0};
-        int fixture{0};
-        int joint{0};
-        int vec{0};
-    } count DB2_NOTE(sizeof(count));
-
-    // struct
+    // ENDIAN_SENSITIVE struct Count
     // {
-    //     int world;
-    //     int body;
-    //     int fixture;
-    //     int vec2;
-    // }loc;
+    //     int world{0};
+    //     int body{0};
+    //     int fixture{0};
+    //     int joint{0};
+    //     int vec{0};
+    // } count DB2_NOTE(sizeof(count));
 
 } DB2_NOTE(sizeof(dotB2Info));
 
@@ -124,30 +105,33 @@ DB2_PRAGMA_PACK_OFF
 
 class dotBox2d
 {
-    struct ChunkTypes
-    {
-        const char INFO[4]{'I', 'N', 'F', 'O'};
-        const char WRLD[4]{'W', 'R', 'L', 'D'};
-        const char JOIN[4]{'J', 'O', 'I', 'N'};
-        const char BODY[4]{'B', 'O', 'D', 'Y'};
-        const char FXTR[4]{'F', 'X', 'T', 'R'};
-        const char VECT[4]{'V', 'E', 'C', 'T'};
-    } DB2_NOTE(sizeof(ChunkTypes));
-
 public:
-    const dotBox2d::ChunkTypes chunkTypes{};
+    // struct
+    // {
+    //     const char INFO[4]{'I', 'N', 'F', 'O'};
+    //     const char WRLD[4]{'W', 'R', 'L', 'D'};
+    //     const char JOIN[4]{'J', 'O', 'I', 'N'};
+    //     const char BODY[4]{'B', 'O', 'D', 'Y'};
+    //     const char FXTR[4]{'F', 'X', 'T', 'R'};
+    //     const char VECT[4]{'V', 'E', 'C', 'T'};
+    // } DB2_NOTE(sizeof(ChunkTypes)) const chunkTypes{};
+
+    // const dotBox2d::ChunkTypes chunkTypes{};
 
     unsigned char head[8]{0xB2, 0x42, 0x32, 0x64, 0x0D, 0x0A, 0x1A, 0x0A};
-    dotB2Info info{};
 
-    dotB2Wrold *world{nullptr};
-    dotB2Body *body{nullptr};
-    dotB2Fixture *fixture{nullptr};
-    dotB2Body *joint{nullptr};
-    float *vec{nullptr};
+    struct
+    {
+        db2Vector<dotB2Info> info{"INFO"};
+        db2Vector<dotB2Wrold> world{"WRLD"};
+        db2Vector<dotB2Joint> joint{"JOIN"};
+        db2Vector<dotB2Body> body{"BODY"};
+        db2Vector<dotB2Fixture> fixture{"FXTR"};
+        db2Vector<float> vec{"VECT"};
+        /* user data */
+    } chunks;
 
     dotBox2d(const char *file = nullptr);
-    ~dotBox2d();
 
 public:
     auto load(const char *filePath) -> void;

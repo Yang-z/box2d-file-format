@@ -12,24 +12,20 @@ auto test_hardware_difference() -> void
 
 auto test_data_structure() -> void
 {
-    auto db2 = new dotBox2d();
-
-    // db2->info.count.world=1;
-    // db2->info.count.body=2;
-    // db2->info.count.fixture=3;
-    // db2->info.count.vec2=8;
-
-    // db2->world=new dotB2Wrold[1];
-    // db2->body = new dotB2Body[2];
-    // db2->fixture=new dotB2Fixture[3];
-    // db2->vec2=new dotB2Vec2[8];
-
+    // auto db2 = new dotBox2d();
+    // db2->chunks.info.push();
+    // db2->chunks.world.push();
+    // for(int i = 0; i<2;i++)
+    //     db2->chunks.body.push();
+    // for(int i = 0; i<3;i++)
+    //     db2->chunks.fixture.push();
+    // for(int i = 0; i<16;i++)
+    //     db2->chunks.vec.push();
     // db2->save("./test.B2d");
+    // delete db2;
+    // db2 = nullptr;
 
-    db2->load("./test.B2d");
-
-    delete db2;
-    db2 = nullptr;
+    dotBox2d db2{"./test.B2d"};
 
     return;
 }

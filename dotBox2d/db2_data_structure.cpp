@@ -1,11 +1,13 @@
 #include "db2_data_structure.h"
-#include "db2_hardware_difference.h"
 
 #include <fstream>
 #include <algorithm>
+
 #include <assert.h>
 
 #include <boost/pfr.hpp> //reflect
+
+#include "db2_hardware_difference.h"
 
 dotBox2d::dotBox2d(const char *file)
 {
@@ -26,7 +28,7 @@ auto dotBox2d::load(const char *filePath) -> void
 
     ENDIAN_SENSITIVE int chunkLength{0};
     char chunkType[4]{'N', 'U', 'L', 'L'};
-    int CRC{0};
+    uint32_t CRC{0};
 
     while (true)
     {
@@ -41,16 +43,15 @@ auto dotBox2d::load(const char *filePath) -> void
 
         boost::pfr::for_each_field(
             this->chunks,
-            [&fs, &chunkType, &chunkLength](auto &chunk)
+            [&fs, &chunkType, &chunkLength, &CRC](auto &chunk)
             {
                 if (std::equal(chunkType, chunkType + 4, chunk.tag))
                 {
                     chunk.read(fs, chunkLength);
+                    fs.read((char *)&CRC, sizeof(CRC));
+                    /* do CRC check here */
                 }
             });
-
-        fs.read((char *)&CRC, sizeof(CRC));
-        /* do CRC check here */
     };
     fs.close();
 

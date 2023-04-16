@@ -1,7 +1,8 @@
 #include "db2_hardware_difference.h"
 
-#include "db2_settings.h"
 // #include <arpa/inet.h>
+
+#include "db2_settings.h"
 
 auto hardwareDifference::getDataStructureAlignment(bool packed) -> long long
 {
@@ -17,7 +18,7 @@ auto hardwareDifference::getDataStructureAlignment(bool packed) -> long long
     {
         const char c;
         const __attribute__((packed)) __int128_t n;
-    };
+    } DB2_NOTE(sizeof(tester_p));;
 
     DB2_PRAGMA_PACK_OFF
 

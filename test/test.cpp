@@ -1,13 +1,14 @@
-#include "db2_hardware_difference.h"
-#include "db2_data_structure.h"
 
 #include <iostream>
+
+#include "db2_hardware_difference.h"
+#include "db2_data_structure.h"
 
 auto test_hardware_difference() -> void
 {
     std::cout << "Is little endian: " << (hardwareDifference::isLittleEndian() ? "true" : "false") << std::endl;
     std::cout << "Date Structure Alignment offset: " << hardwareDifference::getDataStructureAlignment() << std::endl;
-    std::cout << "Date Structure Alignment offset (packed): " << hardwareDifference::getDataStructureAlignment(true) << std::endl;
+    std::cout << "Date Structure Alignment offset (if packed): " << hardwareDifference::getDataStructureAlignment(true) << std::endl;
 }
 
 auto test_data_structure() -> void
@@ -20,7 +21,7 @@ auto test_data_structure() -> void
     // for(int i = 0; i<3;i++)
     //     db2->chunks.fixture.push();
     // for(int i = 0; i<16;i++)
-    //     db2->chunks.vec.push();
+    //     db2->chunks.vector.push();
     // db2->save("./test.B2d");
     // delete db2;
     // db2 = nullptr;

@@ -1,9 +1,10 @@
 #pragma once
 
-#include <math.h>
-#include <cstring>
 #include <fstream>
+#include <cstring>
+
 #include <assert.h>
+#include <math.h>
 
 template <typename T>
 class db2Vector
@@ -15,10 +16,12 @@ public:
     T *data{nullptr};
 
 public:
-    db2Vector(const char *tag)
+    db2Vector(const char *tag = nullptr)
     {
-        ::memcpy(this->tag, tag, 4);
+        if (tag)
+            ::memcpy(this->tag, tag, 4);
     }
+
     ~db2Vector()
     {
         if (!this->data)
@@ -55,7 +58,7 @@ public:
         ::free(data);
     }
 
-    auto read(std::ifstream &fs, const int &length)
+    auto read(std::ifstream &fs, const int &length) -> void
     {
         assert(length % sizeof(T) == 0);
         auto size = length / sizeof(T);
@@ -67,7 +70,7 @@ public:
         this->size += size;
     }
 
-    auto write(std::ofstream &fs)
+    auto write(std::ofstream &fs) -> void
     {
         auto length = this->size * sizeof(T);
         fs.write((char *)this->data, length);

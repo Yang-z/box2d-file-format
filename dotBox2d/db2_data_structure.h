@@ -96,7 +96,7 @@ struct dotB2Info
     //     int body{0};
     //     int fixture{0};
     //     int joint{0};
-    //     int vec{0};
+    //     int vector{0};
     // } count DB2_NOTE(sizeof(count));
 
 } DB2_NOTE(sizeof(dotB2Info));
@@ -127,7 +127,7 @@ public:
         db2Vector<dotB2Joint> joint{"JOIN"};
         db2Vector<dotB2Body> body{"BODY"};
         db2Vector<dotB2Fixture> fixture{"FXTR"};
-        db2Vector<float> vec{"VECT"};
+        db2Vector<float> vector{"VECT"};
         /* user data */
     } chunks;
 

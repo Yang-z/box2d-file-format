@@ -76,8 +76,8 @@ auto dotBox2d::save(const char *filePath) -> void
         this->chunks,
         [&fs](auto &chunk)
         {
-            if (chunk.size <= 0)
-                return;
+            // if (chunk.size <= 0)
+            //     return;
             int chunkLength = sizeof(chunk[0]) * chunk.size;
             fs.write((char *)&chunkLength, sizeof(chunkLength));
             fs.write((char *)chunk.tag, 4);

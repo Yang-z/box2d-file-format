@@ -9,6 +9,8 @@ PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_link_libraries(dotBox2d box2d)
+
 # set(CMAKE_CXX_FLAGS "-std=c++11")
 # set(CMAKE_CXX_STANDARD 14)
 set_target_properties(dotBox2d 

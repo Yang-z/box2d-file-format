@@ -3,6 +3,7 @@
 
 #include "db2_hardware_difference.h"
 #include "db2_data_structure.h"
+#include "db2_parser.h"
 
 auto test_hardware_difference() -> void
 {
@@ -35,6 +36,8 @@ auto main() -> int
 {
     test_hardware_difference();
     test_data_structure();
+
+    dotB2Parser p{};
 
     return 0;
 }

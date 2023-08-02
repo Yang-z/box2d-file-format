@@ -5,12 +5,12 @@
 
 #include <assert.h>
 
-#include <boost/pfr.hpp> //reflect
-
-#include "db2_hardware_difference.h"
+#include <boost/pfr.hpp> // reflect
 
 dotBox2d::dotBox2d(const char *file)
 {
+    assert(hardwareDifference::check());
+
     if (file)
         dotBox2d::load(file);
 }

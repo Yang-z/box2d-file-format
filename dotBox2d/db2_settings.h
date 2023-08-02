@@ -2,6 +2,16 @@
 
 #define DB2_NOTE(note)
 
+#include <cstdint>           // int8_t int16_t int32_t int64_t
+using int128_t = __int128_t; // GCC & Clang
+
+// #include <cfloat>
+// #include <boost/multiprecision/cpp_bin_float.hpp>
+// #include <stdfloat> // c++23
+using float32_t = float;
+using float64_t = double;
+
+#include <bit> // std::endian (c++20)
 #define ENDIAN_SENSITIVE
 
 #define DB2_PACK_SIZE 8

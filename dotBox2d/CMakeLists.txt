@@ -16,7 +16,7 @@ target_link_libraries(dotBox2d box2d)
 set_target_properties(dotBox2d 
 PROPERTIES
     LINKER_LANGUAGE CXX
-	CXX_STANDARD 14
+	CXX_STANDARD 23
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
     # VERSION ${PROJECT_VERSION}

@@ -29,10 +29,10 @@ auto dotB2Parser::parse() -> void
         b2bdef.enabled = db2b.enabled;
         b2bdef.gravityScale = db2b.gravityScale;
 
-        b2bdef.userData.pointer = (unsigned long long)&db2b;
+        b2bdef.userData.pointer = (uintptr_t)&db2b;
 
         auto *b2b = b2w->CreateBody(&b2bdef);
-        db2b.userData = (unsigned long long)b2b;
+        db2b.userData = (uint64_t)b2b;
 
         for (auto j = db2b.fixture_begin; j <= db2b.fixture_end; j++)
         {
@@ -64,8 +64,8 @@ auto dotB2Parser::parse() -> void
                 shape.m_p = {db2v[p0++], db2v[p0++]};
 
                 b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (unsigned long long)&db2f;
-                db2f.userData = (unsigned long long)b2b->CreateFixture(&b2fdef);
+                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
 
@@ -82,8 +82,8 @@ auto dotB2Parser::parse() -> void
                 shape.m_oneSided = (bool)db2v[p0++];
 
                 b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (unsigned long long)&db2f;
-                db2f.userData = (unsigned long long)b2b->CreateFixture(&b2fdef);
+                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
 
@@ -102,8 +102,8 @@ auto dotB2Parser::parse() -> void
                 shape.Set(points, count);
 
                 b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (unsigned long long)&db2f;
-                db2f.userData = (unsigned long long)b2b->CreateFixture(&b2fdef);
+                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
 
@@ -128,8 +128,8 @@ auto dotB2Parser::parse() -> void
                 shape.m_nextVertex = {db2v[pe - 1], db2v[pe - 0]};
 
                 b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (unsigned long long)&db2f;
-                db2f.userData = (unsigned long long)b2b->CreateFixture(&b2fdef);
+                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
             }

@@ -122,12 +122,12 @@ public:
 
     struct
     {
-        db2Vector<dotB2Info> info{"INFO"};
-        db2Vector<dotB2Wrold> world{"WRLD"};
-        db2Vector<dotB2Joint> joint{"JOIN"};
-        db2Vector<dotB2Body> body{"BODY"};
-        db2Vector<dotB2Fixture> fixture{"FXTR"};
-        db2Vector<float> vector{"VECT"};
+        db2Container<dotB2Info> info{"INFO"};
+        db2Container<dotB2Wrold> world{"WRLD"};
+        db2Container<dotB2Joint> joint{"JOIN"};
+        db2Container<dotB2Body> body{"BODY"};
+        db2Container<dotB2Fixture> fixture{"FXTR"};
+        db2Container<float> vector{"VECT"};
         /* user data */
     } chunks;
 

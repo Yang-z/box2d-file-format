@@ -7,7 +7,12 @@
 #include <math.h>
 
 template <typename T>
-class db2Vector
+/*
+It's a std::vector-like container.
+Vector is a concept in maths or physics, and it's not a suitable name for the STL.
+In order to avoid conceptual confusion, this container is not namaned as 'vector'.
+*/
+class db2Container
 {
 public:
     int size{0};
@@ -16,13 +21,13 @@ public:
     T *data{nullptr};
 
 public:
-    db2Vector(const char *tag = nullptr)
+    db2Container(const char *tag = nullptr)
     {
         if (tag)
             ::memcpy(this->tag, tag, 4);
     }
 
-    ~db2Vector()
+    ~db2Container()
     {
         if (!this->data)
             return;

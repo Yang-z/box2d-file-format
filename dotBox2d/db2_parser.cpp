@@ -7,8 +7,8 @@ auto dotB2Parser::parse() -> void
     auto &db2v = db2->chunks.vector;
 
     auto &db2w = db2->chunks.world[0];
-    b2Vec2 gravity = {db2w.gravity_x, db2w.gravity_y};
-    b2w = new b2World(gravity);
+    b2Vec2 gravity{db2w.gravity_x, db2w.gravity_y};
+    this->b2w = new b2World{gravity};
 
     for (auto i = db2w.body_begin; i <= db2w.body_end; ++i)
     {

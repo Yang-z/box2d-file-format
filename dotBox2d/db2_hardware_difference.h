@@ -11,6 +11,8 @@ public:
     static auto isBigEndian() -> bool;
     static auto reverseEndian(char *source, uint8_t length) -> void;
 
+    static auto isLittleEndian_Bit() -> bool;
+
     static auto IEEE754() -> bool;
 
     static auto check() -> bool;

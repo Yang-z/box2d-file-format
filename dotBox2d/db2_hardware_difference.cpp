@@ -2,7 +2,7 @@
 
 #include <limits> // std::numeric_limits<float>::is_iec559
 
-auto hardwareDifference::getDataStructureAlignment(bool packed) -> unsigned char
+auto hardwareDifference::getDataStructureAlignment(bool packed) -> uint8_t
 {
     DB2_PRAGMA_PACK_ON
 
@@ -23,12 +23,12 @@ auto hardwareDifference::getDataStructureAlignment(bool packed) -> unsigned char
 
     if (!packed)
     {
-        static const auto offset = (unsigned char)&(((tester *)0)->n);
+        static const uint8_t offset = (uintptr_t) & (((tester *)0)->n);
         return offset;
     }
     else
     {
-        static const auto offset_packed = (unsigned char)&(((tester_p *)0)->n);
+        static const uint8_t offset_packed = (uintptr_t) & (((tester_p *)0)->n);
         return offset_packed;
     }
 }
@@ -54,7 +54,7 @@ auto hardwareDifference::reverseEndian(char *source, uint8_t length) -> void
     int begin = 0;
     int end = length - 1;
     char temp{};
-    while (begin > end)
+    while (begin < end)
     {
         temp = source[begin];
         source[begin] = source[end];
@@ -64,6 +64,33 @@ auto hardwareDifference::reverseEndian(char *source, uint8_t length) -> void
     }
 }
 
+auto hardwareDifference::isLittleEndian_Bit() -> bool
+{
+    struct bit_order
+    {
+        bool a : 1;
+        uint8_t b : 2;
+        uint8_t c : 3;
+        uint8_t d : 2;
+    } DB2_NOTE(sizeof(bit_order));
+
+    static const uint8_t ch = 0b01001001;
+    static struct bit_order const *const ptr = (struct bit_order *)&ch;
+
+    /*
+    "bit address"    0    1    2    3    4    5    6    7
+
+    big endian       0    1    0    0    1    0    0    1
+    little endian    1    0    0    1    0    0    1    0
+                     ~    ~~~~~~    ~~~~~~~~~~~    ~~~~~~
+                     a       b           c           d
+    big endian     false  0b10(2)     0b010(2)     0b01(1)
+    little endian  true   0b00(0)     0b001(1)     0b01(1)
+    */
+
+    return ptr->a;
+}
+
 auto hardwareDifference::IEEE754() -> bool
 {
     static const bool ieee754_f = std::numeric_limits<float>::is_iec559; // IEEE 754
@@ -71,10 +98,12 @@ auto hardwareDifference::IEEE754() -> bool
     static const bool size32_f = (sizeof(float) * 8 == 32);
 
     static const bool ieee754_d = std::numeric_limits<double>::is_iec559; // IEEE 754
-    static const bool digits52_d = (std::numeric_limits<double>::digits == 52);
+    static const bool digits53_d = (std::numeric_limits<double>::digits == 53);
     static const bool size64_d = (sizeof(double) * 8 == 64);
 
-    return ieee754_f && digits24_f && size32_f && ieee754_d && digits52_d && size64_d;
+    static const bool result = ieee754_f && digits24_f && size32_f && ieee754_d && digits53_d && size64_d;
+
+    return result;
 }
 
 auto hardwareDifference::check() -> bool

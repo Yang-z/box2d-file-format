@@ -11,8 +11,10 @@ dotBox2d::dotBox2d(const char *file)
 {
     assert(hardwareDifference::check());
 
-    if (file)
-        dotBox2d::load(file);
+    if (!file)
+        return;
+
+    dotBox2d::load(file);
 }
 
 auto dotBox2d::load(const char *filePath) -> void
@@ -78,13 +80,13 @@ auto dotBox2d::save(const char *filePath) -> void
         {
             // if (chunk.size <= 0)
             //     return;
-            int chunkLength = sizeof(chunk[0]) * chunk.size;
+            int32_t chunkLength = sizeof(chunk[0]) * chunk.size;
             fs.write((char *)&chunkLength, sizeof(chunkLength));
             fs.write((char *)chunk.tag, 4);
             // fs.write((char *)&chunk[0], chunkLength);
             chunk.write(fs);
             /* handle CRC here*/
-            int CRC{0};
+            uint32_t CRC{0};
             fs.write((char *)&CRC, sizeof(CRC));
         });
 

@@ -60,9 +60,9 @@ ENDIAN_SENSITIVE struct dotB2Joint
     int32_t bodyA{-0}; // index
     int32_t bodyB{-0}; // index
     bool collideConnected{false};
-
+    /* 3 bytes gape*/
     int32_t para; // index, and for a specified type of joint, the length is fixed.
-
+    /* 4 bytes gape*/
     uint64_t userData{-0};
 
 } DB2_NOTE(sizeof(dotB2Joint) == 32);
@@ -82,7 +82,7 @@ ENDIAN_SENSITIVE struct dotB2Wrold
 struct dotB2Info
 {
     const uint8_t packSize{DB2_PACK_SIZE};
-    bool isLittleEndian{true};
+    bool isLittleEndian{hardwareDifference::isLittleEndian()};
 
     struct
     {
@@ -92,11 +92,11 @@ struct dotB2Info
 
     // ENDIAN_SENSITIVE struct Count
     // {
-    //     int world{0};
-    //     int body{0};
-    //     int fixture{0};
-    //     int joint{0};
-    //     int vector{0};
+    //     int32_t world{0};
+    //     int32_t body{0};
+    //     int32_t fixture{0};
+    //     int32_t joint{0};
+    //     int32_t vector{0};
     // } count DB2_NOTE(sizeof(count));
 
 } DB2_NOTE(sizeof(dotB2Info) == 8);
@@ -127,7 +127,7 @@ public:
         db2Container<dotB2Joint> joint{"JOIN"};
         db2Container<dotB2Body> body{"BODY"};
         db2Container<dotB2Fixture> fixture{"FXTR"};
-        db2Container<float> vector{"VECT"};
+        db2Container<float32_t> vector{"VECT"};
         /* user data */
     } chunks;
 

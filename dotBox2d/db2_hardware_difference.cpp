@@ -17,7 +17,6 @@ auto hardwareDifference::getDataStructureAlignment(bool packed) -> uint8_t
         const char c;
         const __attribute__((packed)) int128_t n;
     } DB2_NOTE(sizeof(tester_p));
-    ;
 
     DB2_PRAGMA_PACK_OFF
 

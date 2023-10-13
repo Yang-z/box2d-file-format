@@ -41,7 +41,10 @@ public:
 
     auto operator[](const int &i) -> T &
     {
-        return this->data[i];
+        if (i >= 0)
+            return this->data[i];
+        else
+            return this->data[this->size + i];
     }
 
     auto reserve(int capacity, bool expand = false) -> void
@@ -84,7 +87,7 @@ public:
     auto push() -> T &
     {
         this->reserve(this->size + 1, true);
-        ::new (this->data + this->size) T();
+        // ::new (this->data + this->size) T();
         return this->data[this->size++];
     }
 

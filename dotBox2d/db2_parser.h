@@ -9,7 +9,9 @@ public:
     dotBox2d *db2{nullptr};
     b2World *b2w{nullptr};
 
-    dotB2Parser(){};
+    // dotB2Parser(){};
+    ~dotB2Parser();
 
     auto parse() -> void;
+    auto encode() -> void;
 };

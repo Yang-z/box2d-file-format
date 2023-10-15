@@ -168,12 +168,11 @@ auto dotB2Parser::encode() -> void
     auto _db2 = new dotBox2d();
 
     /*info*/
-    _db2->chunks.info.push();
-    new (&(_db2->chunks.info[0])) dotB2Info; // default
+    // constructs an element in-place at the end
+    _db2->chunks.info.emplace_back(); // default
 
     /*world*/
-    _db2->chunks.world.push();
-    new (&(_db2->chunks.world[-1])) dotB2Wrold{
+    _db2->chunks.world.emplace_back(
         this->b2w->GetGravity().x,
         this->b2w->GetGravity().y,
 
@@ -181,16 +180,14 @@ auto dotB2Parser::encode() -> void
         _db2->chunks.body.size + this->b2w->GetBodyCount() - 1,
 
         _db2->chunks.joint.size,
-        _db2->chunks.joint.size + this->b2w->GetJointCount() - 1,
-    };
+        _db2->chunks.joint.size + this->b2w->GetJointCount() - 1);
 
     /*body*/
 
     auto b2body0 = this->b2w->GetBodyList();
     for (auto b2b = b2body0; b2b; b2b = b2b->GetNext())
     {
-        _db2->chunks.body.push();
-        new (&(_db2->chunks.body[-1])) dotB2Body{
+        _db2->chunks.body.emplace_back(
             b2b->GetType(),
             b2b->GetPosition().x,
             b2b->GetPosition().y,
@@ -211,15 +208,12 @@ auto dotB2Parser::encode() -> void
             _db2->chunks.fixture.size,
             -1, //
 
-            (uint64_t)b2b};
+            (uint64_t)b2b);
 
         auto b2fixture0 = b2b->GetFixtureList();
-        // int32_t fixture_count = 0;
         for (auto b2f = b2fixture0; b2f; b2f = b2f->GetNext())
         {
-            // fixture_count++;
-            _db2->chunks.fixture.push();
-            new (&(_db2->chunks.fixture[-1])) dotB2Fixture{
+            _db2->chunks.fixture.emplace_back(
                 b2f->GetFriction(),
                 b2f->GetRestitution(),
                 b2f->GetRestitutionThreshold(),
@@ -238,7 +232,7 @@ auto dotB2Parser::encode() -> void
                 _db2->chunks.vector.size,
                 -1, //
 
-                (uint64_t)b2f};
+                (uint64_t)b2f);
 
             /*shape*/
 
@@ -249,74 +243,65 @@ auto dotB2Parser::encode() -> void
             {
                 auto b2s_c = (b2CircleShape *)b2s;
 
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_c->m_p.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_c->m_p.y};
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size + 1 * 2);
+
+                _db2->chunks.vector.emplace_back(b2s_c->m_p.x);
+                _db2->chunks.vector.emplace_back(b2s_c->m_p.y);
             }
             break;
+
             case b2Shape::e_edge:
             {
                 auto b2s_e = (b2EdgeShape *)b2s;
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex0.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex0.y};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex1.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex1.y};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex2.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex2.y};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex3.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_e->m_vertex3.y};
 
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{(float32_t)b2s_e->m_oneSided};
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size + 4 * 2 + 1);
+
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex0.x);
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex0.y);
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex1.x);
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex1.y);
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex2.x);
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex2.y);
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex3.x);
+                _db2->chunks.vector.emplace_back(b2s_e->m_vertex3.y);
+
+                _db2->chunks.vector.emplace_back((float32_t)b2s_e->m_oneSided);
             }
             break;
 
             case b2Shape::e_polygon:
             {
                 auto b2s_p = (b2PolygonShape *)b2s;
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_p->m_centroid.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_p->m_centroid.y};
+
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size + 1 * 2 + b2s_p->m_count * 2);
+
+                _db2->chunks.vector.emplace_back(b2s_p->m_centroid.x);
+                _db2->chunks.vector.emplace_back(b2s_p->m_centroid.y);
 
                 for (int i = 0; i < b2s_p->m_count; i++)
                 {
-                    _db2->chunks.vector.push();
-                    new (&(_db2->chunks.vector[-1])) float32_t{b2s_p->m_vertices[i].x};
-                    _db2->chunks.vector.push();
-                    new (&(_db2->chunks.vector[-1])) float32_t{b2s_p->m_vertices[i].y};
+                    _db2->chunks.vector.emplace_back(b2s_p->m_vertices[i].x);
+                    _db2->chunks.vector.emplace_back(b2s_p->m_vertices[i].y);
                 }
             }
             break;
+
             case b2Shape::e_chain:
             {
                 auto b2s_chain = (b2ChainShape *)b2s;
 
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size + b2s_chain->m_count * 2 + 2 * 2);
+
                 for (int i = 0; i < b2s_chain->m_count; i++)
                 {
-                    _db2->chunks.vector.push();
-                    new (&(_db2->chunks.vector[-1])) float32_t{b2s_chain->m_vertices[i].x};
-                    _db2->chunks.vector.push();
-                    new (&(_db2->chunks.vector[-1])) float32_t{b2s_chain->m_vertices[i].y};
+                    _db2->chunks.vector.emplace_back(b2s_chain->m_vertices[i].x);
+                    _db2->chunks.vector.emplace_back(b2s_chain->m_vertices[i].y);
                 }
 
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_chain->m_prevVertex.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_chain->m_prevVertex.y};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_chain->m_nextVertex.x};
-                _db2->chunks.vector.push();
-                new (&(_db2->chunks.vector[-1])) float32_t{b2s_chain->m_nextVertex.y};
+                _db2->chunks.vector.emplace_back(b2s_chain->m_prevVertex.x);
+                _db2->chunks.vector.emplace_back(b2s_chain->m_prevVertex.y);
+                _db2->chunks.vector.emplace_back(b2s_chain->m_nextVertex.x);
+                _db2->chunks.vector.emplace_back(b2s_chain->m_nextVertex.y);
             }
             break;
             }

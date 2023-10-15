@@ -6,12 +6,12 @@
 #include <assert.h>
 #include <math.h>
 
-template <typename T>
 /*
 It's a std::vector-like container.
 Vector is a concept in maths or physics, and it's not a suitable name for the STL.
 In order to avoid conceptual confusion, this container is not namaned as 'vector'.
 */
+template <typename T>
 class db2Container
 {
 public:
@@ -39,15 +39,13 @@ public:
         this->data = nullptr;
     }
 
-    auto operator[](const int &i) -> T &
+    auto operator[](int index) -> T &
     {
-        if (i >= 0)
-            return this->data[i];
-        else
-            return this->data[this->size + i];
+        this->nomalizeIndex(index);
+        return this->data[index];
     }
 
-    auto reserve(int capacity, bool expand = false) -> void
+    auto reserve(int capacity, bool expand = true) -> void
     {
         if (capacity <= this->capacity)
             return;
@@ -66,12 +64,30 @@ public:
         ::free(data);
     }
 
+    auto resize(const int &size) -> void
+    {
+        if (size == this->size)
+            return;
+        else if (size < this->size)
+        {
+            for (int i = size; i < this->size; i++)
+                (this->data + i)->~T();
+        }
+        else if (size > this->size)
+        {
+            this->reserve(size);
+            for (int i = this->size; i < size; i++)
+                new (this->data + i) T();
+        }
+        this->size = size;
+    }
+
     auto read(std::ifstream &fs, const int &length) -> void
     {
         assert(length % sizeof(T) == 0);
         auto size = length / sizeof(T);
 
-        this->reserve(this->size + size);
+        this->reserve(this->size + size, false);
 
         auto begin = this->data + this->size;
         fs.read((char *)(begin), size * sizeof(T));
@@ -86,8 +102,8 @@ public:
 
     auto push() -> T &
     {
-        this->reserve(this->size + 1, true);
-        // ::new (this->data + this->size) T();
+        this->reserve(this->size + 1);
+        ::new (this->data + this->size) T();
         return this->data[this->size++];
     }
 
@@ -96,11 +112,29 @@ public:
         (this->data + --this->size)->~T();
     }
 
+    template <typename... Args>
+    auto emplace_back(const Args &...args) -> T &
+    {
+        // this->reserve(this->size++ + 1); // wrong
+        this->reserve(this->size + 1);
+        ++this->size;
+
+        ::new (this->data + this->size - 1) T(args...);
+        return this->data[this->size - 1];
+    }
+
 private:
     auto expandCapacity(const int &size) -> int
     {
         auto exp = int(std::log2(size));
         auto capacity = int(std::pow(2, exp + 1));
         return capacity;
+    }
+
+    inline auto nomalizeIndex(int &index) -> void
+    {
+        if (index < 0)
+            index += this->size;
+        assert(index >= 0 && index < this->size);
     }
 };

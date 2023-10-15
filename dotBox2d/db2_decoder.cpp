@@ -1,14 +1,14 @@
-#include "db2_parser.h"
+#include "db2_decoder.h"
 
 #include <assert.h>
 
-dotB2Parser::~dotB2Parser()
+dotB2Decoder::~dotB2Decoder()
 {
     delete this->db2;
     delete this->b2w;
 }
 
-auto dotB2Parser::parse() -> void
+auto dotB2Decoder::decode() -> void
 {
     if (!this->db2)
         return;
@@ -160,7 +160,7 @@ auto dotB2Parser::parse() -> void
     }
 }
 
-auto dotB2Parser::encode() -> void
+auto dotB2Decoder::encode() -> void
 {
     if (!this->b2w)
         return;

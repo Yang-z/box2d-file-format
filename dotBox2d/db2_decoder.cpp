@@ -183,10 +183,15 @@ auto dotB2Decoder::encode() -> void
         _db2->chunks.joint.size + this->b2w->GetJointCount() - 1);
 
     /*body*/
+    db2Container<b2Body *> bodies{};
+    bodies.reserve(this->b2w->GetBodyCount(), false);
+    for (auto b2b = this->b2w->GetBodyList(); b2b; b2b = b2b->GetNext())
+        bodies.push(b2b);
 
-    auto b2body0 = this->b2w->GetBodyList();
-    for (auto b2b = b2body0; b2b; b2b = b2b->GetNext())
+    for (int i = bodies.size - 1; i >= 0; --i) // reverse order
     {
+        auto b2b = bodies[i];
+
         _db2->chunks.body.emplace_back(
             b2b->GetType(),
             b2b->GetPosition().x,
@@ -210,9 +215,16 @@ auto dotB2Decoder::encode() -> void
 
             (uint64_t)b2b);
 
-        auto b2fixture0 = b2b->GetFixtureList();
-        for (auto b2f = b2fixture0; b2f; b2f = b2f->GetNext())
+        /*fixture*/
+        db2Container<b2Fixture *> fixtures{};
+        // fixtures.reserve(b2b->GetFixtureCount(), false); // no way to get fixture count directly
+        for (auto b2f = b2b->GetFixtureList(); b2f; b2f = b2f->GetNext())
+            fixtures.push(b2f);
+
+        for (int i = fixtures.size - 1; i >= 0; --i) // reverse order
         {
+            auto b2f = fixtures[i];
+
             _db2->chunks.fixture.emplace_back(
                 b2f->GetFriction(),
                 b2f->GetRestitution(),
@@ -305,7 +317,6 @@ auto dotB2Decoder::encode() -> void
             }
             break;
             }
-
             _db2->chunks.fixture[-1].shape_vec_end = _db2->chunks.vector.size - 1;
         }
         _db2->chunks.body[-1].fixture_end = _db2->chunks.fixture.size - 1;

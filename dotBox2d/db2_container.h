@@ -100,11 +100,11 @@ public:
         fs.write((char *)this->data, length);
     }
 
-    auto push() -> T &
+    auto push(const T &t) -> void
     {
         this->reserve(this->size + 1);
-        ::new (this->data + this->size) T();
-        return this->data[this->size++];
+        ::new (this->data + this->size) T(t);
+        ++this->size;
     }
 
     auto pop() -> void
@@ -113,7 +113,7 @@ public:
     }
 
     template <typename... Args>
-    auto emplace_back(const Args &...args) -> T &
+    auto emplace_back(Args &&...args) -> T &
     {
         // this->reserve(this->size++ + 1); // wrong
         this->reserve(this->size + 1);

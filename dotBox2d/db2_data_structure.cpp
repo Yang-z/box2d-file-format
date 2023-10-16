@@ -5,7 +5,7 @@
 
 #include <assert.h>
 
-#include <boost/pfr.hpp> // reflect
+#include <boost/pfr/core.hpp> // reflect
 
 dotBox2d::dotBox2d(const char *file)
 {

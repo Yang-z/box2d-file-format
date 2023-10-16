@@ -19,7 +19,7 @@ auto dotB2Decoder::decode() -> void
     b2Vec2 gravity{db2w.gravity_x, db2w.gravity_y};
     this->b2w = new b2World{gravity};
 
-    for (auto i = db2w.body_begin; i <= db2w.body_end; ++i)
+    for (auto i = db2w.bodyList; i <= db2w.bodyList + db2w.bodyCount - 1; ++i)
     {
         auto &db2b = db2->chunks.body[i];
 
@@ -48,7 +48,7 @@ auto dotB2Decoder::decode() -> void
         auto *b2b = b2w->CreateBody(&b2bdef);
         db2b.userData = (uint64_t)b2b;
 
-        for (auto j = db2b.fixture_begin; j <= db2b.fixture_end; j++)
+        for (auto j = db2b.fixtureList; j <= db2b.fixtureList + db2b.fixtureCount - 1; j++)
         {
             dotB2Fixture &db2f = db2->chunks.fixture[j];
             b2FixtureDef b2fdef{};
@@ -63,15 +63,14 @@ auto dotB2Decoder::decode() -> void
             b2fdef.filter.maskBits = db2f.filter_maskBits;
             b2fdef.filter.groupIndex = db2f.filter_groupIndex;
 
-            auto p0 = db2f.shape_vec_begin;
-            auto pe = db2f.shape_vec_end;
+            auto p0 = db2f.shape_vecList;
 
             switch ((b2Shape::Type)db2f.shape_type)
             {
 
             case b2Shape::Type::e_circle:
             {
-                assert(pe - p0 + 1 >= 2);
+                assert(db2f.shape_vecCount >= 2);
                 auto shape = b2CircleShape();
                 shape.m_radius = db2f.shape_radius;
 
@@ -85,7 +84,7 @@ auto dotB2Decoder::decode() -> void
 
             case b2Shape::e_edge:
             {
-                assert(pe - p0 + 1 >= 9);
+                assert(db2f.shape_vecCount >= 9);
 
                 auto shape = b2EdgeShape();
                 shape.m_radius = db2f.shape_radius; // default: b2_polygonRadius
@@ -104,16 +103,11 @@ auto dotB2Decoder::decode() -> void
 
             case b2Shape::e_polygon:
             {
-
-                assert((pe - p0 + 1) % 2 == 0);
-                auto count = (pe - p0 + 1) / 2 - 1;
-                assert(3 <= count <= b2_maxPolygonVertices);
-
                 auto shape = b2PolygonShape();
                 shape.m_radius = db2f.shape_radius; // default: b2_polygonRadius
 
-                shape.m_centroid = {db2v[p0++], db2v[p0++]};
                 auto points = (b2Vec2 *)(&(db2v[p0]));
+                auto count = db2f.shape_vecCount / 2 - 1;
                 shape.Set(points, count);
 
                 b2fdef.shape = &shape;
@@ -124,7 +118,7 @@ auto dotB2Decoder::decode() -> void
 
             case b2Shape::e_chain:
             {
-                assert((pe - p0 + 1) % 2 == 0);
+                assert(db2f.shape_vecCount >= 8);
 
                 auto shape = b2ChainShape();
                 shape.m_radius = db2f.shape_radius;
@@ -135,20 +129,13 @@ auto dotB2Decoder::decode() -> void
                 they are the same.
                 */
 
-                // auto count = (pe - p0 + 1) / 2 - 2;
-                // auto points = (b2Vec2 *)(&(db2v[p0]));
-                // shape.CreateChain(
-                //     points,
-                //     count,
-                //     {db2v[p0 + count * 2 + 0], db2v[p0 + count * 2 + 1]},
-                //     {db2v[p0 + count * 2 + 2], db2v[p0 + count * 2 + 3]});
-
-                shape.m_vertices = (b2Vec2 *)(&(db2v[p0]));
-                shape.m_count = (pe - p0 + 1) / 2 - 2;
-                shape.m_prevVertex = {db2v[pe - 3], db2v[pe - 2]};
-                shape.m_nextVertex = {db2v[pe - 1], db2v[pe - 0]};
-
-                /*do some distance check here?*/
+                auto points = (b2Vec2 *)(&(db2v[p0]));
+                auto count = db2f.shape_vecCount / 2 - 2;
+                shape.CreateChain(
+                    points,
+                    count,
+                    {db2v[p0 + count * 2 + 0], db2v[p0 + count * 2 + 1]},
+                    {db2v[p0 + count * 2 + 2], db2v[p0 + count * 2 + 3]});
 
                 b2fdef.shape = &shape;
                 b2fdef.userData.pointer = (uintptr_t)&db2f;
@@ -177,10 +164,10 @@ auto dotB2Decoder::encode() -> void
         this->b2w->GetGravity().y,
 
         _db2->chunks.body.size,
-        _db2->chunks.body.size + this->b2w->GetBodyCount() - 1,
+        this->b2w->GetBodyCount(),
 
         _db2->chunks.joint.size,
-        _db2->chunks.joint.size + this->b2w->GetJointCount() - 1);
+        this->b2w->GetJointCount());
 
     /*body*/
     db2Container<b2Body *> bodies{};
@@ -211,7 +198,7 @@ auto dotB2Decoder::encode() -> void
             b2b->GetGravityScale(),
 
             _db2->chunks.fixture.size,
-            -1, //
+            0, //
 
             (uint64_t)b2b);
 
@@ -220,6 +207,8 @@ auto dotB2Decoder::encode() -> void
         // fixtures.reserve(b2b->GetFixtureCount(), false); // no way to get fixture count directly
         for (auto b2f = b2b->GetFixtureList(); b2f; b2f = b2f->GetNext())
             fixtures.push(b2f);
+
+        _db2->chunks.body[-1].fixtureCount = fixtures.size;
 
         for (int i = fixtures.size - 1; i >= 0; --i) // reverse order
         {
@@ -242,7 +231,7 @@ auto dotB2Decoder::encode() -> void
                 b2f->GetShape()->m_radius,
 
                 _db2->chunks.vector.size,
-                -1, //
+                0, //
 
                 (uint64_t)b2f);
 
@@ -285,10 +274,7 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_p = (b2PolygonShape *)b2s;
 
-                _db2->chunks.vector.reserve(_db2->chunks.vector.size + 1 * 2 + b2s_p->m_count * 2);
-
-                _db2->chunks.vector.emplace_back(b2s_p->m_centroid.x);
-                _db2->chunks.vector.emplace_back(b2s_p->m_centroid.y);
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size + b2s_p->m_count * 2);
 
                 for (int i = 0; i < b2s_p->m_count; i++)
                 {
@@ -317,9 +303,8 @@ auto dotB2Decoder::encode() -> void
             }
             break;
             }
-            _db2->chunks.fixture[-1].shape_vec_end = _db2->chunks.vector.size - 1;
+            _db2->chunks.fixture[-1].shape_vecCount = _db2->chunks.vector.size - _db2->chunks.fixture[-1].shape_vecList;
         }
-        _db2->chunks.body[-1].fixture_end = _db2->chunks.fixture.size - 1;
     }
     delete this->db2;
     this->db2 = _db2;

@@ -23,8 +23,8 @@ ENDIAN_SENSITIVE struct dotB2Fixture
     float32_t shape_radius{-0.0f};
     // bool shape_oneSided;//?
 
-    int32_t shape_vec_begin{-0};
-    int32_t shape_vec_end{-0};
+    int32_t shape_vecList{-0};
+    int32_t shape_vecCount{0};
 
     uint64_t userData{-0};
 } DB2_NOTE(sizeof(dotB2Fixture) == 48);
@@ -48,8 +48,8 @@ ENDIAN_SENSITIVE struct dotB2Body
     /* 3 bytes gape*/
     float32_t gravityScale{1.0f};
 
-    int32_t fixture_begin{-0};
-    int32_t fixture_end{-0};
+    int32_t fixtureList{-0};
+    int32_t fixtureCount{0};
 
     uint64_t userData{-0};
 } DB2_NOTE(sizeof(dotB2Body) == 64);
@@ -72,11 +72,11 @@ ENDIAN_SENSITIVE struct dotB2Wrold
     float32_t gravity_x{0.0f};
     float32_t gravity_y{0.0f};
 
-    int32_t body_begin{-0};
-    int32_t body_end{-0};
+    int32_t bodyList{-0};
+    int32_t bodyCount{0};
 
-    int32_t joint_begin{-0};
-    int32_t joint_end{-0};
+    int32_t jointList{-0};
+    int32_t jointCount{0};
 } DB2_NOTE(sizeof(dotB2Wrold) == 24);
 
 struct dotB2Info

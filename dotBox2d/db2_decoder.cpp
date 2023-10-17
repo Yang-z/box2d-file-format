@@ -19,6 +19,7 @@ auto dotB2Decoder::decode() -> void
     b2Vec2 gravity{db2w.gravity_x, db2w.gravity_y};
     this->b2w = new b2World{gravity};
 
+    /*body*/
     for (auto i = db2w.bodyList; i <= db2w.bodyList + db2w.bodyCount - 1; ++i)
     {
         auto &db2b = db2->chunks.body[i];
@@ -43,12 +44,13 @@ auto dotB2Decoder::decode() -> void
         b2bdef.enabled = db2b.enabled;
         b2bdef.gravityScale = db2b.gravityScale;
 
-        b2bdef.userData.pointer = (uintptr_t)&db2b;
+        b2bdef.userData.pointer = (uintptr_t)i;
 
         auto *b2b = b2w->CreateBody(&b2bdef);
         db2b.userData = (uint64_t)b2b;
 
-        for (auto j = db2b.fixtureList; j <= db2b.fixtureList + db2b.fixtureCount - 1; j++)
+        /*fixture*/
+        for (auto j = db2b.fixtureList; j <= db2b.fixtureList + db2b.fixtureCount - 1; ++j)
         {
             dotB2Fixture &db2f = db2->chunks.fixture[j];
             b2FixtureDef b2fdef{};
@@ -77,7 +79,7 @@ auto dotB2Decoder::decode() -> void
                 shape.m_p = {db2v[p0++], db2v[p0++]};
 
                 b2fdef.shape = &shape; // The shape will be cloned
-                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                b2fdef.userData.pointer = (uintptr_t)j;
                 db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
@@ -96,7 +98,7 @@ auto dotB2Decoder::decode() -> void
                 shape.m_oneSided = (bool)db2v[p0++];
 
                 b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                b2fdef.userData.pointer = (uintptr_t)j;
                 db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
@@ -111,7 +113,7 @@ auto dotB2Decoder::decode() -> void
                 shape.Set(points, count);
 
                 b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                b2fdef.userData.pointer = (uintptr_t)j;
                 db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
@@ -128,7 +130,6 @@ auto dotB2Decoder::decode() -> void
                 Since we record the "fusion point", m_prevVertex and m_nextVertex,
                 they are the same.
                 */
-
                 auto points = (b2Vec2 *)(&(db2v[p0]));
                 auto count = db2f.shape_vecCount / 2 - 2;
                 shape.CreateChain(
@@ -138,11 +139,264 @@ auto dotB2Decoder::decode() -> void
                     {db2v[p0 + count * 2 + 2], db2v[p0 + count * 2 + 3]});
 
                 b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (uintptr_t)&db2f;
+                b2fdef.userData.pointer = (uintptr_t)j;
                 db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
             }
             break;
             }
+        }
+    }
+
+    /*joint*/
+    for (auto i = db2w.jointList; i <= db2w.jointList + db2w.jointCount - 1; ++i)
+    {
+        auto &db2j = db2->chunks.joint[i];
+
+        switch (b2JointType(db2j.type))
+        {
+        case b2JointType::e_revoluteJoint:
+        {
+            b2RevoluteJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 11;
+
+            b2jdef.localAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.referenceAngle = db2v[p++];
+            b2jdef.enableLimit = (bool)db2v[p++];
+            b2jdef.lowerAngle = db2v[p++];
+            b2jdef.upperAngle = db2v[p++];
+            b2jdef.enableMotor = (bool)db2v[p++];
+            b2jdef.motorSpeed = db2v[p++];
+            b2jdef.maxMotorTorque = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_prismaticJoint:
+        {
+            b2PrismaticJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 13;
+
+            b2jdef.localAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.localAxisA = {db2v[p++], db2v[p++]};
+            b2jdef.referenceAngle = db2v[p++];
+            b2jdef.enableLimit = (bool)db2v[p++];
+            b2jdef.lowerTranslation = db2v[p++];
+            b2jdef.upperTranslation = db2v[p++];
+            b2jdef.enableMotor = (bool)db2v[p++];
+            b2jdef.maxMotorForce = db2v[p++];
+            b2jdef.motorSpeed = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_distanceJoint:
+        {
+            b2DistanceJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 9;
+
+            b2jdef.localAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.length = db2v[p++];
+            b2jdef.minLength = db2v[p++];
+            b2jdef.maxLength = db2v[p++];
+            b2jdef.stiffness = db2v[p++];
+            b2jdef.damping = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_pulleyJoint:
+        {
+            b2PulleyJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 11;
+
+            b2jdef.groundAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.groundAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.lengthA = db2v[p++];
+            b2jdef.lengthB = db2v[p++];
+            b2jdef.ratio = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_mouseJoint:
+        {
+            b2MouseJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 5;
+
+            b2jdef.target = {db2v[p++], db2v[p++]};
+            b2jdef.maxForce = db2v[p++];
+            b2jdef.stiffness = db2v[p++];
+            b2jdef.damping = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_gearJoint:
+        {
+            b2GearJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 3;
+
+            b2jdef.joint1 = (b2Joint *)this->db2->chunks.joint[(int)db2v[p++]].userData;
+            b2jdef.joint2 = (b2Joint *)this->db2->chunks.joint[(int)db2v[p++]].userData;
+            b2jdef.ratio = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_wheelJoint:
+        {
+            b2WheelJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 14;
+
+            b2jdef.localAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.localAxisA = {db2v[p++], db2v[p++]};
+            b2jdef.enableLimit = (bool)db2v[p++];
+            b2jdef.lowerTranslation = db2v[p++];
+            b2jdef.upperTranslation = db2v[p++];
+            b2jdef.enableMotor = (bool)db2v[p++];
+            b2jdef.maxMotorTorque = db2v[p++];
+            b2jdef.motorSpeed = db2v[p++];
+            b2jdef.stiffness = db2v[p++];
+            b2jdef.damping = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_weldJoint:
+        {
+            b2WeldJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 7;
+
+            b2jdef.localAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.referenceAngle = db2v[p++];
+            b2jdef.stiffness = db2v[p++];
+            b2jdef.damping = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_frictionJoint:
+        {
+            b2FrictionJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 6;
+
+            b2jdef.localAnchorA = {db2v[p++], db2v[p++]};
+            b2jdef.localAnchorB = {db2v[p++], db2v[p++]};
+            b2jdef.maxForce = db2v[p++];
+            b2jdef.maxTorque = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        case b2JointType::e_ropeJoint:
+        {
+            // b2RopeJointDef b2jdef;
+        }
+        break;
+
+        case b2JointType::e_motorJoint:
+        {
+            b2MotorJointDef b2jdef;
+            b2jdef.bodyA = (b2Body *)this->db2->chunks.body[db2j.bodyA].userData;
+            b2jdef.bodyB = (b2Body *)this->db2->chunks.body[db2j.bodyB].userData;
+            b2jdef.collideConnected = db2j.collideConnected;
+
+            auto p = db2j.para;
+            const auto paraCount = 6;
+
+            b2jdef.linearOffset = {db2v[p++], db2v[p++]};
+            b2jdef.angularOffset = db2v[p++];
+            b2jdef.maxForce = db2v[p++];
+            b2jdef.maxTorque = db2v[p++];
+            b2jdef.correctionFactor = db2v[p++];
+
+            b2jdef.userData.pointer = (uintptr_t)i;
+
+            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+        }
+        break;
+
+        default:
+            break;
         }
     }
 }
@@ -201,6 +455,7 @@ auto dotB2Decoder::encode() -> void
             0, //
 
             (uint64_t)b2b);
+        b2b->GetUserData().pointer = (uintptr_t)_db2->chunks.body.size - 1;
 
         /*fixture*/
         db2Container<b2Fixture *> fixtures{};
@@ -234,6 +489,7 @@ auto dotB2Decoder::encode() -> void
                 0, //
 
                 (uint64_t)b2f);
+            b2f->GetUserData().pointer = (uintptr_t)_db2->chunks.fixture.size - 1;
 
             /*shape*/
 
@@ -306,6 +562,182 @@ auto dotB2Decoder::encode() -> void
             _db2->chunks.fixture[-1].shape_vecCount = _db2->chunks.vector.size - _db2->chunks.fixture[-1].shape_vecList;
         }
     }
+
+    /*joint*/
+    db2Container<b2Joint *> joints{};
+    joints.reserve(this->b2w->GetJointCount(), false);
+    for (auto b2j = this->b2w->GetJointList(); b2j; b2j = b2j->GetNext())
+        joints.push(b2j);
+
+    for (int i = joints.size - 1; i >= 0; --i) // reverse order
+    {
+        auto &b2j = joints[i];
+
+        _db2->chunks.joint.emplace_back(
+            b2j->GetType(),
+            int32_t(b2j->GetBodyA()->GetUserData().pointer),
+            int32_t(b2j->GetBodyB()->GetUserData().pointer),
+            b2j->GetCollideConnected(),
+
+            _db2->chunks.vector.size,
+
+            (uint64_t)b2j);
+        b2j->GetUserData().pointer = (uintptr_t)_db2->chunks.joint.size - 1;
+
+        switch (b2j->GetType())
+        {
+        case b2JointType::e_revoluteJoint:
+        {
+            auto b2j_r = (b2RevoluteJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_r->GetLocalAnchorA().x);
+            _db2->chunks.vector.emplace_back(b2j_r->GetLocalAnchorA().y);
+            _db2->chunks.vector.emplace_back(b2j_r->GetLocalAnchorB().x);
+            _db2->chunks.vector.emplace_back(b2j_r->GetLocalAnchorB().y);
+            _db2->chunks.vector.emplace_back(b2j_r->GetReferenceAngle());
+            _db2->chunks.vector.emplace_back((float32_t)b2j_r->IsLimitEnabled());
+            _db2->chunks.vector.emplace_back(b2j_r->GetLowerLimit());
+            _db2->chunks.vector.emplace_back(b2j_r->GetUpperLimit());
+            _db2->chunks.vector.emplace_back((float32_t)b2j_r->IsMotorEnabled());
+            _db2->chunks.vector.emplace_back(b2j_r->GetMotorSpeed());
+            _db2->chunks.vector.emplace_back(b2j_r->GetMaxMotorTorque());
+        }
+        break;
+
+        case b2JointType::e_prismaticJoint:
+        {
+            auto b2j_p = (b2PrismaticJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_p->GetLocalAnchorA().x);
+            _db2->chunks.vector.emplace_back(b2j_p->GetLocalAnchorA().y);
+            _db2->chunks.vector.emplace_back(b2j_p->GetLocalAnchorB().x);
+            _db2->chunks.vector.emplace_back(b2j_p->GetLocalAnchorB().y);
+            _db2->chunks.vector.emplace_back(b2j_p->GetLocalAxisA().x);
+            _db2->chunks.vector.emplace_back(b2j_p->GetLocalAxisA().y);
+            _db2->chunks.vector.emplace_back(b2j_p->GetReferenceAngle());
+            _db2->chunks.vector.emplace_back((float32_t)b2j_p->IsLimitEnabled());
+            _db2->chunks.vector.emplace_back(b2j_p->GetLowerLimit());
+            _db2->chunks.vector.emplace_back(b2j_p->GetUpperLimit());
+            _db2->chunks.vector.emplace_back((float32_t)b2j_p->IsMotorEnabled());
+            _db2->chunks.vector.emplace_back(b2j_p->GetMaxMotorForce());
+            _db2->chunks.vector.emplace_back(b2j_p->GetMotorSpeed());
+        }
+        break;
+
+        case b2JointType::e_distanceJoint:
+        {
+            auto b2j_d = (b2DistanceJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_d->GetLocalAnchorA().x);
+            _db2->chunks.vector.emplace_back(b2j_d->GetLocalAnchorA().y);
+            _db2->chunks.vector.emplace_back(b2j_d->GetLocalAnchorB().x);
+            _db2->chunks.vector.emplace_back(b2j_d->GetLocalAnchorB().y);
+            _db2->chunks.vector.emplace_back(b2j_d->GetLength());
+            _db2->chunks.vector.emplace_back(b2j_d->GetMinLength());
+            _db2->chunks.vector.emplace_back(b2j_d->GetMaxLength());
+            _db2->chunks.vector.emplace_back(b2j_d->GetStiffness());
+            _db2->chunks.vector.emplace_back(b2j_d->GetDamping());
+        }
+        break;
+
+        case b2JointType::e_pulleyJoint:
+        {
+            auto b2j_p = (b2PulleyJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_p->GetGroundAnchorA().x);
+            _db2->chunks.vector.emplace_back(b2j_p->GetGroundAnchorA().y);
+            _db2->chunks.vector.emplace_back(b2j_p->GetGroundAnchorB().x);
+            _db2->chunks.vector.emplace_back(b2j_p->GetGroundAnchorB().y);
+            _db2->chunks.vector.emplace_back(b2j_p->GetLengthA());
+            _db2->chunks.vector.emplace_back(b2j_p->GetLengthB());
+            _db2->chunks.vector.emplace_back(b2j_p->GetRatio());
+        }
+        break;
+
+        case b2JointType::e_mouseJoint:
+        {
+            auto b2j_m = (b2MouseJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_m->GetTarget().x);
+            _db2->chunks.vector.emplace_back(b2j_m->GetTarget().y);
+            _db2->chunks.vector.emplace_back(b2j_m->GetMaxForce());
+            _db2->chunks.vector.emplace_back(b2j_m->GetStiffness());
+            _db2->chunks.vector.emplace_back(b2j_m->GetDamping());
+        }
+        break;
+
+        case b2JointType::e_gearJoint:
+        {
+            auto b2j_g = (b2GearJoint *)b2j;
+            _db2->chunks.vector.emplace_back((float32_t)b2j_g->GetJoint1()->GetUserData().pointer);
+            _db2->chunks.vector.emplace_back((float32_t)b2j_g->GetJoint2()->GetUserData().pointer);
+            _db2->chunks.vector.emplace_back(b2j_g->GetRatio());
+        }
+        break;
+
+        case b2JointType::e_wheelJoint:
+        {
+            auto b2j_w = (b2WheelJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorA().x);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorA().y);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorB().x);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorB().y);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAxisA().x);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAxisA().y);
+            _db2->chunks.vector.emplace_back((float32_t)b2j_w->IsLimitEnabled());
+            _db2->chunks.vector.emplace_back(b2j_w->GetLowerLimit());
+            _db2->chunks.vector.emplace_back(b2j_w->GetUpperLimit());
+            _db2->chunks.vector.emplace_back((float32_t)b2j_w->IsMotorEnabled());
+            _db2->chunks.vector.emplace_back(b2j_w->GetMaxMotorTorque());
+            _db2->chunks.vector.emplace_back(b2j_w->GetMotorSpeed());
+            _db2->chunks.vector.emplace_back(b2j_w->GetStiffness());
+            _db2->chunks.vector.emplace_back(b2j_w->GetDamping());
+        }
+        break;
+
+        case b2JointType::e_weldJoint:
+        {
+            auto b2j_w = (b2WeldJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorA().x);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorA().y);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorB().x);
+            _db2->chunks.vector.emplace_back(b2j_w->GetLocalAnchorB().y);
+            _db2->chunks.vector.emplace_back(b2j_w->GetReferenceAngle());
+            _db2->chunks.vector.emplace_back(b2j_w->GetStiffness());
+            _db2->chunks.vector.emplace_back(b2j_w->GetDamping());
+        }
+        break;
+
+        case b2JointType::e_frictionJoint:
+        {
+            auto b2j_f = (b2FrictionJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_f->GetLocalAnchorA().x);
+            _db2->chunks.vector.emplace_back(b2j_f->GetLocalAnchorA().y);
+            _db2->chunks.vector.emplace_back(b2j_f->GetLocalAnchorB().x);
+            _db2->chunks.vector.emplace_back(b2j_f->GetLocalAnchorB().y);
+            _db2->chunks.vector.emplace_back(b2j_f->GetMaxForce());
+            _db2->chunks.vector.emplace_back(b2j_f->GetMaxTorque());
+        }
+        break;
+
+        case b2JointType::e_ropeJoint:
+        {
+            // auto b2j_r = (b2RopeJoint *)b2j;
+        }
+        break;
+
+        case b2JointType::e_motorJoint:
+        {
+            auto b2j_m = (b2MotorJoint *)b2j;
+            _db2->chunks.vector.emplace_back(b2j_m->GetLinearOffset().x);
+            _db2->chunks.vector.emplace_back(b2j_m->GetLinearOffset().y);
+            _db2->chunks.vector.emplace_back(b2j_m->GetAngularOffset());
+            _db2->chunks.vector.emplace_back(b2j_m->GetMaxForce());
+            _db2->chunks.vector.emplace_back(b2j_m->GetMaxTorque());
+            _db2->chunks.vector.emplace_back(b2j_m->GetCorrectionFactor());
+        }
+        break;
+
+        default:
+            break;
+        }
+    }
+
     delete this->db2;
     this->db2 = _db2;
 }

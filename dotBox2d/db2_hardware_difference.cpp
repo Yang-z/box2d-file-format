@@ -107,5 +107,8 @@ auto hardwareDifference::IEEE754() -> bool
 
 auto hardwareDifference::check() -> bool
 {
-    return (hardwareDifference::isLittleEndian() || hardwareDifference::isBigEndian()) && (sizeof(bool) == 1 && hardwareDifference::IEEE754());
+    static const bool result =
+        (hardwareDifference::isLittleEndian() || hardwareDifference::isBigEndian()) &&
+        (sizeof(bool) == 1 && hardwareDifference::IEEE754());
+    return result;
 }

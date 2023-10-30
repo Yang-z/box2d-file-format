@@ -32,11 +32,9 @@ auto dotBox2d::load(const char *filePath) -> void
     char chunkType[4]{'N', 'U', 'L', 'L'};
     uint32_t CRC{0};
 
-    while (true)
+    while (fs.peek() != EOF)
     {
         fs.read((char *)&chunkLength, sizeof(chunkLength));
-        if (fs.eof())
-            break;
 
         if (shouldReverseEndian)
             hardwareDifference::reverseEndian((char *)&chunkLength, sizeof(chunkLength));

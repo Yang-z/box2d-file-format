@@ -10,6 +10,53 @@
 // #include <boost/pfr/core.hpp>
 // #include <boost/pfr/core_name.hpp>
 
+auto test_equality() -> void
+{
+    char s = 0b11111111;
+    unsigned char u = 0b11111111;
+
+    printf("char c = 0b11111111;\nunsigned char uc = 0b11111111;\n");
+    printf("s == u; //%s\n", s == u ? "true" : "false");                                 // false
+    printf("std::equal(&s, &s, &u); //%s\n", std::equal(&s, &s, &u) ? "true" : "false"); // true
+    printf("\n");
+
+    int8_t s2 = -1;
+    uint8_t u2 = -1;
+    printf("signed char s2 = -1;\nunsigned char u2 = -1;\n");
+    printf("s2 == u2; //%s\n", s2 == u2 ? "true" : "false");                                   // false
+    printf("std::equal(&s2, &s2, &u2); //%s\n", std::equal(&s2, &s2, &u2) ? "true" : "false"); // true
+    printf("\n");
+    /*
+    For the comparisons between signed char and unsigned char, s2 is assigned the value -1, while
+    u2 is also assigned the value -1. However, they have different types, with s2 being a signed
+    char and u2 being an unsigned char.
+    When comparing them, the compiler converts them both to a common type for comparison, which
+    in this case is int:
+        signed      0b11111111 -> 0b11111111 11111111 11111111 11111111
+        unsigned    0b11111111 -> 0b00000000 00000000 00000000 11111111
+    */
+
+    int32_t s3 = -1;
+    uint32_t u3 = -1;
+    printf("signed int s3 = -1;\nunsigned int u3 = -1;\n");
+    printf("s3 == u3; //%s\n", s3 == u3 ? "true" : "false");                                   // true?!
+    printf("std::equal(&s3, &s3, &u3); //%s\n", std::equal(&s3, &s3, &u3) ? "true" : "false"); // true
+    printf("\n");
+
+    int64_t s4 = -1;
+    uint64_t u4 = -1;
+    printf("int64_t s4 = -1;\nuint64_t u4 = -1;\n");
+    printf("s4 == u4; //%s\n", s4 == u4 ? "true" : "false");                                   // true?!
+    printf("std::equal(&s4, &s4, &u4); //%s\n", std::equal(&s4, &s4, &u4) ? "true" : "false"); // true
+    printf("\n");
+
+    printf("-1 == UINT8_MAX //%s\n", -1 == UINT8_MAX ? "true" : "false");   // false
+    printf("-1 == UINT16_MAX //%s\n", -1 == UINT16_MAX ? "true" : "false"); // false
+    printf("-1 == UINT32_MAX //%s\n", -1 == UINT32_MAX ? "true" : "false"); // true
+    printf("-1 == UINT64_MAX //%s\n", -1 == UINT64_MAX ? "true" : "false"); // true
+    printf("\n");
+}
+
 auto test_hardware_difference() -> void
 {
 
@@ -146,6 +193,8 @@ auto test_decoding() -> void
 
 auto main() -> int
 {
+    test_equality();
+
     test_hardware_difference();
 
     // test_reflection();
@@ -153,8 +202,8 @@ auto main() -> int
     // test_data_structure_write();
     // test_data_structure_read();
 
-    test_encoding();
-    test_decoding();
+    // test_encoding();
+    // test_decoding();
 
     return 0;
 }

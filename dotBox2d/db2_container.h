@@ -39,7 +39,7 @@ public:
         for (int i = 0; i++; i < this->size())
             (this->data + i)->~T();
 
-        free(this->data);
+        ::free(this->data);
         this->data = nullptr;
     }
 
@@ -57,30 +57,6 @@ public:
     auto capacity() -> int
     {
         return this->length_men / sizeof(T);
-    }
-
-    auto reserve_men(int length_men, bool expand = true) -> void
-    {
-        if (length_men <= this->length_men)
-            return;
-
-        if (expand)
-        {
-            auto exp = int(std::log2(length_men));
-            length_men = int(std::pow(2, exp + 1));
-        }
-
-        auto data_old = this->data;
-        auto length_men_old = this->length_men;
-
-        *(void **)(&this->data) = malloc(length_men);
-        this->length_men = length_men;
-
-        if (!data_old)
-            return;
-
-        ::memcpy(this->data, data_old, length_men_old);
-        ::free(data_old);
     }
 
     auto reserve(int capacity, bool expand = true) -> void
@@ -110,21 +86,6 @@ public:
         this->length = size * sizeof(T);
     }
 
-    auto read(std::ifstream &fs, const int &length) -> void
-    {
-        // assert(length % sizeof(T) == 0);
-
-        this->reserve_men(this->length + length, false);
-        auto begin = (char *)this->data + this->length;
-        fs.read(begin, length);
-        this->length += length;
-    }
-
-    auto write(std::ofstream &fs) -> void
-    {
-        fs.write((char *)this->data, this->length);
-    }
-
     auto push(const T &t) -> void
     {
         this->reserve(this->size() + 1);
@@ -146,6 +107,47 @@ public:
 
         ::new (this->data + this->size() - 1) T(args...);
         return this->data[this->size() - 1];
+    }
+
+public:
+    /* type-irrelative functions */
+
+    auto reserve_men(int length_men, bool expand = true) -> void
+    {
+        if (length_men <= this->length_men)
+            return;
+
+        if (expand)
+        {
+            auto exp = int(std::log2(length_men));
+            length_men = int(std::pow(2, exp + 1));
+        }
+
+        auto data_old = this->data;
+        auto length_men_old = this->length_men;
+
+        *(void **)(&this->data) = ::malloc(length_men);
+        this->length_men = length_men;
+
+        if (!data_old)
+            return;
+
+        ::memcpy(this->data, data_old, length_men_old);
+        ::free(data_old);
+    }
+
+    auto read(std::ifstream &fs, const int &length) -> void
+    {
+        // assert(length % sizeof(T) == 0);
+        this->reserve_men(this->length + length, false);
+        auto begin = (char *)this->data + this->length;
+        fs.read(begin, length);
+        this->length += length;
+    }
+
+    auto write(std::ofstream &fs) -> void
+    {
+        fs.write((char *)this->data, this->length);
     }
 
 private:

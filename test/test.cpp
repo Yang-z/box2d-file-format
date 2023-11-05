@@ -10,44 +10,62 @@
 // #include <boost/pfr/core.hpp>
 // #include <boost/pfr/core_name.hpp>
 
+auto test_pointer_cast() -> void
+{
+    int *data{nullptr};
+    printf("data = %p\n", data); // 0000000000000000
+    *(void **)(&data) = malloc(8);
+    printf("data = %p\n", data);                  // 00000245044613a0
+    printf("data = %p\n", *(void **)(&data) + 1); // 00000245044613a1
+    printf("data = %p\n", *(char **)(&data) + 1); // 00000245044613a1
+    printf("data = %p\n", *(int **)(&data) + 1);  // 00000245044613a4
+}
+
 auto test_equality() -> void
 {
-    char s = 0b11111111;
-    unsigned char u = 0b11111111;
+    char sc = 0b11111111;
+    unsigned char uc = 0b11111111;
 
     printf("char c = 0b11111111;\nunsigned char uc = 0b11111111;\n");
-    printf("s == u; //%s\n", s == u ? "true" : "false");                                 // false
-    printf("std::equal(&s, &s, &u); //%s\n", std::equal(&s, &s, &u) ? "true" : "false"); // true
+    printf("sc == uc; //%s\n", sc == uc ? "true" : "false");                                   // false
+    printf("std::equal(&sc, &sc, &uc); //%s\n", std::equal(&sc, &sc, &uc) ? "true" : "false"); // true
     printf("\n");
 
-    int8_t s2 = -1;
-    uint8_t u2 = -1;
-    printf("signed char s2 = -1;\nunsigned char u2 = -1;\n");
-    printf("s2 == u2; //%s\n", s2 == u2 ? "true" : "false");                                   // false
-    printf("std::equal(&s2, &s2, &u2); //%s\n", std::equal(&s2, &s2, &u2) ? "true" : "false"); // true
+    int8_t si8 = -1;
+    uint8_t ui8 = -1;
+    printf("signed char si8 = -1; //%d\nunsigned char ui8 = -1; //%d\n", si8, ui8);
+    printf("si8 == ui8; //%s\n", si8 == ui8 ? "true" : "false");                                     // false
+    printf("std::equal(&si8, &si8, &ui8); //%s\n", std::equal(&si8, &si8, &ui8) ? "true" : "false"); // true
     printf("\n");
     /*
-    For the comparisons between signed char and unsigned char, s2 is assigned the value -1, while
-    u2 is also assigned the value -1. However, they have different types, with s2 being a signed
-    char and u2 being an unsigned char.
+    For the comparisons between signed char and unsigned char, si8 is assigned the value -1, while
+    ui8 is also assigned the value -1. However, they have different types, with si8 being a signed
+    char and ui8 being an unsigned char.
     When comparing them, the compiler converts them both to a common type for comparison, which
     in this case is int:
         signed      0b11111111 -> 0b11111111 11111111 11111111 11111111
         unsigned    0b11111111 -> 0b00000000 00000000 00000000 11111111
     */
 
-    int32_t s3 = -1;
-    uint32_t u3 = -1;
-    printf("signed int s3 = -1;\nunsigned int u3 = -1;\n");
-    printf("s3 == u3; //%s\n", s3 == u3 ? "true" : "false");                                   // true?!
-    printf("std::equal(&s3, &s3, &u3); //%s\n", std::equal(&s3, &s3, &u3) ? "true" : "false"); // true
+    int16_t si16 = -1;
+    uint16_t ui16 = -1;
+    printf("signed char si16 = -1;\nunsigned char ui16 = -1;\n");
+    printf("si16 == ui16; //%s\n", si16 == ui16 ? "true" : "false");                                       // false
+    printf("std::equal(&si16, &si16, &ui16); //%s\n", std::equal(&si16, &si16, &ui16) ? "true" : "false"); // true
     printf("\n");
 
-    int64_t s4 = -1;
-    uint64_t u4 = -1;
-    printf("int64_t s4 = -1;\nuint64_t u4 = -1;\n");
-    printf("s4 == u4; //%s\n", s4 == u4 ? "true" : "false");                                   // true?!
-    printf("std::equal(&s4, &s4, &u4); //%s\n", std::equal(&s4, &s4, &u4) ? "true" : "false"); // true
+    int32_t si32 = -1;
+    uint32_t ui32 = -1;
+    printf("signed int si32 = -1; //%d\nunsigned int ui32 = -1; //%d\n", si32, ui32);
+    printf("si32 == ui32; //%s\n", si32 == ui32 ? "true" : "false");                                       // true?!
+    printf("std::equal(&si32, &si32, &ui32); //%s\n", std::equal(&si32, &si32, &ui32) ? "true" : "false"); // true
+    printf("\n");
+
+    int64_t si64 = -1;
+    uint64_t ui64 = -1;
+    printf("int64_t si64 = -1;\nuint64_t ui64 = -1;\n");
+    printf("si64 == ui64; //%s\n", si64 == ui64 ? "true" : "false");                                       // true?!
+    printf("std::equal(&si64, &si64, &ui64); //%s\n", std::equal(&si64, &si64, &ui64) ? "true" : "false"); // true
     printf("\n");
 
     printf("-1 == UINT8_MAX //%s\n", -1 == UINT8_MAX ? "true" : "false");   // false
@@ -73,17 +91,19 @@ auto test_hardware_difference() -> void
 
 auto test_reflection() -> void
 {
-    struct S0
+    struct S
     {
-        int i0{8};
+        int i0{22};
         bool b0{true};
 
         struct
         {
-            int i1{4};
-            float b2{2.0f};
+            int i1{33};
+            float b2{44.0f};
         } s1;
     } s0;
+
+    float s1 = 3.14;
 
     int count = 0;
     boost::pfr::for_each_field(
@@ -91,7 +111,7 @@ auto test_reflection() -> void
         [&s0, &count](auto &chunk)
         {
             ++count;
-            printf("%d\n", sizeof(chunk));
+            printf("%d: %d\n", sizeof(chunk), chunk);
             // printf("%d\n", boost::pfr::get_name<count, s0>());
         });
     printf("count: %d\n", count);
@@ -188,22 +208,26 @@ auto test_decoding() -> void
     der.db2 = new dotBox2d{"./test_encode.B2d"};
     der.decode();
 
+    auto *temp = (db2Container<char> *)&der.db2->chunks.body;
+
     test_step(der.b2w);
 }
 
 auto main() -> int
 {
-    test_equality();
+    // test_pointer_cast();
 
-    test_hardware_difference();
+    // test_equality();
+
+    // test_hardware_difference();
 
     // test_reflection();
 
     // test_data_structure_write();
     // test_data_structure_read();
 
-    // test_encoding();
-    // test_decoding();
+    test_encoding();
+    test_decoding();
 
     return 0;
 }

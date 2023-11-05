@@ -28,7 +28,7 @@ auto dotBox2d::load(const char *filePath) -> void
     bool isFileLittleEndian = (this->head[3] == 'd');
     bool shouldReverseEndian = (isFileLittleEndian != hardwareDifference::isLittleEndian());
 
-    ENDIAN_SENSITIVE int chunkLength{0};
+    ENDIAN_SENSITIVE int32_t chunkLength{0};
     char chunkType[4]{'N', 'U', 'L', 'L'};
     uint32_t CRC{0};
 
@@ -45,7 +45,7 @@ auto dotBox2d::load(const char *filePath) -> void
             this->chunks,
             [&fs, &chunkType, &chunkLength, &CRC](auto &chunk)
             {
-                if (std::equal(chunkType, chunkType + 4, chunk.tag))
+                if (std::equal(chunkType, chunkType + 4, chunk.type))
                 {
                     chunk.read(fs, chunkLength);
                     fs.read((char *)&CRC, sizeof(CRC));
@@ -78,9 +78,9 @@ auto dotBox2d::save(const char *filePath) -> void
         {
             // if (chunk.size <= 0)
             //     return;
-            int32_t chunkLength = sizeof(chunk[0]) * chunk.size;
+            int32_t chunkLength = sizeof(chunk[0]) * chunk.size();
             fs.write((char *)&chunkLength, sizeof(chunkLength));
-            fs.write((char *)chunk.tag, 4);
+            fs.write((char *)chunk.type, 4);
             // fs.write((char *)&chunk[0], chunkLength);
             chunk.write(fs);
             /* handle CRC here*/
@@ -101,9 +101,9 @@ auto dotBox2d::reverseEndian() -> void
         this->chunks,
         [this](auto &chunk)
         {
-            for (int i = 0; i < chunk.size; i++)
+            for (int i = 0; i < chunk.size(); i++)
             {
-                if (std::equal(chunk.tag, chunk.tag + 4, this->chunks.info.tag))
+                if (std::equal(chunk.type, chunk.type + 4, this->chunks.info.type))
                     return;
                 boost::pfr::for_each_field(
                     chunk[i],

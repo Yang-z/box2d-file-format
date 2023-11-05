@@ -417,10 +417,10 @@ auto dotB2Decoder::encode() -> void
         this->b2w->GetGravity().x,
         this->b2w->GetGravity().y,
 
-        _db2->chunks.body.size,
+        _db2->chunks.body.size(),
         this->b2w->GetBodyCount(),
 
-        _db2->chunks.joint.size,
+        _db2->chunks.joint.size(),
         this->b2w->GetJointCount());
 
     /*body*/
@@ -429,7 +429,7 @@ auto dotB2Decoder::encode() -> void
     for (auto b2b = this->b2w->GetBodyList(); b2b; b2b = b2b->GetNext())
         bodies.push(b2b);
 
-    for (int i = bodies.size - 1; i >= 0; --i) // reverse order
+    for (int i = bodies.size() - 1; i >= 0; --i) // reverse order
     {
         auto b2b = bodies[i];
 
@@ -451,11 +451,11 @@ auto dotB2Decoder::encode() -> void
 
             b2b->GetGravityScale(),
 
-            _db2->chunks.fixture.size,
+            _db2->chunks.fixture.size(),
             0, //
 
             (uint64_t)b2b);
-        b2b->GetUserData().pointer = (uintptr_t)_db2->chunks.body.size - 1;
+        b2b->GetUserData().pointer = (uintptr_t)_db2->chunks.body.size() - 1;
 
         /*fixture*/
         db2Container<b2Fixture *> fixtures{};
@@ -463,9 +463,9 @@ auto dotB2Decoder::encode() -> void
         for (auto b2f = b2b->GetFixtureList(); b2f; b2f = b2f->GetNext())
             fixtures.push(b2f);
 
-        _db2->chunks.body[-1].fixtureCount = fixtures.size;
+        _db2->chunks.body[-1].fixtureCount = fixtures.size();
 
-        for (int i = fixtures.size - 1; i >= 0; --i) // reverse order
+        for (int i = fixtures.size() - 1; i >= 0; --i) // reverse order
         {
             auto b2f = fixtures[i];
 
@@ -485,11 +485,11 @@ auto dotB2Decoder::encode() -> void
                 b2f->GetShape()->GetType(),
                 b2f->GetShape()->m_radius,
 
-                _db2->chunks.vector.size,
+                _db2->chunks.vector.size(),
                 0, //
 
                 (uint64_t)b2f);
-            b2f->GetUserData().pointer = (uintptr_t)_db2->chunks.fixture.size - 1;
+            b2f->GetUserData().pointer = (uintptr_t)_db2->chunks.fixture.size() - 1;
 
             /*shape*/
 
@@ -500,7 +500,7 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_c = (b2CircleShape *)b2s;
 
-                _db2->chunks.vector.reserve(_db2->chunks.vector.size + 1 * 2);
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size() + 1 * 2);
 
                 _db2->chunks.vector.emplace_back(b2s_c->m_p.x);
                 _db2->chunks.vector.emplace_back(b2s_c->m_p.y);
@@ -511,7 +511,7 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_e = (b2EdgeShape *)b2s;
 
-                _db2->chunks.vector.reserve(_db2->chunks.vector.size + 4 * 2 + 1);
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size() + 4 * 2 + 1);
 
                 _db2->chunks.vector.emplace_back(b2s_e->m_vertex0.x);
                 _db2->chunks.vector.emplace_back(b2s_e->m_vertex0.y);
@@ -530,7 +530,7 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_p = (b2PolygonShape *)b2s;
 
-                _db2->chunks.vector.reserve(_db2->chunks.vector.size + b2s_p->m_count * 2);
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size() + b2s_p->m_count * 2);
 
                 for (int i = 0; i < b2s_p->m_count; i++)
                 {
@@ -544,7 +544,7 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_chain = (b2ChainShape *)b2s;
 
-                _db2->chunks.vector.reserve(_db2->chunks.vector.size + b2s_chain->m_count * 2 + 2 * 2);
+                _db2->chunks.vector.reserve(_db2->chunks.vector.size() + b2s_chain->m_count * 2 + 2 * 2);
 
                 for (int i = 0; i < b2s_chain->m_count; i++)
                 {
@@ -559,7 +559,7 @@ auto dotB2Decoder::encode() -> void
             }
             break;
             }
-            _db2->chunks.fixture[-1].shape_vecCount = _db2->chunks.vector.size - _db2->chunks.fixture[-1].shape_vecList;
+            _db2->chunks.fixture[-1].shape_vecCount = _db2->chunks.vector.size() - _db2->chunks.fixture[-1].shape_vecList;
         }
     }
 
@@ -569,7 +569,7 @@ auto dotB2Decoder::encode() -> void
     for (auto b2j = this->b2w->GetJointList(); b2j; b2j = b2j->GetNext())
         joints.push(b2j);
 
-    for (int i = joints.size - 1; i >= 0; --i) // reverse order
+    for (int i = joints.size() - 1; i >= 0; --i) // reverse order
     {
         auto &b2j = joints[i];
 
@@ -579,10 +579,10 @@ auto dotB2Decoder::encode() -> void
             int32_t(b2j->GetBodyB()->GetUserData().pointer),
             b2j->GetCollideConnected(),
 
-            _db2->chunks.vector.size,
+            _db2->chunks.vector.size(),
 
             (uint64_t)b2j);
-        b2j->GetUserData().pointer = (uintptr_t)_db2->chunks.joint.size - 1;
+        b2j->GetUserData().pointer = (uintptr_t)_db2->chunks.joint.size() - 1;
 
         switch (b2j->GetType())
         {

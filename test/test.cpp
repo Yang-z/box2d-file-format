@@ -15,10 +15,14 @@ auto test_pointer_cast() -> void
     int *data{nullptr};
     printf("data = %p\n", data); // 0000000000000000
     *(void **)(&data) = malloc(8);
-    printf("data = %p\n", data);                  // 00000245044613a0
-    printf("data = %p\n", *(void **)(&data) + 1); // 00000245044613a1
-    printf("data = %p\n", *(char **)(&data) + 1); // 00000245044613a1
-    printf("data = %p\n", *(int **)(&data) + 1);  // 00000245044613a4
+    printf("data = %p\n", data);                                   // 00000245044613a0
+    // printf("*(void **)(&data) + 1 = %p\n", *(void **)(&data) + 1); // 00000245044613a1
+    printf("*(char **)(&data) + 1 = %p\n", *(char **)(&data) + 1); // 00000245044613a1
+    printf("*(int  **)(&data) + 1 = %p\n", *(int **)(&data) + 1);   // 00000245044613a4
+
+    char type[4];
+    printf("type = %p\n", type);         // 00000016aafffab4
+    printf("type + 1 = %p\n", type + 1); // 00000016aafffab5
 }
 
 auto test_equality() -> void
@@ -87,6 +91,10 @@ auto test_hardware_difference() -> void
     printf("Is little endian (bit endianness): %s\n", hardwareDifference::isLittleEndian_Bit() ? "true" : "false");
     printf("Date Structure Alignment offset: %d\n", hardwareDifference::getDataStructureAlignment());
     printf("Date Structure Alignment offset (packed): %d\n", hardwareDifference::getDataStructureAlignment(true));
+
+    int32_t i4r = 8;
+    hardwareDifference::reverseEndian((char *)&i4r, sizeof(i4r));
+    printf("int32_t i32 = 8; //reversed = %d\n", i4r);
 }
 
 auto test_reflection() -> void
@@ -95,7 +103,7 @@ auto test_reflection() -> void
     {
         int i0{22};
         bool b0{true};
-
+        // int ia[3]{1, 2, 3}; // array is not supported
         struct
         {
             int i1{33};
@@ -115,19 +123,38 @@ auto test_reflection() -> void
             // printf("%d\n", boost::pfr::get_name<count, s0>());
         });
     printf("count: %d\n", count);
+
+    auto size = boost::pfr::tuple_size<S>::value;
+    for(std::size_t i=0;i<size;++i){
+        // auto value = boost::pfr::get<i>(s0); // no
+    }
+
+}
+
+auto test_CRC()->void
+{
+    auto data = "test";
+
+    auto chunk = db2Chunk<char>{};
+    auto crc = chunk.calculateCRC(data, 4);
+    auto crc_1 = chunk.calculateCRC_1(data, 4);
+    auto crc_2 = chunk.calculateCRC_2(data, 4);
+    auto crc_3 = chunk.calculateCRC_3(data, 4);
+
+    printf("%X, %X, %X, %X\n", crc, crc_1, crc_2, crc_3);
 }
 
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
-    db2->chunks.info.emplace_back();
-    db2->chunks.world.emplace_back();
+    db2->chunk<dotB2Info>().emplace_back();
+    db2->chunk<dotB2Wrold>().emplace_back();
     for (int i = 0; i < 2; i++)
-        db2->chunks.body.emplace_back();
+        db2->chunk<dotB2Body>().emplace_back();
     for (int i = 0; i < 3; i++)
-        db2->chunks.fixture.emplace_back();
+        db2->chunk<dotB2Fixture>().emplace_back();
     for (int i = 0; i < 16; i++)
-        db2->chunks.vector.emplace_back();
+        db2->chunk<float32_t>().emplace_back();
     db2->save("./test.B2d");
     delete db2;
     db2 = nullptr;
@@ -197,7 +224,8 @@ auto test_encoding() -> void
     staticBody->CreateFixture(&fixturedef2);
 
     der.encode();
-    der.db2->save("./test_encode.B2d");
+    der.db2->save("./test_encode.B2d", true);
+    der.db2->save("./test_encode_BE.B2D", false);
 
     test_step(der.b2w);
 }
@@ -205,10 +233,9 @@ auto test_encoding() -> void
 auto test_decoding() -> void
 {
     dotB2Decoder der{};
-    der.db2 = new dotBox2d{"./test_encode.B2d"};
+    // der.db2 = new dotBox2d{"./test_encode.B2d"};
+    der.db2 = new dotBox2d{"./test_encode_BE.B2d"};
     der.decode();
-
-    auto *temp = (db2Container<char> *)&der.db2->chunks.body;
 
     test_step(der.b2w);
 }
@@ -223,11 +250,13 @@ auto main() -> int
 
     // test_reflection();
 
+    test_CRC();
+
     // test_data_structure_write();
     // test_data_structure_read();
-
-    test_encoding();
-    test_decoding();
+    
+    // test_encoding();
+    // test_decoding();
 
     return 0;
 }

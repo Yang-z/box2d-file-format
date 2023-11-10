@@ -5,6 +5,9 @@
 class hardwareDifference
 {
 public:
+    static bool IsCompatible;
+    
+public:
     static auto GetDataStructureAlignment(bool packed = false) -> uint8_t;
 
     static auto IsLittleEndian() -> bool;

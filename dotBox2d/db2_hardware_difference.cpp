@@ -1,6 +1,9 @@
 #include "db2_hardware_difference.h"
 
 #include <limits> // std::numeric_limits<float>::is_iec559
+#include <assert.h>
+
+bool hardwareDifference::IsCompatible = hardwareDifference::Check();
 
 auto hardwareDifference::GetDataStructureAlignment(bool packed) -> uint8_t
 {
@@ -110,5 +113,6 @@ auto hardwareDifference::Check() -> bool
     static const bool result =
         (hardwareDifference::IsLittleEndian() || hardwareDifference::IsBigEndian()) &&
         (sizeof(bool) == 1 && hardwareDifference::IEEE754());
+    assert(result);
     return result;
 }

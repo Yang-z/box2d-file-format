@@ -23,8 +23,6 @@ auto db2ChunkType::RegisterType() -> bool
 
 dotBox2d::dotBox2d(const char *file)
 {
-    assert(hardwareDifference::Check());
-
     if (!file)
         return;
 

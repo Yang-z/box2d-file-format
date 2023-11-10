@@ -83,16 +83,16 @@ ENDIAN_SENSITIVE struct dotB2Wrold
 
 struct dotB2Info
 {
-    uint8_t ver_box2d_0{2};
-    uint8_t ver_box2d_1{4};
-    uint8_t ver_box2d_2{1};
+    const uint8_t packSize{DB2_PACK_SIZE};
+    const uint8_t notUsed{0}; // bool isLittleEndian{hardwareDifference::isLittleEndian()};
 
     uint8_t ver_dotBox2d_0{0};
     uint8_t ver_dotBox2d_1{0};
     uint8_t ver_dotBox2d_2{1};
 
-    const uint8_t packSize{DB2_PACK_SIZE};
-    const uint8_t notUsed{0}; // bool isLittleEndian{hardwareDifference::isLittleEndian()};
+    uint8_t ver_box2d_0{2};
+    uint8_t ver_box2d_1{4};
+    uint8_t ver_box2d_2{1};
 
 } DB2_NOTE(sizeof(dotB2Info) == 8);
 

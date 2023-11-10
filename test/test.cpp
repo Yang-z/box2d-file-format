@@ -247,13 +247,13 @@ auto main() -> int
 
     // test_reflection();
 
-    test_CRC();
+    // test_CRC();
 
     // test_data_structure_write();
     // test_data_structure_read();
 
-    // test_encoding();
-    // test_decoding();
+    test_encoding();
+    test_decoding();
 
     return 0;
 }

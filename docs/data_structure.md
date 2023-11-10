@@ -35,14 +35,13 @@ INFO is short for dotBox2d information, and it stores the data defined by dotB2I
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |packSize|1 byte|char|8|
-|isLittleEndian|1 byte|bool|true|
-|version.dotBox2d|1 byte *3|char * 3||
-|version.box2d|1 byte *3|char * 3||
-|count.world|4 bytes|int32_t||
-|count.body|4 bytes|int32_t||
-|count.fixture|4 bytes|int32_t||
-|count.joint|4 bytes|int32_t||
-|count.vec2|4 bytes|int32_t||
+|(not_used)|1 byte|char||
+|ver_dotBox2d_0|1 byte|uint8_t||
+|ver_dotBox2d_1|1 byte|uint8_t||
+|ver_dotBox2d_2|1 byte|uint8_t||
+|ver_box2d_0|1 byte|uint8_t||
+|ver_box2d_1|1 byte|uint8_t||
+|ver_box2d_2|1 byte|uint8_t||
 
 #### WRLD
 WRLD, short for World, it's data unit is dotB2Wrold.

@@ -10,23 +10,30 @@ class db2StructReflector
 {
     // static
 public:
-    static db2DynArray<db2StructReflector> reflectors;
+    static db2DynArray<db2StructReflector*> reflectors;
 
     template <typename T>
-    static auto reflect(const char *type) -> void
+    static auto Reflect(const char *type) -> void
     {
-        db2StructReflector::reflectors.emplace_back(type).reflect<T>();
+        db2StructReflector::reflectors.push(new db2StructReflector());
+        db2StructReflector::reflectors[-1]->reflect<T>(type);
     }
 
-    static auto getReflector(const char *type) -> db2StructReflector *
+    static auto GetReflector(const char *type) -> db2StructReflector *
     {
         for (int i = 0; i < db2StructReflector::reflectors.size(); ++i)
         {
-            auto &reflector = db2StructReflector::reflectors[i];
-            if (std::equal(type, type + 4, reflector.type))
-                return &reflector;
+            auto reflector = db2StructReflector::reflectors[i];
+            if (std::equal(type, type + 4, reflector->type))
+                return reflector;
         }
         return nullptr;
+    }
+
+    static auto ClearReflectors() -> void
+    {
+        for (int i = 0; i < db2StructReflector::reflectors.size(); ++i)
+            delete db2StructReflector::reflectors[i];
     }
 
     // instance
@@ -37,14 +44,12 @@ public:
     db2DynArray<uint8_t> offsets{};
     db2DynArray<uint8_t> lengths{};
 
-    db2StructReflector(const char *type)
-    {
-        ::memcpy(this->type, type, 4);
-    }
 
     template <typename T>
-    auto reflect() -> void
+    auto reflect(const char *type) -> void
     {
+        ::memcpy(this->type, type, 4);
+
         this->length = sizeof(T);
 
         static T *pt{nullptr};

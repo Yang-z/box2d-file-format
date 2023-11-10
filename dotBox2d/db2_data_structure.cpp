@@ -5,7 +5,21 @@
 
 #include <assert.h>
 
-#include <boost/pfr/core.hpp> // reflect
+#include <type_traits> // std::is_same
+
+bool dotB2ChunkType::isRegistered = dotB2ChunkType::registerType();
+
+auto dotB2ChunkType::registerType() -> bool
+{
+    db2StructReflector::reflect<dotB2Info>(dotB2ChunkType::INFO);
+    db2StructReflector::reflect<dotB2Wrold>(dotB2ChunkType::WRLD);
+    db2StructReflector::reflect<dotB2Joint>(dotB2ChunkType::JOIN);
+    db2StructReflector::reflect<dotB2Body>(dotB2ChunkType::BODY);
+    db2StructReflector::reflect<dotB2Fixture>(dotB2ChunkType::FXTR);
+    db2StructReflector::reflect<float32_t>(dotB2ChunkType::VECT);
+
+    return true;
+}
 
 dotBox2d::dotBox2d(const char *file)
 {
@@ -23,94 +37,51 @@ auto dotBox2d::load(const char *filePath) -> void
     if (!fs)
         return;
 
+    // read head
     fs.read((char *)&(this->head), sizeof(this->head));
 
-    bool isFileLittleEndian = (this->head[3] == 'd');
-    bool shouldReverseEndian = (isFileLittleEndian != hardwareDifference::isLittleEndian());
+    // confirm endia
+    const bool isFileLittleEndian = (this->head[3] == 'd');
 
-    ENDIAN_SENSITIVE int32_t chunkLength{0};
-    char chunkType[4]{'N', 'U', 'L', 'L'};
-    uint32_t CRC{0};
+    // change to local endian
+    this->head[3] = hardwareDifference::isLittleEndian() ? 'd' : 'D';
 
+    // read chunk
     while (fs.peek() != EOF)
     {
-        fs.read((char *)&chunkLength, sizeof(chunkLength));
-
-        if (shouldReverseEndian)
-            hardwareDifference::reverseEndian((char *)&chunkLength, sizeof(chunkLength));
-
-        fs.read(chunkType, sizeof(chunkType));
-
-        boost::pfr::for_each_field(
-            this->chunks,
-            [&fs, &chunkType, &chunkLength, &CRC](auto &chunk)
-            {
-                if (std::equal(chunkType, chunkType + 4, chunk.type))
-                {
-                    chunk.read(fs, chunkLength);
-                    fs.read((char *)&CRC, sizeof(CRC));
-                    /* do CRC check here */
-                }
-            });
+        this->chunks.push(new db2Chunk<char>{});
+        this->chunks[-1]->read(fs, isFileLittleEndian);
     };
+
     fs.close();
-
-    assert(this->chunks.info[0].isLittleEndian == isFileLittleEndian);
-
-    // do chunk data endian transfer
-    if (shouldReverseEndian)
-    {
-        this->reverseEndian();
-    }
 }
 
-auto dotBox2d::save(const char *filePath) -> void
+auto dotBox2d::save(const char *filePath, bool asLittleEndian) -> void
 {
     std::ofstream fs{filePath, std::ios::binary | std::ios::out};
     if (!fs)
         return;
 
+    this->head[3] = asLittleEndian ? 'd' : 'D';
     fs.write((char *)&(this->head), sizeof(this->head));
+    this->head[3] = hardwareDifference::isLittleEndian() ? 'd' : 'D';
 
-    boost::pfr::for_each_field(
-        this->chunks,
-        [&fs](auto &chunk)
-        {
-            // if (chunk.size <= 0)
-            //     return;
-            int32_t chunkLength = sizeof(chunk[0]) * chunk.size();
-            fs.write((char *)&chunkLength, sizeof(chunkLength));
-            fs.write((char *)chunk.type, 4);
-            // fs.write((char *)&chunk[0], chunkLength);
-            chunk.write(fs);
-            /* handle CRC here*/
-            uint32_t CRC{0};
-            fs.write((char *)&CRC, sizeof(CRC));
-        });
+    for (auto i = 0; i < this->chunks.size(); ++i)
+        this->chunks[i]->write(fs, asLittleEndian);
 
     fs.close();
 }
 
-auto dotBox2d::reverseEndian() -> void
+auto dotBox2d::chunk(const char *type) -> db2Chunk<char> *
 {
-    this->head[3] = (this->head[3] == 'D') ? 'd' : 'D';
-    this->chunks.info[0].isLittleEndian = !this->chunks.info[0].isLittleEndian;
-    assert((this->head[3] == 'd') == (this->chunks.info[0].isLittleEndian));
+    for (auto i = 0; i < this->chunks.size(); ++i)
+    {
+        auto &chunk = this->chunks[i];
+        if (std::equal(chunk->type, chunk->type + 4, type))
+            return chunk;
+    }
 
-    boost::pfr::for_each_field(
-        this->chunks,
-        [this](auto &chunk)
-        {
-            for (int i = 0; i < chunk.size(); i++)
-            {
-                if (std::equal(chunk.type, chunk.type + 4, this->chunks.info.type))
-                    return;
-                boost::pfr::for_each_field(
-                    chunk[i],
-                    [](auto &field)
-                    {
-                        hardwareDifference::reverseEndian((char *)&field, sizeof(field));
-                    });
-            }
-        });
+    // if not found, create a new one
+    this->chunks.push(new db2Chunk<char>{type});
+    return this->chunks[-1];
 }

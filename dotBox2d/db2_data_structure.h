@@ -1,7 +1,9 @@
 #pragma once
 
+#include "db2_settings.h"
 #include "db2_hardware_difference.h"
-#include "db2_container.h"
+#include "db2_structure_reflector.h"
+#include "db2_chunk.h"
 
 DB2_PRAGMA_PACK_ON
 
@@ -81,60 +83,76 @@ ENDIAN_SENSITIVE struct dotB2Wrold
 
 struct dotB2Info
 {
+    uint8_t ver_box2d_0{2};
+    uint8_t ver_box2d_1{4};
+    uint8_t ver_box2d_2{1};
+
+    uint8_t ver_dotBox2d_0{0};
+    uint8_t ver_dotBox2d_1{0};
+    uint8_t ver_dotBox2d_2{1};
+
     const uint8_t packSize{DB2_PACK_SIZE};
-    bool isLittleEndian{hardwareDifference::isLittleEndian()};
-
-    struct
-    {
-        const uint8_t dotBox2d[3]{0, 0, 1};
-        const uint8_t box2d[3]{2, 4, 1};
-    } version DB2_NOTE(sizeof(version) == 6);
-
-    // ENDIAN_SENSITIVE struct Count
-    // {
-    //     int32_t world{0};
-    //     int32_t body{0};
-    //     int32_t fixture{0};
-    //     int32_t joint{0};
-    //     int32_t vector{0};
-    // } count DB2_NOTE(sizeof(count));
+    const uint8_t notUsed{0}; // bool isLittleEndian{hardwareDifference::isLittleEndian()};
 
 } DB2_NOTE(sizeof(dotB2Info) == 8);
 
 DB2_PRAGMA_PACK_OFF
 
+struct dotB2ChunkType
+{
+    static constexpr const char INFO[4]{'I', 'N', 'F', 'O'};
+    static constexpr const char WRLD[4]{'W', 'R', 'L', 'D'};
+    static constexpr const char JOIN[4]{'J', 'O', 'I', 'N'};
+    static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
+    static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
+    static constexpr const char VECT[4]{'V', 'E', 'C', 'T'};
+
+    static bool isRegistered;
+    static bool registerType();
+
+} DB2_NOTE(sizeof(dotB2ChunkType));
+
 class dotBox2d
 {
 public:
-    // struct
-    // {
-    //     const char INFO[4]{'I', 'N', 'F', 'O'};
-    //     const char WRLD[4]{'W', 'R', 'L', 'D'};
-    //     const char JOIN[4]{'J', 'O', 'I', 'N'};
-    //     const char BODY[4]{'B', 'O', 'D', 'Y'};
-    //     const char FXTR[4]{'F', 'X', 'T', 'R'};
-    //     const char VECT[4]{'V', 'E', 'C', 'T'};
-    // } DB2_NOTE(sizeof(ChunkTypes)) const chunkTypes{};
+    // uint8_t head[8]{0xB2, 0x42, 0x32, 0x64, 0x0D, 0x0A, 0x1A, 0x0A};
+    uint8_t head[8]{
+        0xB2,
+        'B', '2', uint8_t(hardwareDifference::isBigEndian() ? 'D' : 'd'),
+        0x0D, 0x0A, 0x1A, 0x0A};
 
-    // const dotBox2d::ChunkTypes chunkTypes{};
-
-    uint8_t head[8]{0xB2, 0x42, 0x32, 0x64, 0x0D, 0x0A, 0x1A, 0x0A};
-
-    struct
-    {
-        db2Container<dotB2Info> info{"INFO"};
-        db2Container<dotB2Wrold> world{"WRLD"};
-        db2Container<dotB2Joint> joint{"JOIN"};
-        db2Container<dotB2Body> body{"BODY"};
-        db2Container<dotB2Fixture> fixture{"FXTR"};
-        db2Container<float32_t> vector{"VECT"};
-        /* user data */
-    } chunks;
+    db2DynArray<db2Chunk<char> *> chunks;
 
     dotBox2d(const char *file = nullptr);
 
 public:
     auto load(const char *filePath) -> void;
-    auto save(const char *filePath) -> void;
-    auto reverseEndian() -> void;
+    auto save(const char *filePath, bool asLittleEndian = false) -> void;
+
+    auto chunk(const char *type) -> db2Chunk<char> *;
+
+    template <typename T>
+    auto chunk() -> db2Chunk<T> &
+    {
+        db2Chunk<char> *chunk = nullptr;
+        if (std::is_same<T, dotB2Info>::value)
+            chunk = this->chunk(dotB2ChunkType::INFO);
+        else if (std::is_same<T, dotB2Wrold>::value)
+            chunk = this->chunk(dotB2ChunkType::WRLD);
+        else if (std::is_same<T, dotB2Joint>::value)
+            chunk = this->chunk(dotB2ChunkType::JOIN);
+        else if (std::is_same<T, dotB2Body>::value)
+            chunk = this->chunk(dotB2ChunkType::BODY);
+        else if (std::is_same<T, dotB2Fixture>::value)
+            chunk = this->chunk(dotB2ChunkType::FXTR);
+        else if (std::is_same<T, float32_t>::value)
+            chunk = this->chunk(dotB2ChunkType::VECT);
+        else
+            assert(false);
+
+        db2Chunk<T> &chunk_c = *(db2Chunk<T> *)chunk;
+        //*reinterpret_cast<db2Chunk<T> *>(chunk)
+
+        return chunk_c;
+    }
 };

@@ -13,11 +13,11 @@ auto dotB2Decoder::decode() -> void
     if (!this->db2)
         return;
 
-    auto &db2ws = this->db2->chunk<dotB2Wrold>();
-    auto &db2js = this->db2->chunk<dotB2Joint>();
-    auto &db2bs = this->db2->chunk<dotB2Body>();
-    auto &db2fs = this->db2->chunk<dotB2Fixture>();
-    auto &db2vs = this->db2->chunk<float32_t>();
+    auto &db2ws = this->db2->chunk<dotB2Wrold>(db2ChunkType::WRLD);
+    auto &db2js = this->db2->chunk<dotB2Joint>(db2ChunkType::JOIN);
+    auto &db2bs = this->db2->chunk<dotB2Body>(db2ChunkType::BODY);
+    auto &db2fs = this->db2->chunk<dotB2Fixture>(db2ChunkType::FXTR);
+    auto &db2vs = this->db2->chunk<float32_t>(db2ChunkType::VECT);
 
     /*world*/
     auto &db2w = db2ws[0];
@@ -412,12 +412,12 @@ auto dotB2Decoder::encode() -> void
         return;
 
     auto _db2 = new dotBox2d();
-    auto &db2is = _db2->chunk<dotB2Info>();
-    auto &db2ws = _db2->chunk<dotB2Wrold>();
-    auto &db2js = _db2->chunk<dotB2Joint>();
-    auto &db2bs = _db2->chunk<dotB2Body>();
-    auto &db2fs = _db2->chunk<dotB2Fixture>();
-    auto &db2vs = _db2->chunk<float32_t>();
+    auto &db2is = _db2->chunk<dotB2Info>(db2ChunkType::INFO);
+    auto &db2ws = _db2->chunk<dotB2Wrold>(db2ChunkType::WRLD);
+    auto &db2js = _db2->chunk<dotB2Joint>(db2ChunkType::JOIN);
+    auto &db2bs = _db2->chunk<dotB2Body>(db2ChunkType::BODY);
+    auto &db2fs = _db2->chunk<dotB2Fixture>(db2ChunkType::FXTR);
+    auto &db2vs = _db2->chunk<float32_t>(db2ChunkType::VECT);
 
     /*info*/
     // constructs an element in-place at the end

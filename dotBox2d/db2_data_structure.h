@@ -3,6 +3,7 @@
 #include "db2_settings.h"
 #include "db2_hardware_difference.h"
 #include "db2_structure_reflector.h"
+#include "db2_container.h"
 #include "db2_chunk.h"
 
 DB2_PRAGMA_PACK_ON
@@ -84,7 +85,7 @@ ENDIAN_SENSITIVE struct dotB2Wrold
 struct dotB2Info
 {
     const uint8_t packSize{DB2_PACK_SIZE};
-    const uint8_t notUsed{0}; // bool isLittleEndian{hardwareDifference::isLittleEndian()};
+    const uint8_t notUsed{0}; // bool isLittleEndian{hardwareDifference::IsLittleEndian()};
 
     uint8_t ver_dotBox2d_0{0};
     uint8_t ver_dotBox2d_1{0};
@@ -98,7 +99,7 @@ struct dotB2Info
 
 DB2_PRAGMA_PACK_OFF
 
-struct dotB2ChunkType
+struct db2ChunkType
 {
     static constexpr const char INFO[4]{'I', 'N', 'F', 'O'};
     static constexpr const char WRLD[4]{'W', 'R', 'L', 'D'};
@@ -107,10 +108,10 @@ struct dotB2ChunkType
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
     static constexpr const char VECT[4]{'V', 'E', 'C', 'T'};
 
-    static bool isRegistered;
-    static bool registerType();
+    static bool IsRegistered;
+    static bool RegisterType();
 
-} DB2_NOTE(sizeof(dotB2ChunkType));
+} DB2_NOTE(sizeof(db2ChunkType));
 
 class dotBox2d
 {
@@ -118,12 +119,13 @@ public:
     // uint8_t head[8]{0xB2, 0x42, 0x32, 0x64, 0x0D, 0x0A, 0x1A, 0x0A};
     uint8_t head[8]{
         0xB2,
-        'B', '2', uint8_t(hardwareDifference::isBigEndian() ? 'D' : 'd'),
+        'B', '2', uint8_t(hardwareDifference::IsBigEndian() ? 'D' : 'd'),
         0x0D, 0x0A, 0x1A, 0x0A};
 
     db2DynArray<db2Chunk<char> *> chunks;
 
     dotBox2d(const char *file = nullptr);
+    ~dotBox2d();
 
 public:
     auto load(const char *filePath) -> void;
@@ -132,27 +134,12 @@ public:
     auto chunk(const char *type) -> db2Chunk<char> *;
 
     template <typename T>
-    auto chunk() -> db2Chunk<T> &
+    auto chunk(const char *type) -> db2Chunk<T> &
     {
-        db2Chunk<char> *chunk = nullptr;
-        if (std::is_same<T, dotB2Info>::value)
-            chunk = this->chunk(dotB2ChunkType::INFO);
-        else if (std::is_same<T, dotB2Wrold>::value)
-            chunk = this->chunk(dotB2ChunkType::WRLD);
-        else if (std::is_same<T, dotB2Joint>::value)
-            chunk = this->chunk(dotB2ChunkType::JOIN);
-        else if (std::is_same<T, dotB2Body>::value)
-            chunk = this->chunk(dotB2ChunkType::BODY);
-        else if (std::is_same<T, dotB2Fixture>::value)
-            chunk = this->chunk(dotB2ChunkType::FXTR);
-        else if (std::is_same<T, float32_t>::value)
-            chunk = this->chunk(dotB2ChunkType::VECT);
-        else
-            assert(false);
-
-        db2Chunk<T> &chunk_c = *(db2Chunk<T> *)chunk;
+        db2Chunk<char> *chunk = this->chunk(type);
+        db2Chunk<T> &chunk_casted = *(db2Chunk<T> *)chunk;
         //*reinterpret_cast<db2Chunk<T> *>(chunk)
 
-        return chunk_c;
+        return chunk_casted;
     }
 };

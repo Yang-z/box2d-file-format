@@ -21,7 +21,6 @@ private:
     int32_t length_men{0};
 
 public:
-    db2DynArray() {}
     ~db2DynArray()
     {
         if (!this->data)

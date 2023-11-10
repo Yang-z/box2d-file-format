@@ -2,7 +2,7 @@
 
 #include <limits> // std::numeric_limits<float>::is_iec559
 
-auto hardwareDifference::getDataStructureAlignment(bool packed) -> uint8_t
+auto hardwareDifference::GetDataStructureAlignment(bool packed) -> uint8_t
 {
     DB2_PRAGMA_PACK_ON
 
@@ -32,7 +32,7 @@ auto hardwareDifference::getDataStructureAlignment(bool packed) -> uint8_t
     }
 }
 
-auto hardwareDifference::isLittleEndian() -> bool
+auto hardwareDifference::IsLittleEndian() -> bool
 {
     // static const unsigned long x = 1;
     // static const bool isLittleEndian = (*((char *)&x) == 1);
@@ -42,13 +42,13 @@ auto hardwareDifference::isLittleEndian() -> bool
     return isLittleEndian;
 }
 
-auto hardwareDifference::isBigEndian() -> bool
+auto hardwareDifference::IsBigEndian() -> bool
 {
     static const bool isBigEndian = std::endian::native == std::endian::big;
     return isBigEndian;
 }
 
-auto hardwareDifference::reverseEndian(char *source, uint8_t length) -> void
+auto hardwareDifference::ReverseEndian(char *source, uint8_t length) -> void
 {
     int begin = 0;
     int end = length - 1;
@@ -63,7 +63,7 @@ auto hardwareDifference::reverseEndian(char *source, uint8_t length) -> void
     }
 }
 
-auto hardwareDifference::isLittleEndian_Bit() -> bool
+auto hardwareDifference::IsLittleEndian_Bit() -> bool
 {
     struct bit_order
     {
@@ -105,10 +105,10 @@ auto hardwareDifference::IEEE754() -> bool
     return result;
 }
 
-auto hardwareDifference::check() -> bool
+auto hardwareDifference::Check() -> bool
 {
     static const bool result =
-        (hardwareDifference::isLittleEndian() || hardwareDifference::isBigEndian()) &&
+        (hardwareDifference::IsLittleEndian() || hardwareDifference::IsBigEndian()) &&
         (sizeof(bool) == 1 && hardwareDifference::IEEE754());
     return result;
 }

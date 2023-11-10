@@ -5,15 +5,15 @@
 class hardwareDifference
 {
 public:
-    static auto getDataStructureAlignment(bool packed = false) -> uint8_t;
+    static auto GetDataStructureAlignment(bool packed = false) -> uint8_t;
 
-    static auto isLittleEndian() -> bool;
-    static auto isBigEndian() -> bool;
-    static auto reverseEndian(char *source, uint8_t length) -> void;
+    static auto IsLittleEndian() -> bool;
+    static auto IsBigEndian() -> bool;
+    static auto ReverseEndian(char *source, uint8_t length) -> void;
 
-    static auto isLittleEndian_Bit() -> bool;
+    static auto IsLittleEndian_Bit() -> bool;
 
     static auto IEEE754() -> bool;
 
-    static auto check() -> bool;
+    static auto Check() -> bool;
 };

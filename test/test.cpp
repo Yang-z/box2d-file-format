@@ -82,18 +82,18 @@ auto test_equality() -> void
 auto test_hardware_difference() -> void
 {
 
-    // std::cout << "Is little endian: " << (hardwareDifference::isLittleEndian() ? "true" : "false") << std::endl;
-    // std::cout << "Is little endian (bit endianness): " << (hardwareDifference::isLittleEndian_Bit() ? "true" : "false") << std::endl;
-    // std::cout << "Date Structure Alignment offset: " << +hardwareDifference::getDataStructureAlignment() << std::endl;
-    // std::cout << "Date Structure Alignment offset (packed): " << +hardwareDifference::getDataStructureAlignment(true) << std::endl;
+    // std::cout << "Is little endian: " << (hardwareDifference::IsLittleEndian() ? "true" : "false") << std::endl;
+    // std::cout << "Is little endian (bit endianness): " << (hardwareDifference::IsLittleEndian_Bit() ? "true" : "false") << std::endl;
+    // std::cout << "Date Structure Alignment offset: " << +hardwareDifference::GetDataStructureAlignment() << std::endl;
+    // std::cout << "Date Structure Alignment offset (packed): " << +hardwareDifference::GetDataStructureAlignment(true) << std::endl;
 
-    printf("Is little endian: %s\n", hardwareDifference::isLittleEndian() ? "true" : "false");
-    printf("Is little endian (bit endianness): %s\n", hardwareDifference::isLittleEndian_Bit() ? "true" : "false");
-    printf("Date Structure Alignment offset: %d\n", hardwareDifference::getDataStructureAlignment());
-    printf("Date Structure Alignment offset (packed): %d\n", hardwareDifference::getDataStructureAlignment(true));
+    printf("Is little endian: %s\n", hardwareDifference::IsLittleEndian() ? "true" : "false");
+    printf("Is little endian (bit endianness): %s\n", hardwareDifference::IsLittleEndian_Bit() ? "true" : "false");
+    printf("Date Structure Alignment offset: %d\n", hardwareDifference::GetDataStructureAlignment());
+    printf("Date Structure Alignment offset (packed): %d\n", hardwareDifference::GetDataStructureAlignment(true));
 
     int32_t i4r = 8;
-    hardwareDifference::reverseEndian((char *)&i4r, sizeof(i4r));
+    hardwareDifference::ReverseEndian((char *)&i4r, sizeof(i4r));
     printf("int32_t i32 = 8; //reversed = %d\n", i4r);
 }
 
@@ -136,7 +136,8 @@ auto test_CRC() -> void
     auto data = "test";
 
     auto chunk = db2Chunk<char>{};
-    auto crc = chunk.calculateCRC(data, 4);
+    chunk.length = 4;
+    auto crc = chunk.calculateCRC(data);
 
     printf("%X\n", crc);
 }
@@ -144,14 +145,14 @@ auto test_CRC() -> void
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
-    db2->chunk<dotB2Info>().emplace_back();
-    db2->chunk<dotB2Wrold>().emplace_back();
+    db2->chunk<dotB2Info>(db2ChunkType::INFO).emplace_back();
+    db2->chunk<dotB2Wrold>(db2ChunkType::WRLD).emplace_back();
     for (int i = 0; i < 2; i++)
-        db2->chunk<dotB2Body>().emplace_back();
+        db2->chunk<dotB2Body>(db2ChunkType::BODY).emplace_back();
     for (int i = 0; i < 3; i++)
-        db2->chunk<dotB2Fixture>().emplace_back();
+        db2->chunk<dotB2Fixture>(db2ChunkType::FXTR).emplace_back();
     for (int i = 0; i < 16; i++)
-        db2->chunk<float32_t>().emplace_back();
+        db2->chunk<float32_t>(db2ChunkType::VECT).emplace_back();
     db2->save("./test.B2d");
     delete db2;
     db2 = nullptr;

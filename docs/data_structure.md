@@ -7,7 +7,7 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 |value|purpose|
 |----|----|
 |B2|Has the high bit set to detect transmission systems that do not support 8-bit data and to reduce the chance that a text file is mistakenly interpreted as a B2 file, or vice versa.|
-|42 32 (64 or 44)|In ASCII, the letters B2d (or B2D for big endian coded), allowing a person to identify the format easily if it is viewed in a text editor.|
+|42 32 44(or 64)|In ASCII, the letters B2D (or B2d for little endian coded), allowing a person to identify the format easily if it is viewed in a text editor.|
 |0D 0A|A DOS-style line ending (CRLF) to detect DOS-Unix line ending conversion of the data.|
 |1A|A byte that stops display of the file under DOS when the command type has been used—the end-of-file character.|
 |0A|A Unix-style line ending (LF) to detect Unix-DOS line ending conversion.|

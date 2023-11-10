@@ -15,10 +15,10 @@ auto test_pointer_cast() -> void
     int *data{nullptr};
     printf("data = %p\n", data); // 0000000000000000
     *(void **)(&data) = malloc(8);
-    printf("data = %p\n", data);                                   // 00000245044613a0
+    printf("data = %p\n", data); // 00000245044613a0
     // printf("*(void **)(&data) + 1 = %p\n", *(void **)(&data) + 1); // 00000245044613a1
     printf("*(char **)(&data) + 1 = %p\n", *(char **)(&data) + 1); // 00000245044613a1
-    printf("*(int  **)(&data) + 1 = %p\n", *(int **)(&data) + 1);   // 00000245044613a4
+    printf("*(int  **)(&data) + 1 = %p\n", *(int **)(&data) + 1);  // 00000245044613a4
 
     char type[4];
     printf("type = %p\n", type);         // 00000016aafffab4
@@ -125,23 +125,20 @@ auto test_reflection() -> void
     printf("count: %d\n", count);
 
     auto size = boost::pfr::tuple_size<S>::value;
-    for(std::size_t i=0;i<size;++i){
+    for (std::size_t i = 0; i < size; ++i)
+    {
         // auto value = boost::pfr::get<i>(s0); // no
     }
-
 }
 
-auto test_CRC()->void
+auto test_CRC() -> void
 {
     auto data = "test";
 
     auto chunk = db2Chunk<char>{};
     auto crc = chunk.calculateCRC(data, 4);
-    auto crc_1 = chunk.calculateCRC_1(data, 4);
-    auto crc_2 = chunk.calculateCRC_2(data, 4);
-    auto crc_3 = chunk.calculateCRC_3(data, 4);
 
-    printf("%X, %X, %X, %X\n", crc, crc_1, crc_2, crc_3);
+    printf("%X\n", crc);
 }
 
 auto test_data_structure_write() -> void
@@ -254,7 +251,7 @@ auto main() -> int
 
     // test_data_structure_write();
     // test_data_structure_read();
-    
+
     // test_encoding();
     // test_decoding();
 

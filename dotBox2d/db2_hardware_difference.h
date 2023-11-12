@@ -6,13 +6,13 @@ class hardwareDifference
 {
 public:
     static bool IsCompatible;
-    
+
 public:
-    static auto GetDataStructureAlignment(bool packed = false) -> uint8_t;
+    static auto GetDataStructureAlignment(const bool packed = false) -> uint8_t;
 
     static auto IsLittleEndian() -> bool;
     static auto IsBigEndian() -> bool;
-    static auto ReverseEndian(char *source, uint8_t length) -> void;
+    static auto ReverseEndian(char *source, const uint8_t length) -> void;
 
     static auto IsLittleEndian_Bit() -> bool;
 

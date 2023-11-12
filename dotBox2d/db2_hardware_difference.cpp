@@ -5,7 +5,7 @@
 
 bool hardwareDifference::IsCompatible = hardwareDifference::Check();
 
-auto hardwareDifference::GetDataStructureAlignment(bool packed) -> uint8_t
+auto hardwareDifference::GetDataStructureAlignment(const bool packed) -> uint8_t
 {
     DB2_PRAGMA_PACK_ON
 
@@ -51,7 +51,7 @@ auto hardwareDifference::IsBigEndian() -> bool
     return isBigEndian;
 }
 
-auto hardwareDifference::ReverseEndian(char *source, uint8_t length) -> void
+auto hardwareDifference::ReverseEndian(char *source, const uint8_t length) -> void
 {
     int begin = 0;
     int end = length - 1;

@@ -38,14 +38,14 @@ public:
         }
     }
 
-    db2Chunk(std::ifstream &fs, const bool &isLittleEndian)
+    db2Chunk(std::ifstream &fs, const bool isLittleEndian)
     {
         this->read(fs, isLittleEndian);
     }
 
 public:
     /* type-irrelative */
-    auto read(std::ifstream &fs, const bool &isLittleEndian) -> void
+    auto read(std::ifstream &fs, const bool isLittleEndian) -> void
     {
         assert(this->length == 0);
 
@@ -82,7 +82,7 @@ public:
     }
 
     /* type-irrelative */
-    auto write(std::ofstream &fs, bool asLittleEndian = hardwareDifference::IsLittleEndian()) -> void
+    auto write(std::ofstream &fs, const bool asLittleEndian = hardwareDifference::IsLittleEndian()) -> void
     {
         auto length = this->length;
         if (asLittleEndian != this->isLittleEndian)
@@ -130,6 +130,7 @@ public:
                     this->reflector->lengths[j]);
     }
 
+    /* type-irrelative */
     auto calculateCRC(const void *data = nullptr) -> const uint32_t
     {
         if (!data)

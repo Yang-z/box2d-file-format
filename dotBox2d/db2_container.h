@@ -33,10 +33,10 @@ public:
         this->data = nullptr;
     }
 
-    auto operator[](int index) -> T &
+    auto operator[](const int index) -> T &
     {
-        this->nomalizeIndex(index);
-        return this->data[index];
+        const auto i = index >= 0 ? index : index + this->size();
+        return this->data[i];
     }
 
     auto size() -> const int
@@ -49,13 +49,13 @@ public:
         return this->length_men / sizeof(T);
     }
 
-    auto reserve(int capacity, bool expand = true) -> void
+    auto reserve(const int capacity, const bool expand = true) -> void
     {
         auto length_men = capacity * sizeof(T);
         this->reserve_men(length_men, expand);
     }
 
-    auto resize(const int &size) -> void
+    auto resize(const int size) -> void
     {
         auto old_size = this->size();
 
@@ -103,7 +103,7 @@ public:
 
 public:
     /* type-irrelative */
-    auto reserve_men(int length_men, bool expand = true) -> void
+    auto reserve_men(int length_men, const bool expand = true) -> void
     {
         if (length_men <= this->length_men)
             return;
@@ -116,13 +116,5 @@ public:
 
         *(void **)(&this->data) = ::realloc(this->data, length_men);
         this->length_men = length_men;
-    }
-
-private:
-    inline auto nomalizeIndex(int &index) -> void
-    {
-        if (index < 0)
-            index += this->size();
-        assert(index >= 0 && index < this->size());
     }
 };

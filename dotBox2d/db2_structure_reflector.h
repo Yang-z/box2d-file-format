@@ -10,7 +10,7 @@ class db2StructReflector
 {
     // static
 public:
-    static db2DynArray<db2StructReflector*> reflectors;
+    static db2DynArray<db2StructReflector *> reflectors;
 
     template <typename T>
     static auto Reflect(const char *type) -> void
@@ -44,7 +44,6 @@ public:
     db2DynArray<uint8_t> offsets{};
     db2DynArray<uint8_t> lengths{};
 
-
     template <typename T>
     auto reflect(const char *type) -> void
     {
@@ -52,8 +51,8 @@ public:
 
         this->length = sizeof(T);
 
-        static T *pt{nullptr};
-        static T &t{*pt};
+        static const T *const pt{nullptr};
+        static const T &t{*pt};
 
         boost::pfr::for_each_field(
             t,

@@ -17,17 +17,18 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 |Length     |Chunk type     |Chunk data     |CRC        |
 |----       |----           |----           |----       |
 |4 bytes    |4 bytes        |Length bytes	|4 bytes    |
+* Endian of length, CRC and chunk data is indicated by the 4th byte of the head. Big-endian or network-byte-order is recommended for file storage.
 
-### Chunk Types
+### Chunk Types/Names
 
 |Chunk type|Date stored|
 |----|----|
-|INFO|dotBox2dInfo|
-|WRLD|dotB2Wrold[]|
+|INFO|dotBox2dInfo[1]|
+|WRLD|dotB2Wrold[1]|
 |JOIN|dotB2Joint[]|
 |BODY|dotB2Body[]|
 |FXTR|dotB2Fixture[]|
-|VECT|float[]|
+|VECT|float32_t[]|
 
 ### Chunk Data
 #### INFO
@@ -47,10 +48,12 @@ INFO is short for dotBox2d information, and it stores the data defined by dotB2I
 WRLD, short for World, it's data unit is dotB2Wrold.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
-|gravity.x|4 bytes|float32_t||
-|gravity.y|4 bytes|float32_t||
-|_bodies.start|4 byte|int32_t||
-|_bodies.start|4 byte|int32_t||
+|gravity_x|4 bytes|float32_t||
+|gravity_y|4 bytes|float32_t||
+|bodyList|4 byte|int32_t||
+|bodyCount|4 byte|int32_t||
+|jointList|4 byte|int32_t||
+|jointCount|4 byte|int32_t||
 
 #### JOIN
 JOIN is short for joint, and it's data unit is dotB2Joint.
@@ -60,19 +63,19 @@ JOIN is short for joint, and it's data unit is dotB2Joint.
 |bodyA|4 bytes|int32_t||
 |bodyB|4 bytes|int32_t||
 |collideConnected|1 bytes|bool|false|
-|_para|4 bytes|int32_t||
-|_userData|8 bytes|uint64_t||
+|para|4 bytes|int32_t||
+|userData|8 bytes|uint64_t||
 
 #### BODY
 BODY, the chunk data of which is an array of it's data unit dotB2Body.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |type|4 bytes|int32_t|0|
-|position.x|4 bytes|float32_t|0.0f|
-|position.y|4 bytes|float32_t|0.0f|
+|position_x|4 bytes|float32_t|0.0f|
+|position_y|4 bytes|float32_t|0.0f|
 |angle|4 bytes|float32_t|0.0f|
-|linearVelocity.x|4 bytes|float32_t|0.0f|
-|linearVelocity.y|4 bytes|float32_t|0.0f|
+|linearVelocity_x|4 bytes|float32_t|0.0f|
+|linearVelocity_y|4 bytes|float32_t|0.0f|
 |angularVelocity|4 bytes|float32_t|0.0f|
 |linearDamping|4 bytes|float32_t|0.0f|
 |angularDamping|4 bytes|float32_t|0.0f|
@@ -82,9 +85,9 @@ BODY, the chunk data of which is an array of it's data unit dotB2Body.
 |bullet|1 byte|bool|false|
 |enabled|1 byte|bool|true|
 |gravityScale|4 bytes|float32_t|1.0f|
-|_fixtures.start|4 bytes|int32_t||
-|_fixtures.end|4 bytes|int32_t||
-|_userData|8 bytes|uint64_t||
+|fixtureList|4 bytes|int32_t||
+|fixtureCount|4 bytes|int32_t||
+|userData|8 bytes|uint64_t||
 
 #### FXTR
 FXTR is short for Fixture, and it's data unit is dotB2Fixture.
@@ -95,19 +98,19 @@ FXTR is short for Fixture, and it's data unit is dotB2Fixture.
 |restitutionThreshold|4 bytes|float32_t|1.0f|
 |density|4 bytes|float32_t|0.0f|
 |isSensor|1 bytes|bool|false|
-|filter.categoryBits|2 bytes|uint16_t|0x0001|
-|filter.maskBits|2 bytes|uint16_t|0xFFFF|
-|filter.groupIndex|2 bytes|int16_t|0|
-|shape.type|4 bytes|int32_t||
-|shape.radius|4 bytes|float32_t||
-|_shape.vec.start|4 bytes|int32_t||
-|_shape.vec.end|4 bytes|int32_t||
-|_userData|8 bytes|uint64_t||
+|filter_categoryBits|2 bytes|uint16_t|0x0001|
+|filter_maskBits|2 bytes|uint16_t|0xFFFF|
+|filter_groupIndex|2 bytes|int16_t|0|
+|shape_type|4 bytes|int32_t||
+|shape_radius|4 bytes|float32_t||
+|shape_vecList|4 bytes|int32_t||
+|shape_vecCount|4 bytes|int32_t||
+|userData|8 bytes|uint64_t||
 
 #### VECT
 VECT, short for Vector, stores an array of it's data unit, float32_t.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
-|[any]|4 bytes|float32_t||
+|[shape_vec, joint_para, any]|4 bytes|float32_t||
 
 

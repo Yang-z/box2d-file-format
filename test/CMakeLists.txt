@@ -2,7 +2,7 @@ find_package(Boost 1.75 REQUIRED)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} TEST_SOURCE_FILES)
 add_executable(test ${TEST_SOURCE_FILES})
-target_link_libraries(test PRIVATE dotBox2d)
+target_link_libraries(test PRIVATE dot-box2d)
 
 
 message("${PROJECT_NAME}-CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")

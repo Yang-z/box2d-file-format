@@ -1,19 +1,19 @@
 find_package(Boost 1.75 REQUIRED)
 
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} DOTBOX2D_SOURCE_FILES)
+aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} DOT_BOX2D_SOURCE_FILES)
 
-add_library(dotBox2d ${DOTBOX2D_SOURCE_FILES})
+add_library(dot-box2d ${DOT_BOX2D_SOURCE_FILES})
 
-target_include_directories(dotBox2d
+target_include_directories(dot-box2d
 PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(dotBox2d box2d)
+target_link_libraries(dot-box2d box2d)
 
 # set(CMAKE_CXX_FLAGS "-std=c++11")
 # set(CMAKE_CXX_STANDARD 14)
-set_target_properties(dotBox2d 
+set_target_properties(dot-box2d 
 PROPERTIES
     LINKER_LANGUAGE CXX
     CXX_STANDARD 20

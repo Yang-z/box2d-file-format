@@ -72,12 +72,15 @@ auto dotB2Decoder::decode() -> void
 
             auto p0 = db2f.shape_vecList;
 
+            // auto shape_vecCount = db2vs[p0++]<int32_t>;
+            auto shape_vecCount = db2vs.operator[]<int32_t>(p0++); // what the fork?!
+
             switch ((b2Shape::Type)db2f.shape_type)
             {
 
             case b2Shape::Type::e_circle:
             {
-                assert(db2f.shape_vecCount >= 2);
+                assert(shape_vecCount == 2);
                 auto shape = b2CircleShape();
                 shape.m_radius = db2f.shape_radius;
 
@@ -91,7 +94,7 @@ auto dotB2Decoder::decode() -> void
 
             case b2Shape::e_edge:
             {
-                assert(db2f.shape_vecCount >= 9);
+                assert(shape_vecCount == 9);
 
                 auto shape = b2EdgeShape();
                 shape.m_radius = db2f.shape_radius; // default: b2_polygonRadius
@@ -110,11 +113,13 @@ auto dotB2Decoder::decode() -> void
 
             case b2Shape::e_polygon:
             {
+                assert(shape_vecCount >= 6);
+
                 auto shape = b2PolygonShape();
                 shape.m_radius = db2f.shape_radius; // default: b2_polygonRadius
 
                 auto points = (b2Vec2 *)(&(db2vs[p0]));
-                auto count = db2f.shape_vecCount / 2 - 1;
+                auto count = shape_vecCount / 2;
                 shape.Set(points, count);
 
                 b2fdef.shape = &shape;
@@ -125,7 +130,7 @@ auto dotB2Decoder::decode() -> void
 
             case b2Shape::e_chain:
             {
-                assert(db2f.shape_vecCount >= 8);
+                assert(shape_vecCount >= 8);
 
                 auto shape = b2ChainShape();
                 shape.m_radius = db2f.shape_radius;
@@ -136,7 +141,7 @@ auto dotB2Decoder::decode() -> void
                 they are the same.
                 */
                 auto points = (b2Vec2 *)(&(db2vs[p0]));
-                auto count = db2f.shape_vecCount / 2 - 2;
+                auto count = shape_vecCount / 2 - 2;
                 shape.CreateChain(
                     points,
                     count,
@@ -157,6 +162,9 @@ auto dotB2Decoder::decode() -> void
     {
         auto &db2j = db2js[i];
 
+        auto p = db2j.para;
+        /*paraCount*/ const auto paraCount = db2vs.operator[]<int32_t>(p++);
+
         switch (b2JointType(db2j.type))
         {
         case b2JointType::e_revoluteJoint:
@@ -166,8 +174,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 11;
+            assert(paraCount == 11);
 
             b2jdef.localAnchorA = {db2vs[p++], db2vs[p++]};
             b2jdef.localAnchorB = {db2vs[p++], db2vs[p++]};
@@ -192,8 +199,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 13;
+            assert(paraCount == 13);
 
             b2jdef.localAnchorA = {db2vs[p++], db2vs[p++]};
             b2jdef.localAnchorB = {db2vs[p++], db2vs[p++]};
@@ -219,8 +225,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 9;
+            assert(paraCount == 9);
 
             b2jdef.localAnchorA = {db2vs[p++], db2vs[p++]};
             b2jdef.localAnchorB = {db2vs[p++], db2vs[p++]};
@@ -243,8 +248,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 11;
+            assert(paraCount == 11);
 
             b2jdef.groundAnchorA = {db2vs[p++], db2vs[p++]};
             b2jdef.groundAnchorB = {db2vs[p++], db2vs[p++]};
@@ -267,8 +271,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 5;
+            assert(paraCount == 5);
 
             b2jdef.target = {db2vs[p++], db2vs[p++]};
             b2jdef.maxForce = db2vs[p++];
@@ -288,8 +291,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 3;
+            assert(paraCount == 3);
 
             b2jdef.joint1 = (b2Joint *)db2js[(int)db2vs[p++]].userData;
             b2jdef.joint2 = (b2Joint *)db2js[(int)db2vs[p++]].userData;
@@ -308,8 +310,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 14;
+            assert(paraCount == 14);
 
             b2jdef.localAnchorA = {db2vs[p++], db2vs[p++]};
             b2jdef.localAnchorB = {db2vs[p++], db2vs[p++]};
@@ -336,8 +337,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 7;
+            assert(paraCount == 7);
 
             b2jdef.localAnchorA = {db2vs[p++], db2vs[p++]};
             b2jdef.localAnchorB = {db2vs[p++], db2vs[p++]};
@@ -358,8 +358,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 6;
+            assert(paraCount == 6);
 
             b2jdef.localAnchorA = {db2vs[p++], db2vs[p++]};
             b2jdef.localAnchorB = {db2vs[p++], db2vs[p++]};
@@ -385,8 +384,7 @@ auto dotB2Decoder::decode() -> void
             b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
             b2jdef.collideConnected = db2j.collideConnected;
 
-            auto p = db2j.para;
-            const auto paraCount = 6;
+            assert(paraCount == 6);
 
             b2jdef.linearOffset = {db2vs[p++], db2vs[p++]};
             b2jdef.angularOffset = db2vs[p++];
@@ -497,13 +495,14 @@ auto dotB2Decoder::encode() -> void
                 b2f->GetShape()->m_radius,
 
                 db2vs.size(),
-                0, //
+                // 0, //
 
                 (uint64_t)b2f);
             b2f->GetUserData().pointer = (uintptr_t)db2fs.size() - 1;
 
-            /*shape*/
+            /*shape_vecCount*/ db2vs.emplace_back(0);
 
+            /*shape*/
             auto b2s = b2f->GetShape();
             switch (b2s->GetType())
             {
@@ -570,7 +569,9 @@ auto dotB2Decoder::encode() -> void
             }
             break;
             }
-            db2fs[-1].shape_vecCount = db2vs.size() - db2fs[-1].shape_vecList;
+
+            auto &shape_vecCount = db2vs.operator[]<int32_t>(db2fs[-1].shape_vecList);
+            shape_vecCount = db2vs.size() - db2fs[-1].shape_vecList - 1;
         }
     }
 
@@ -595,10 +596,14 @@ auto dotB2Decoder::encode() -> void
             (uint64_t)b2j);
         b2j->GetUserData().pointer = (uintptr_t)db2js.size() - 1;
 
+        /*paraCount*/ db2vs.emplace_back(0);
+
         switch (b2j->GetType())
         {
         case b2JointType::e_revoluteJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 11;
+
             auto b2j_r = (b2RevoluteJoint *)b2j;
             db2vs.emplace_back(b2j_r->GetLocalAnchorA().x);
             db2vs.emplace_back(b2j_r->GetLocalAnchorA().y);
@@ -616,6 +621,8 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_prismaticJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 13;
+
             auto b2j_p = (b2PrismaticJoint *)b2j;
             db2vs.emplace_back(b2j_p->GetLocalAnchorA().x);
             db2vs.emplace_back(b2j_p->GetLocalAnchorA().y);
@@ -635,6 +642,8 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_distanceJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 9;
+
             auto b2j_d = (b2DistanceJoint *)b2j;
             db2vs.emplace_back(b2j_d->GetLocalAnchorA().x);
             db2vs.emplace_back(b2j_d->GetLocalAnchorA().y);
@@ -650,11 +659,21 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_pulleyJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 11;
+
             auto b2j_p = (b2PulleyJoint *)b2j;
             db2vs.emplace_back(b2j_p->GetGroundAnchorA().x);
             db2vs.emplace_back(b2j_p->GetGroundAnchorA().y);
             db2vs.emplace_back(b2j_p->GetGroundAnchorB().x);
             db2vs.emplace_back(b2j_p->GetGroundAnchorB().y);
+
+            auto localAnchorA = b2j_p->GetBodyA()->GetLocalPoint(b2j_p->GetAnchorA());
+            db2vs.emplace_back(localAnchorA.x);
+            db2vs.emplace_back(localAnchorA.y);
+            auto localAnchorB = b2j_p->GetBodyB()->GetLocalPoint(b2j_p->GetAnchorB());
+            db2vs.emplace_back(localAnchorB.x);
+            db2vs.emplace_back(localAnchorB.y);
+
             db2vs.emplace_back(b2j_p->GetLengthA());
             db2vs.emplace_back(b2j_p->GetLengthB());
             db2vs.emplace_back(b2j_p->GetRatio());
@@ -663,6 +682,8 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_mouseJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 5;
+
             auto b2j_m = (b2MouseJoint *)b2j;
             db2vs.emplace_back(b2j_m->GetTarget().x);
             db2vs.emplace_back(b2j_m->GetTarget().y);
@@ -674,6 +695,8 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_gearJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 3;
+
             auto b2j_g = (b2GearJoint *)b2j;
             db2vs.emplace_back((float32_t)b2j_g->GetJoint1()->GetUserData().pointer);
             db2vs.emplace_back((float32_t)b2j_g->GetJoint2()->GetUserData().pointer);
@@ -683,6 +706,8 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_wheelJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 14;
+
             auto b2j_w = (b2WheelJoint *)b2j;
             db2vs.emplace_back(b2j_w->GetLocalAnchorA().x);
             db2vs.emplace_back(b2j_w->GetLocalAnchorA().y);
@@ -703,6 +728,8 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_weldJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 7;
+
             auto b2j_w = (b2WeldJoint *)b2j;
             db2vs.emplace_back(b2j_w->GetLocalAnchorA().x);
             db2vs.emplace_back(b2j_w->GetLocalAnchorA().y);
@@ -716,6 +743,8 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_frictionJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 6;
+
             auto b2j_f = (b2FrictionJoint *)b2j;
             db2vs.emplace_back(b2j_f->GetLocalAnchorA().x);
             db2vs.emplace_back(b2j_f->GetLocalAnchorA().y);
@@ -728,12 +757,16 @@ auto dotB2Decoder::encode() -> void
 
         case b2JointType::e_ropeJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 0;
+
             // auto b2j_r = (b2RopeJoint *)b2j;
         }
         break;
 
         case b2JointType::e_motorJoint:
         {
+            /*paraCount*/ db2vs.operator[]<int32_t>(db2js[-1].para) = 6;
+
             auto b2j_m = (b2MotorJoint *)b2j;
             db2vs.emplace_back(b2j_m->GetLinearOffset().x);
             db2vs.emplace_back(b2j_m->GetLinearOffset().y);

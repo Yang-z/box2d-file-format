@@ -33,13 +33,22 @@ public:
         this->data = nullptr;
     }
 
-    auto operator[](const int index) -> T &
+    auto operator[](const int index) const -> T &
     {
         const auto i = index >= 0 ? index : index + this->size();
         return this->data[i];
     }
 
-    auto size() -> const int
+    template <typename U>
+    auto operator[](const int index) const -> U &
+    {
+        assert(sizeof(T) == sizeof(U));
+        // const auto i = index >= 0 ? index : index + this->size();
+        // return *(U *)(this->data + i);
+        return reinterpret_cast<U &>((*this)[index]);
+    }
+
+    auto size() const -> const int
     {
         return this->length / sizeof(T);
     }

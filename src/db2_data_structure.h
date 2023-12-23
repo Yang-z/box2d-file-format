@@ -24,10 +24,9 @@ ENDIAN_SENSITIVE struct dotB2Fixture
 
     int32_t shape_type{-0};
     float32_t shape_radius{-0.0f};
-    // bool shape_oneSided;//?
 
     int32_t shape_vecList{-0};
-    int32_t shape_vecCount{0};
+    // int32_t shape_vecCount{0};
 
     uint64_t userData{-0};
 } DB2_NOTE(sizeof(dotB2Fixture) == 48);
@@ -106,6 +105,7 @@ struct db2ChunkType
     static constexpr const char JOIN[4]{'J', 'O', 'I', 'N'};
     static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
+    
     static constexpr const char VECT[4]{'V', 'E', 'C', 'T'};
 
     static bool IsRegistered;

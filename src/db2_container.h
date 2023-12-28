@@ -26,21 +26,21 @@ public:
         if (!this->data)
             return;
 
-        for (int i = 0; i < this->size(); ++i)
+        for (int32_t i = 0; i < this->size(); ++i)
             (this->data + i)->~T();
 
         ::free(this->data);
         this->data = nullptr;
     }
 
-    auto operator[](const int index) const -> T &
+    auto operator[](const int32_t index) const -> T &
     {
         const auto i = index >= 0 ? index : index + this->size();
         return this->data[i];
     }
 
     template <typename U>
-    auto operator[](const int index) const -> U &
+    auto operator[](const int32_t index) const -> U &
     {
         assert(sizeof(T) == sizeof(U));
         // const auto i = index >= 0 ? index : index + this->size();
@@ -48,23 +48,23 @@ public:
         return reinterpret_cast<U &>((*this)[index]);
     }
 
-    auto size() const -> const int
+    auto size() const -> const int32_t
     {
         return this->length / sizeof(T);
     }
 
-    auto capacity() -> int
+    auto capacity() -> int32_t
     {
         return this->length_men / sizeof(T);
     }
 
-    auto reserve(const int capacity, const bool expand = true) -> void
+    auto reserve(const int32_t capacity, const bool expand = true) -> void
     {
         auto length_men = capacity * sizeof(T);
         this->reserve_men(length_men, expand);
     }
 
-    auto resize(const int size) -> void
+    auto resize(const int32_t size) -> void
     {
         auto old_size = this->size();
 
@@ -72,13 +72,13 @@ public:
             return;
         else if (size < old_size)
         {
-            for (int i = size; i < old_size; i++)
+            for (int32_t i = size; i < old_size; ++i)
                 (this->data + i)->~T();
         }
         else if (size > old_size)
         {
             this->reserve(size);
-            for (int i = old_size; i < size; i++)
+            for (int32_t i = old_size; i < size; ++i)
                 new (this->data + i) T();
         }
 
@@ -112,15 +112,15 @@ public:
 
 public:
     /* type-irrelative */
-    auto reserve_men(int length_men, const bool expand = true) -> void
+    auto reserve_men(int32_t length_men, const bool expand = true) -> void
     {
         if (length_men <= this->length_men)
             return;
 
         if (expand)
         {
-            auto exp = int(std::log2(length_men));
-            length_men = int(std::pow(2, exp + 1));
+            auto exp = int32_t(std::log2(length_men));
+            length_men = int32_t(std::pow(2, exp + 1));
         }
 
         *(void **)(&this->data) = ::realloc(this->data, length_men);

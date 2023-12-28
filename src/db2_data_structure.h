@@ -22,13 +22,13 @@ ENDIAN_SENSITIVE struct dotB2Fixture
     uint16_t filter_maskBits{0xFFFF};
     int16_t filter_groupIndex{0};
 
-    int32_t shape_type{-0};
+    int32_t shape_type{-1};
     float32_t shape_radius{-0.0f};
+    int32_t shape_extend{-1};
 
-    int32_t shape_vecList{-0};
-    // int32_t shape_vecCount{0};
+    int32_t extraDict{-1};
 
-    uint64_t userData{-0};
+    uint64_t userData{0};
 } DB2_NOTE(sizeof(dotB2Fixture) == 48);
 
 ENDIAN_SENSITIVE struct dotB2Body
@@ -50,22 +50,26 @@ ENDIAN_SENSITIVE struct dotB2Body
     /* 3 bytes gape*/
     float32_t gravityScale{1.0f};
 
-    int32_t fixtureList{-0};
+    int32_t fixtureList{-1};
     int32_t fixtureCount{0};
 
-    uint64_t userData{-0};
-} DB2_NOTE(sizeof(dotB2Body) == 64);
+    int32_t extraDict{-1};
+    /* 4 bytes gape*/
+    uint64_t userData{0};
+} DB2_NOTE(sizeof(dotB2Body) == 72);
 
 ENDIAN_SENSITIVE struct dotB2Joint
 {
     int32_t type{0};
-    int32_t bodyA{-0}; // index
-    int32_t bodyB{-0}; // index
+    int32_t bodyA{-1}; // index
+    int32_t bodyB{-1}; // index
     bool collideConnected{false};
     /* 3 bytes gape*/
-    int32_t para; // index, and for a specified type of joint, the length is fixed.
-    /* 4 bytes gape*/
-    uint64_t userData{-0};
+    int32_t extend; // index, and for a specified type of joint, the length is fixed.
+
+    int32_t extraDict{-1};
+
+    uint64_t userData{0};
 
 } DB2_NOTE(sizeof(dotB2Joint) == 32);
 
@@ -74,10 +78,10 @@ ENDIAN_SENSITIVE struct dotB2Wrold
     float32_t gravity_x{0.0f};
     float32_t gravity_y{0.0f};
 
-    int32_t bodyList{-0};
+    int32_t bodyList{0};
     int32_t bodyCount{0};
 
-    int32_t jointList{-0};
+    int32_t jointList{0};
     int32_t jointCount{0};
 } DB2_NOTE(sizeof(dotB2Wrold) == 24);
 
@@ -102,11 +106,20 @@ struct db2ChunkType
 {
     static constexpr const char INFO[4]{'I', 'N', 'F', 'O'};
     static constexpr const char WRLD[4]{'W', 'R', 'L', 'D'};
-    static constexpr const char JOIN[4]{'J', 'O', 'I', 'N'};
+    static constexpr const char JINT[4]{'J', 'I', 'N', 'T'};
     static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
-    
-    static constexpr const char VECT[4]{'V', 'E', 'C', 'T'};
+
+    static constexpr const char SHpX[4]{'S', 'H', 'p', 'X'};
+    static constexpr const char JInX[4]{'J', 'I', 'n', 'X'};
+
+    static constexpr const char DIcT[4]{'D', 'I', 'c', 'T'};
+    static constexpr const char LIsT[4]{'L', 'I', 's', 'T'};
+    static constexpr const char STrI[4]{'S', 'T', 'r', 'I'};
+
+    static constexpr const char dIct[4]{'d', 'I', 'c', 't'};
+    static constexpr const char lIst[4]{'l', 'I', 's', 't'};
+    static constexpr const char sTri[4]{'s', 'T', 'r', 'i'};
 
     static bool IsRegistered;
     static bool RegisterType();

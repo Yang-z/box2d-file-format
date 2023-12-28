@@ -13,10 +13,16 @@ auto db2ChunkType::RegisterType() -> bool
 {
     db2StructReflector::Reflect<dotB2Info>(db2ChunkType::INFO);
     db2StructReflector::Reflect<dotB2Wrold>(db2ChunkType::WRLD);
-    db2StructReflector::Reflect<dotB2Joint>(db2ChunkType::JOIN);
+    db2StructReflector::Reflect<dotB2Joint>(db2ChunkType::JINT);
     db2StructReflector::Reflect<dotB2Body>(db2ChunkType::BODY);
     db2StructReflector::Reflect<dotB2Fixture>(db2ChunkType::FXTR);
-    db2StructReflector::Reflect<float32_t>(db2ChunkType::VECT);
+
+    db2StructReflector::Reflect<float32_t>(db2ChunkType::SHpX);
+    db2StructReflector::Reflect<float32_t>(db2ChunkType::JInX);
+
+    db2StructReflector::Reflect<int32_t>(db2ChunkType::DIcT);
+    db2StructReflector::Reflect<float32_t>(db2ChunkType::LIsT);
+    db2StructReflector::Reflect<char>(db2ChunkType::STrI);
 
     return true;
 }

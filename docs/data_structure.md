@@ -25,10 +25,11 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 |----|----|
 |INFO|dotBox2dInfo[1]|
 |WRLD|dotB2Wrold[1]|
-|JOIN|dotB2Joint[]|
+|JINT|dotB2Joint[]|
 |BODY|dotB2Body[]|
 |FXTR|dotB2Fixture[]|
-|VECT|float32_t[]|
+|SHpX|float32_t[]|
+|JInX|float32_t[]|
 
 ### Chunk Data
 #### INFO
@@ -55,15 +56,15 @@ WRLD, short for World, it's data unit is dotB2Wrold.
 |jointList|4 byte|int32_t||
 |jointCount|4 byte|int32_t||
 
-#### JOIN
-JOIN is short for joint, and it's data unit is dotB2Joint.
+#### JINT
+JINT is short for joint, and it's data unit is dotB2Joint.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |type|4 bytes|int32_t|0(e_unknownJoint)|
 |bodyA|4 bytes|int32_t||
 |bodyB|4 bytes|int32_t||
 |collideConnected|1 bytes|bool|false|
-|para|4 bytes|int32_t||
+|extend|4 bytes|int32_t||
 |userData|8 bytes|uint64_t||
 
 #### BODY
@@ -103,14 +104,19 @@ FXTR is short for Fixture, and it's data unit is dotB2Fixture.
 |filter_groupIndex|2 bytes|int16_t|0|
 |shape_type|4 bytes|int32_t||
 |shape_radius|4 bytes|float32_t||
-|shape_vecList|4 bytes|int32_t||
-|shape_vecCount|4 bytes|int32_t||
+|shape_extend|4 bytes|int32_t||
 |userData|8 bytes|uint64_t||
 
-#### VECT
-VECT, short for Vector, stores an array of it's data unit, float32_t.
+#### SHpX
+SHpX, short for Shap Extend. This trunk can be considered as an two-dimensional array. Every element of the trunk or every row/subarray of the two-dimensional array is a variable-length array, representing a set of shap extend data, and the first 4 byte stores the length value. Since we can't declare data unit as variable length format, the data unit of this trunk is declared as an 4 bytes data format, float32_t. However, the actual data format could be int32_t or bool, so data may need casting (reinterpret_cast or static_cast) before using.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
-|[shape_vec, joint_para, any]|4 bytes|float32_t||
+|length|4 bytes|reinterpret_cast&lt;int32_t&gt;||
+|shape_extend|4 bytes * length|float32_t, static_cast&lt;bool&gt;||
 
-
+#### JInX
+JInX, short for Joint Extend. Same as SHpX, this trunk can be considered as an two-dimensional array with subarrays of variable-length arrays. Every subarray stores a set of joint extend data, with the first 4 byte indicating the length. The data unit of this trunk is declared as float32_t, but actual data format could be int32_t or bool. So casting (reinterpret_cast or static_cast) could be required.
+|Data|Length|C++ type|default value|
+|----|----|----|----|
+|length|4 bytes|reinterpret_cast&lt;int32_t&gt;||
+|joint_extend|4 bytes * length|float32_t, static_cast&lt;bool&gt;||

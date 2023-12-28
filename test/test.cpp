@@ -152,7 +152,7 @@ auto test_data_structure_write() -> void
     for (int i = 0; i < 3; i++)
         db2->chunk<dotB2Fixture>(db2ChunkType::FXTR).emplace_back();
     for (int i = 0; i < 16; i++)
-        db2->chunk<float32_t>(db2ChunkType::VECT).emplace_back();
+        db2->chunk<float32_t>(db2ChunkType::SHpX).emplace_back();
     db2->save("./test.B2d");
     delete db2;
     db2 = nullptr;

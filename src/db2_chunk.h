@@ -8,12 +8,9 @@
 #include <boost/crc.hpp>
 
 #include "db2_hardware_difference.h"
-#include "db2_container.h"
+#include "db2_dynarray.h"
 #include "db2_structure_reflector.h"
 
-/*
-
-*/
 
 template <typename T>
 class db2Chunk : public db2DynArray<T>

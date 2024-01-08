@@ -10,7 +10,7 @@
 // #include <boost/pfr/core.hpp>
 // #include <boost/pfr/core_name.hpp>
 
-auto test_pointer_cast() -> void
+auto test_cast_pointer() -> void
 {
     int *data{nullptr};
     printf("data = %p\n", data); // 0000000000000000
@@ -23,6 +23,22 @@ auto test_pointer_cast() -> void
     char type[4];
     printf("type = %p\n", type);         // 00000016aafffab4
     printf("type + 1 = %p\n", type + 1); // 00000016aafffab5
+}
+
+auto test_cast_value() -> void
+{
+    float value_f = 3.1415926f;
+    printf("value_f : %f\n", value_f); // 3.141593
+    printf("(int)value_f : %d\n", (int)value_f); // 3
+    printf("static_cast<int>(value_f) : %d\n", static_cast<int>(value_f)); // 3
+    printf("reinterpret_cast<int&>(value_f) : %d\n", reinterpret_cast<int&>(value_f)); // 1078530010
+
+    int value_i = 1078530010;
+    printf("value_i : %d\n", value_i); // 1078530010
+    printf("(float)value_i : %f\n", (float)value_i); // 1078530048.000000
+    printf("static_cast<float>(value_i) : %f\n", static_cast<float>(value_i)); // 1078530048.000000
+    printf("reinterpret_cast<float&>(value_i) : %f\n", reinterpret_cast<float&>(value_i)); // 3.141593
+
 }
 
 auto test_equality() -> void
@@ -152,7 +168,7 @@ auto test_data_structure_write() -> void
     for (int i = 0; i < 3; i++)
         db2->chunk<dotB2Fixture>(db2ChunkType::FXTR).emplace_back();
     for (int i = 0; i < 16; i++)
-        db2->chunk<float32_t>(db2ChunkType::SHpX).emplace_back();
+        db2->chunk<float32_t>(db2ChunkType::SHaP).emplace_back();
     db2->save("./test.B2d");
     delete db2;
     db2 = nullptr;
@@ -240,7 +256,8 @@ auto test_decoding() -> void
 
 auto main() -> int
 {
-    // test_pointer_cast();
+    // test_cast_pointer();
+    // test_cast_value();
 
     // test_equality();
 

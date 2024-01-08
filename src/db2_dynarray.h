@@ -10,15 +10,17 @@ Vector is a concept in maths or physics, and it's not a suitable name for the ST
 In order to avoid conceptual confusion, this container is not namaned as 'vector'.
 */
 
-template <typename T>
+template <typename T, typename T1 = int32_t>
 class db2DynArray
 {
 public:
-    int32_t length{0};
+    int32_t length{0}; // length in bytes
     T *data{nullptr};
+    T **index{nullptr};
+    bool is_element_len_varable{false};
 
 private:
-    int32_t length_men{0};
+    int32_t length_men{0};  // length in bytes
 
 public:
     ~db2DynArray()
@@ -96,6 +98,18 @@ public:
     {
         (this->data + this->size() - 1)->~T();
         this->length -= sizeof(T);
+    }
+
+    template <typename U>
+    auto copy_back(const U &u) -> U &
+    {
+        // this->reserve(this->size() + 1);
+        // ::memcpy(this->data + this->size(), &u, sizeof(T));
+        // this->length += sizeof(T);
+
+        this->push(reinterpret_cast<const T &>(u));
+        return reinterpret_cast<U &> (this->data[this->size()]);
+
     }
 
     template <typename... Args>

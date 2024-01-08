@@ -3,10 +3,19 @@
 #include "db2_settings.h"
 #include "db2_hardware_difference.h"
 #include "db2_structure_reflector.h"
-#include "db2_container.h"
+#include "db2_dynarray.h"
 #include "db2_chunk.h"
 
 DB2_PRAGMA_PACK_ON
+
+ENDIAN_SENSITIVE struct dotB2Shape
+{
+    int32_t _length{2};
+
+    int32_t shape_type{-1};
+    float32_t shape_radius{-0.0f};
+    int32_t shape_extend{-1};
+};
 
 ENDIAN_SENSITIVE struct dotB2Fixture
 {
@@ -22,14 +31,15 @@ ENDIAN_SENSITIVE struct dotB2Fixture
     uint16_t filter_maskBits{0xFFFF};
     int16_t filter_groupIndex{0};
 
-    int32_t shape_type{-1};
-    float32_t shape_radius{-0.0f};
-    int32_t shape_extend{-1};
+    int32_t shape{-1};
+    // int32_t shape_type{-1};
+    // float32_t shape_radius{-0.0f};
+    // int32_t shape_extend{-1};
 
     int32_t extraDict{-1};
 
     uint64_t userData{0};
-} DB2_NOTE(sizeof(dotB2Fixture) == 48);
+} DB2_NOTE(sizeof(dotB2Fixture) == 40);
 
 ENDIAN_SENSITIVE struct dotB2Body
 {
@@ -109,17 +119,17 @@ struct db2ChunkType
     static constexpr const char JINT[4]{'J', 'I', 'N', 'T'};
     static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
+    static constexpr const char SHaP[4]{'S', 'H', 'a', 'P'};
 
-    static constexpr const char SHpX[4]{'S', 'H', 'p', 'X'};
     static constexpr const char JInX[4]{'J', 'I', 'n', 'X'};
 
     static constexpr const char DIcT[4]{'D', 'I', 'c', 'T'};
     static constexpr const char LIsT[4]{'L', 'I', 's', 'T'};
-    static constexpr const char STrI[4]{'S', 'T', 'r', 'I'};
+    static constexpr const char CHAR[4]{'C', 'H', 'A', 'R'};
 
     static constexpr const char dIct[4]{'d', 'I', 'c', 't'};
     static constexpr const char lIst[4]{'l', 'I', 's', 't'};
-    static constexpr const char sTri[4]{'s', 'T', 'r', 'i'};
+    static constexpr const char cHAR[4]{'c', 'H', 'A', 'R'};
 
     static bool IsRegistered;
     static bool RegisterType();

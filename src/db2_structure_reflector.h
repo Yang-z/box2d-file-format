@@ -4,7 +4,7 @@
 #include <boost/pfr/core.hpp> // reflect
 
 #include "db2_settings.h"
-#include "db2_container.h"
+#include "db2_dynarray.h"
 
 class db2StructReflector
 {

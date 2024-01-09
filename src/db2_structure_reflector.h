@@ -1,10 +1,25 @@
 #pragma once
 
-#include <cstring>            // ::memcpy  std::equal
+#include <cstring> // ::memcpy  std::equal
+#include <type_traits>
 #include <boost/pfr/core.hpp> // reflect
 
 #include "db2_settings.h"
 #include "db2_dynarray.h"
+
+// Implementation of void_t for C++14 and earlier
+template <typename...>
+using void_t = void;
+
+template <typename T, typename = void>
+struct has_value_type : std::false_type
+{
+};
+
+template <typename T>
+struct has_value_type<T, void_t<typename T::value_type>> : std::true_type
+{
+};
 
 class db2StructReflector
 {
@@ -48,6 +63,15 @@ public:
     auto reflect(const char *type) -> void
     {
         ::memcpy(this->type, type, 4);
+
+        if constexpr (has_value_type<T>::value)
+        {
+            if constexpr (std::is_same<T, db2DynArray<typename T::value_type>>::value)
+            {
+                this->reflect<typename T::value_type>(type);
+                return;
+            }
+        }
 
         this->length = sizeof(T);
 

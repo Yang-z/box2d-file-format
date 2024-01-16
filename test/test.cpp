@@ -4,11 +4,26 @@
 
 #include "db2_hardware_difference.h"
 #include "db2_data_structure.h"
+#include "db2_dynarray.h"
 #include "db2_decoder.h"
 
 #include <boost/pfr.hpp> // reflect
 // #include <boost/pfr/core.hpp>
 // #include <boost/pfr/core_name.hpp>
+
+auto test_size() -> void
+{
+    union UN
+    {
+        char name[4];
+        int32_t id{0};
+    } un;
+    printf("sizeof(un) = %d\n", sizeof(un));
+    printf("sizeof(un.name) = %d\n", sizeof(un.name));
+
+    printf("&un.name = %d\n", &un.name);
+    printf("un.name + 1 = %d\n", un.name + 1);
+}
 
 auto test_cast_pointer() -> void
 {
@@ -28,17 +43,16 @@ auto test_cast_pointer() -> void
 auto test_cast_value() -> void
 {
     float value_f = 3.1415926f;
-    printf("value_f : %f\n", value_f); // 3.141593
-    printf("(int)value_f : %d\n", (int)value_f); // 3
-    printf("static_cast<int>(value_f) : %d\n", static_cast<int>(value_f)); // 3
-    printf("reinterpret_cast<int&>(value_f) : %d\n", reinterpret_cast<int&>(value_f)); // 1078530010
+    printf("value_f : %f\n", value_f);                                                  // 3.141593
+    printf("(int)value_f : %d\n", (int)value_f);                                        // 3
+    printf("static_cast<int>(value_f) : %d\n", static_cast<int>(value_f));              // 3
+    printf("reinterpret_cast<int&>(value_f) : %d\n", reinterpret_cast<int &>(value_f)); // 1078530010
 
     int value_i = 1078530010;
-    printf("value_i : %d\n", value_i); // 1078530010
-    printf("(float)value_i : %f\n", (float)value_i); // 1078530048.000000
-    printf("static_cast<float>(value_i) : %f\n", static_cast<float>(value_i)); // 1078530048.000000
-    printf("reinterpret_cast<float&>(value_i) : %f\n", reinterpret_cast<float&>(value_i)); // 3.141593
-
+    printf("value_i : %d\n", value_i);                                                      // 1078530010
+    printf("(float)value_i : %f\n", (float)value_i);                                        // 1078530048.000000
+    printf("static_cast<float>(value_i) : %f\n", static_cast<float>(value_i));              // 1078530048.000000
+    printf("reinterpret_cast<float&>(value_i) : %f\n", reinterpret_cast<float &>(value_i)); // 3.141593
 }
 
 auto test_equality() -> void
@@ -147,15 +161,29 @@ auto test_reflection() -> void
     }
 }
 
+auto test_typeid() -> void
+{
+    printf("sizeof(size_t) = %d\n", sizeof(size_t));
+
+    printf("typeid(int) : %s %zu\n", typeid(int).name(), typeid(int).hash_code());
+    printf("typeid(bool) : %s %zu\n", typeid(bool).name(), typeid(bool).hash_code());
+    printf("typeid(float) : %s %zu\n", typeid(float).name(), typeid(float).hash_code());
+
+    printf("typeid(db2Chunk<float32_t>) = : %s %zu\n", typeid(db2Chunk<float32_t>).name(), typeid(db2Chunk<float32_t>).hash_code());
+    printf("typeid(db2Chunk<int32_t>) = : %s %zu\n", typeid(db2Chunk<int32_t>).name(), typeid(db2Chunk<int32_t>).hash_code());
+    printf("typeid(db2Chunk<db2Chunk<int32_t>>) = : %s %zu\n", typeid(db2Chunk<db2Chunk<int32_t>>).name(), typeid(db2Chunk<db2Chunk<int32_t>>).hash_code());
+}
+
 auto test_CRC() -> void
 {
     auto data = "test";
+    auto length = 4;
 
-    auto chunk = db2Chunk<char>{};
-    chunk.length = 4;
-    auto crc = chunk.calculateCRC(data);
+    // boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+    boost::crc_32_type crc;
+    crc.process_bytes(data, length);
 
-    printf("%X\n", crc);
+    printf("%X\n", crc.checksum());
 }
 
 auto test_data_structure_write() -> void
@@ -256,6 +284,7 @@ auto test_decoding() -> void
 
 auto main() -> int
 {
+    // test_size();
     // test_cast_pointer();
     // test_cast_value();
 
@@ -264,6 +293,7 @@ auto main() -> int
     // test_hardware_difference();
 
     // test_reflection();
+    // test_typeid();
 
     // test_CRC();
 

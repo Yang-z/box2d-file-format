@@ -11,18 +11,18 @@ bool db2ChunkType::IsRegistered = db2ChunkType::RegisterType();
 
 auto db2ChunkType::RegisterType() -> bool
 {
-    db2StructReflector::Reflect<dotB2Info>(db2ChunkType::INFO);
-    db2StructReflector::Reflect<dotB2Wrold>(db2ChunkType::WRLD);
-    db2StructReflector::Reflect<dotB2Joint>(db2ChunkType::JINT);
-    db2StructReflector::Reflect<dotB2Body>(db2ChunkType::BODY);
-    db2StructReflector::Reflect<dotB2Fixture>(db2ChunkType::FXTR);
-    db2StructReflector::Reflect<float32_t>(db2ChunkType::SHaP);
+    db2StructReflector::Reflect<db2Chunk<dotB2Info>>(db2ChunkType::INFO);
+    db2StructReflector::Reflect<db2Chunk<dotB2Wrold>>(db2ChunkType::WRLD);
+    db2StructReflector::Reflect<db2Chunk<dotB2Joint>>(db2ChunkType::JINT);
+    db2StructReflector::Reflect<db2Chunk<dotB2Body>>(db2ChunkType::BODY);
+    db2StructReflector::Reflect<db2Chunk<dotB2Fixture>>(db2ChunkType::FXTR);
+    db2StructReflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::SHaP);
 
-    db2StructReflector::Reflect<float32_t>(db2ChunkType::JInX);
+    db2StructReflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::JInX);
 
-    db2StructReflector::Reflect<int32_t>(db2ChunkType::DIcT);
-    db2StructReflector::Reflect<float32_t>(db2ChunkType::LIsT);
-    db2StructReflector::Reflect<char>(db2ChunkType::CHAR);
+    db2StructReflector::Reflect<db2Chunk<int32_t>>(db2ChunkType::DIcT);
+    db2StructReflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::LIsT);
+    db2StructReflector::Reflect<db2Chunk<char>>(db2ChunkType::CHAR);
 
     return true;
 }
@@ -80,18 +80,4 @@ auto dotBox2d::save(const char *filePath, bool asLittleEndian) -> void
         this->chunks[i]->write(fs, asLittleEndian);
 
     fs.close();
-}
-
-auto dotBox2d::chunk(const char *type) -> db2Chunk<char> *
-{
-    for (auto i = 0; i < this->chunks.size(); ++i)
-    {
-        auto &chunk = this->chunks[i];
-        if (std::equal(chunk->type, chunk->type + 4, type))
-            return chunk;
-    }
-
-    // if not found, create a new one
-    this->chunks.push(new db2Chunk<char>{type});
-    return this->chunks[-1];
 }

@@ -51,6 +51,15 @@ public:
             delete db2StructReflector::reflectors[i];
     }
 
+    template <typename T>
+    static constexpr auto Reflectable() -> bool
+    {
+        if constexpr (has_value_type<T>::value)
+            if constexpr (std::is_base_of<db2DynArray<typename T::value_type>, T>::value)
+                return true;
+        return false;
+    }
+
     // instance
 public:
     char type[4]{'N', 'U', 'L', 'L'};
@@ -59,31 +68,47 @@ public:
     db2DynArray<uint8_t> offsets{};
     db2DynArray<uint8_t> lengths{};
 
+    db2StructReflector *parent{nullptr};
+    db2StructReflector *child{nullptr};
+
+    ~db2StructReflector()
+    {
+        if (this->child)
+        {
+            this->child->~db2StructReflector();
+            delete this->child;
+        }
+    }
+
     template <typename T>
     auto reflect(const char *type) -> void
     {
+        assert(db2StructReflector::Reflectable<T>());
+
         ::memcpy(this->type, type, 4);
 
-        if constexpr (has_value_type<T>::value)
+        using value_type = typename T::value_type;
+
+        this->length = sizeof(value_type);
+
+        if constexpr (db2StructReflector::Reflectable<value_type>())
         {
-            if constexpr (std::is_same<T, db2DynArray<typename T::value_type>>::value)
-            {
-                this->reflect<typename T::value_type>(type);
-                return;
-            }
+            this->child = new db2StructReflector();
+            child->parent = this;
+            child->reflect<value_type>("CHLD");
         }
+        else
+        {
+            static const value_type *const pt{nullptr};
+            static const value_type &vaule{*pt};
 
-        this->length = sizeof(T);
-
-        static const T *const pt{nullptr};
-        static const T &t{*pt};
-
-        boost::pfr::for_each_field(
-            t,
-            [&](auto &field)
-            {
-                this->offsets.emplace_back((char *)&field - (char *)&t);
-                this->lengths.emplace_back(sizeof(field));
-            });
+            boost::pfr::for_each_field(
+                vaule,
+                [&](auto &field)
+                {
+                    this->offsets.emplace_back((char *)&field - (char *)&vaule);
+                    this->lengths.emplace_back(sizeof(field));
+                });
+        }
     }
 };

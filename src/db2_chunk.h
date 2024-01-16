@@ -11,19 +11,78 @@
 #include "db2_dynarray.h"
 #include "db2_structure_reflector.h"
 
+/* */
 
 template <typename T>
 class db2Chunk : public db2DynArray<T>
 {
+
+public:
+    TYPE_IRRELATIVE static auto ReadBytes(char *data, const int32_t length, std::ifstream &fs, const bool reverseEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    {
+        if (data == nullptr || length == 0)
+            return;
+
+        fs.read(data, length);
+
+        if (CRC)
+            CRC->process_bytes(data, length);
+
+        if (reverseEndian)
+            db2Chunk::ReverseEndian(data, length, reflector);
+    }
+
+    TYPE_IRRELATIVE static auto WriteBytes(char *data, const int32_t length, std::ofstream &fs, const bool reverseEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    {
+        if (data == nullptr || length == 0)
+            return;
+
+        if (reverseEndian)
+        {
+            auto data_r = (char *)::malloc(length);
+            ::memcpy(data_r, data, length);
+            data = data_r;
+            db2Chunk::ReverseEndian(data, length, reflector);
+        }
+
+        if (CRC)
+            CRC->process_bytes(data, length);
+
+        fs.write(data, length);
+
+        if (reverseEndian)
+            ::free(data);
+    }
+
+    // type-irrelative, since reflector is adopted
+    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const int32_t length, db2StructReflector *reflector = nullptr) -> void
+    {
+        if (data == nullptr || length == 0)
+            return;
+
+        if (reflector == nullptr)
+        {
+            hardwareDifference::ReverseEndian(data, length);
+            return;
+        }
+
+        for (int i = 0; i < length / reflector->length; ++i)
+            for (int j = 0; j < reflector->offsets.size(); ++j)
+                hardwareDifference::ReverseEndian(
+                    data + reflector->length * i + reflector->offsets[j],
+                    reflector->lengths[j]);
+    }
+
 public:
     ENDIAN_SENSITIVE; // int32_t length{0};  // defined in base
-    char type[4]{'N', 'U', 'L', 'L'};
+    // char type[4]{'N', 'U', 'L', 'L'};
     ENDIAN_SENSITIVE; // T *data{nullptr};  // defined in base
-    ENDIAN_SENSITIVE int32_t CRC{0};
+    ENDIAN_SENSITIVE uint32_t crc{};
 
 private:
-    bool isLittleEndian{hardwareDifference::IsLittleEndian()};
+    // const bool isLittleEndian{hardwareDifference::IsLittleEndian()};
     db2StructReflector *reflector{nullptr};
+    int32_t length_chunk{0};
 
 public:
     db2Chunk(const char *type = nullptr)
@@ -35,107 +94,144 @@ public:
         }
     }
 
-    db2Chunk(std::ifstream &fs, const bool isLittleEndian)
+    db2Chunk(std::ifstream &fs, const bool isLittleEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr)
     {
-        this->read(fs, isLittleEndian);
+        this->read(fs, isLittleEndian, reflector, CRC);
     }
 
 public:
-    /* type-irrelative */
-    auto read(std::ifstream &fs, const bool isLittleEndian) -> void
+    TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         assert(this->length == 0);
 
-        // endian
-        this->isLittleEndian = isLittleEndian;
+        const bool reverseEndian = hardwareDifference::IsLittleEndian() != isLittleEndian;
 
         // length
-        fs.read((char *)&this->length, sizeof(this->length));
-        if (this->isLittleEndian != hardwareDifference::IsLittleEndian())
-            hardwareDifference::ReverseEndian((char *)&this->length, sizeof(this->length));
-
-        // type
-        fs.read(this->type, sizeof(this->type));
-        this->reflector = db2StructReflector::GetReflector(this->type);
-
-        // data
-        this->reserve_men(this->length, false);
-        fs.read((char *)this->data, this->length);
+        db2Chunk::ReadBytes((char *)&this->length_chunk, sizeof(this->length_chunk), fs, reverseEndian, nullptr, CRC);
 
         // CRC
-        fs.read((char *)&(this->CRC), sizeof(this->CRC));
-        if (this->isLittleEndian != hardwareDifference::IsLittleEndian())
-            hardwareDifference::ReverseEndian((char *)&this->CRC, sizeof(this->CRC));
+        if (CRC == nullptr)
+            CRC = new boost::crc_32_type{};
 
-        // do check CRC here and before reverseEndian()
-        assert(this->calculateCRC() == this->CRC);
+        // type
+        db2Chunk::ReadBytes(this->type, sizeof(this->type), fs, false, nullptr, CRC);
+        this->reflector = reflector ? reflector : db2StructReflector::GetReflector(this->type);
 
-        // handle endian of data
-        if (this->isLittleEndian != hardwareDifference::IsLittleEndian())
+        // data
+        if (this->reflector->child == nullptr)
         {
-            this->reverseEndian();
-            this->isLittleEndian = !this->isLittleEndian;
+            this->length = this->length_chunk;
+            this->reserve_men(this->length, false);
+            db2Chunk::ReadBytes((char *)this->data, this->length, fs, reverseEndian, this->reflector, CRC);
+        }
+        else
+        {
+            auto p0 = fs.tellg();
+            auto pn = p0;
+            while (pn - p0 < this->length_chunk)
+            {
+                ((db2Chunk<db2Chunk<char>> *)this)->emplace_back(fs, isLittleEndian, this->reflector->child, CRC);
+                pn = fs.tellg();
+            }
+            assert(pn - p0 == this->length_chunk);
+        }
+
+        // CRC
+        if (this->reflector->parent == nullptr)
+        {
+            db2Chunk::ReadBytes((char *)&(this->crc), sizeof(this->crc), fs, reverseEndian, nullptr, nullptr);
+            assert(CRC->checksum() == this->crc);
+            delete CRC;
         }
     }
 
-    /* type-irrelative */
-    auto write(std::ofstream &fs, const bool asLittleEndian = hardwareDifference::IsLittleEndian()) -> void
+    TYPE_IRRELATIVE auto write(std::ofstream &fs, const bool asLittleEndian, boost::crc_32_type *CRC = nullptr) -> void
     {
-        auto length = this->length;
-        if (asLittleEndian != this->isLittleEndian)
-            hardwareDifference::ReverseEndian((char *)&length, sizeof(length));
+        const bool reverseEndian = hardwareDifference::IsLittleEndian() != asLittleEndian;
 
-        auto data = this->data;
-        if (asLittleEndian != this->isLittleEndian)
+        if (this->reflector == nullptr || this->reflector->parent == nullptr)
         {
-            data = (char *)::malloc(this->length);
-            ::memcpy(data, this->data, this->length);
-            this->reverseEndian((char *)data);
+            this->refreshReflector();
+            this->refreshLengthChunk();
+        }
+
+        // length
+        db2Chunk::WriteBytes((char *)&this->length_chunk, sizeof(this->length_chunk), fs, reverseEndian, nullptr, CRC);
+
+        // CRC
+        if (CRC == nullptr)
+            CRC = new boost::crc_32_type{};
+
+        // type
+        db2Chunk::WriteBytes(this->type, sizeof(this->type), fs, false, nullptr, CRC);
+
+        // data
+        if (this->reflector->child == nullptr)
+            db2Chunk::WriteBytes(this->data, this->length, fs, reverseEndian, this->reflector, CRC);
+        else
+        {
+            auto &self = *(db2Chunk<db2Chunk<char>> *)this;
+            for (auto i = 0; i < self.size(); ++i)
+            {
+                auto &child = self[i];
+                child.write(fs, asLittleEndian, CRC);
+            }
         }
 
         // calculate CRC
-        auto CRC = this->calculateCRC(data);
-        if (asLittleEndian != this->isLittleEndian)
-            hardwareDifference::ReverseEndian((char *)&CRC, sizeof(CRC));
-
-        // length
-        fs.write((char *)&length, sizeof(length));
-        // type
-        fs.write((char *)this->type, 4);
-        // data
-        fs.write((char *)data, this->length);
-        // CRC
-        fs.write((char *)&CRC, sizeof(CRC));
-
-        if (data != this->data)
-            ::free(data);
+        if (this->reflector->parent == nullptr)
+        {
+            auto crc = CRC->checksum();
+            db2Chunk::WriteBytes((char *)&crc, sizeof(crc), fs, reverseEndian, nullptr, nullptr);
+            delete CRC;
+        }
     }
 
-    /* type-irrelative, since reflector is adopted */
-    auto reverseEndian(char *data = nullptr) -> void
+    TYPE_IRRELATIVE auto refreshReflector() -> void
     {
-        if (!data)
-            data = (char *)this->data;
+        this->reflector = this->reflector ? this->reflector : db2StructReflector::GetReflector(this->type);
 
         if (this->reflector == nullptr)
             return;
 
-        for (int i = 0; i < this->length / reflector->length; ++i)
-            for (int j = 0; j < this->reflector->offsets.size(); ++j)
-                hardwareDifference::ReverseEndian(
-                    data + reflector->length * i + this->reflector->offsets[j],
-                    this->reflector->lengths[j]);
+        if (this->reflector->child != nullptr)
+        {
+            auto &self = *(db2Chunk<db2Chunk<char>> *)this;
+            for (auto i = 0; i < self.size(); ++i)
+            {
+                auto &child = self[i];
+                child.reflector = this->reflector->child;
+                child.refreshReflector();
+            }
+        }
     }
 
-    /* type-irrelative */
-    auto calculateCRC(const void *data = nullptr) -> const uint32_t
+    TYPE_IRRELATIVE auto refreshLengthChunk() -> void
     {
-        if (!data)
-            data = (void *)this->data;
+        if (this->reflector == nullptr)
+        {
+            this->length_chunk = this->length;
+        }
+        else
+        {
+            if (this->reflector->child != nullptr)
+            {
+                this->length_chunk = 0;
 
-        // boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-        boost::crc_32_type crc;
-        crc.process_bytes(data, this->length);
-        return crc.checksum();
+                auto &self = *(db2Chunk<db2Chunk<char>> *)this;
+                for (auto i = 0; i < self.size(); ++i)
+                {
+                    auto &child = self[i];
+                    // child.reflector = this->reflector->child;
+                    child.refreshLengthChunk();
+
+                    this->length_chunk += child.length_chunk + 2 * 4;
+                }
+            }
+            else
+            {
+                this->length_chunk = this->length;
+            }
+        }
     }
 };

@@ -4,20 +4,26 @@
 #include <assert.h>
 #include <math.h>
 
+#include "db2_settings.h"
+
 /*
 It's a std::vector-like container.
 Vector is a concept in maths or physics, and it's not a suitable name for the STL.
 In order to avoid conceptual confusion, this container is not namaned as 'vector'.
 */
 
-template <typename T, typename T1 = int32_t>
+#define TYPE_IRRELATIVE /* type-irrelative */
+
+template <typename T>
 class db2DynArray
 {
 public:
+    using value_type = T;
+
+public:
     int32_t length{0}; // length in bytes
+    char type[4]{'N', 'U', 'L', 'L'};
     T *data{nullptr};
-    T **index{nullptr};
-    bool is_element_len_varable{false};
 
 private:
     int32_t length_men{0};  // length in bytes
@@ -106,10 +112,10 @@ public:
         // this->reserve(this->size() + 1);
         // ::memcpy(this->data + this->size(), &u, sizeof(T));
         // this->length += sizeof(T);
+        // return reinterpret_cast<U &>(this->data[this->size() - 1]);
 
         this->push(reinterpret_cast<const T &>(u));
-        return reinterpret_cast<U &> (this->data[this->size()]);
-
+        return this->operator[]<U>(-1);
     }
 
     template <typename... Args>
@@ -125,8 +131,7 @@ public:
     }
 
 public:
-    /* type-irrelative */
-    auto reserve_men(int32_t length_men, const bool expand = true) -> void
+    TYPE_IRRELATIVE auto reserve_men(int32_t length_men, const bool expand = true) -> void
     {
         if (length_men <= this->length_men)
             return;

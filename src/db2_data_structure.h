@@ -8,14 +8,15 @@
 
 DB2_PRAGMA_PACK_ON
 
-ENDIAN_SENSITIVE struct dotB2Shape
-{
-    int32_t _length{2};
+// ENDIAN_SENSITIVE struct dotB2Shape
+// {
+//     int32_t _length{2};
 
-    int32_t shape_type{-1};
-    float32_t shape_radius{-0.0f};
-    int32_t shape_extend{-1};
-};
+//     char type[4]{'S', 'P', 0, 0};
+//     float32_t shape_radius{-0.0f};
+
+//     // ... extend data
+// };
 
 ENDIAN_SENSITIVE struct dotB2Fixture
 {
@@ -154,15 +155,27 @@ public:
     auto load(const char *filePath) -> void;
     auto save(const char *filePath, bool asLittleEndian = false) -> void;
 
-    auto chunk(const char *type) -> db2Chunk<char> *;
-
     template <typename T>
     auto chunk(const char *type) -> db2Chunk<T> &
     {
-        db2Chunk<char> *chunk = this->chunk(type);
-        db2Chunk<T> &chunk_casted = *(db2Chunk<T> *)chunk;
-        //*reinterpret_cast<db2Chunk<T> *>(chunk)
+        db2Chunk<T> *chunk = nullptr;
 
-        return chunk_casted;
+        for (auto i = 0; i < this->chunks.size(); ++i)
+        {
+            auto &_chunk = this->chunks[i];
+            if (std::equal(_chunk->type, _chunk->type + 4, type))
+            {
+                chunk = (db2Chunk<T> *)_chunk;
+                break;
+            }
+        }
+
+        if (chunk == nullptr)
+        {
+            chunk = new db2Chunk<T>(type);
+            this->chunks.push((db2Chunk<char> *)chunk);
+        }
+
+        return *chunk;
     }
 };

@@ -120,7 +120,7 @@ struct db2ChunkType
     static constexpr const char JINT[4]{'J', 'I', 'N', 'T'};
     static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
-    static constexpr const char SHaP[4]{'S', 'H', 'a', 'P'};
+    static constexpr const char SHpE[4]{'S', 'H', 'p', 'e'};
 
     static constexpr const char JInX[4]{'J', 'I', 'n', 'X'};
 

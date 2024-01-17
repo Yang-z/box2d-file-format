@@ -93,13 +93,12 @@ public:
         ::memcpy(this->type, this->reflector->type, 4);
     }
 
-    TYPE_IRRELATIVE db2Chunk(const char *type)
+    TYPE_IRRELATIVE db2Chunk(const char *type, db2Reflector *reflector = nullptr)
     {
         if (type)
-        {
             ::memcpy(this->type, type, 4);
-            this->reflector = db2Reflector::GetReflector(this->type);
-        }
+
+        this->reflector = reflector ? reflector : (type ? db2Reflector::GetReflector(type) : nullptr);
     }
 
     TYPE_IRRELATIVE db2Chunk(std::ifstream &fs, const bool isLittleEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr)

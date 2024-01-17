@@ -29,7 +29,7 @@ private:
     int32_t length_men{0}; // length in bytes
 
 public:
-    ~db2DynArray()
+    virtual ~db2DynArray()
     {
         if (!this->data)
             return;

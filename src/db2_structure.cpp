@@ -16,7 +16,7 @@ auto db2ChunkType::RegisterType() -> bool
     db2Reflector::Reflect<db2Chunk<dotB2Joint>>(db2ChunkType::JINT);
     db2Reflector::Reflect<db2Chunk<dotB2Body>>(db2ChunkType::BODY);
     db2Reflector::Reflect<db2Chunk<dotB2Fixture>>(db2ChunkType::FXTR);
-    db2Reflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::SHaP);
+    db2Reflector::Reflect<db2Chunk<db2Chunk<float32_t>>>(db2ChunkType::SHpE);
 
     db2Reflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::JInX);
 

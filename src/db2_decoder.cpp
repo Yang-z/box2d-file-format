@@ -17,7 +17,7 @@ auto dotB2Decoder::decode() -> void
     auto &db2js = this->db2->get<db2Chunk<dotB2Joint>>();
     auto &db2bs = this->db2->get<db2Chunk<dotB2Body>>();
     auto &db2fs = this->db2->get<db2Chunk<dotB2Fixture>>();
-    auto &db2ss = this->db2->get<db2Chunk<float32_t>>();
+    auto &db2ss = this->db2->get<db2Chunk<db2Chunk<float32_t>>>();
 
     auto &db2jxs = this->db2->get<db2Chunk<float32_t>>();
 
@@ -72,92 +72,88 @@ auto dotB2Decoder::decode() -> void
             b2fdef.filter.maskBits = db2f.filter_maskBits;
             b2fdef.filter.groupIndex = db2f.filter_groupIndex;
 
-            auto shape_loc = db2f.shape;
+            /*shape*/
+            auto &db2s = db2ss[db2f.shape];
+            auto db2s_ptr = 0;
+            b2Shape *b2s = nullptr;
 
-            // auto shape_length = db2ss[shape_loc++]<int32_t>;
-            auto shape_length = db2ss.operator[]<int32_t>(shape_loc++); // what the fork?!
-            auto shape_type = db2ss.operator[]<uint8_t[4]>(shape_loc++)[3];
-            auto shape_radius = db2ss.operator[]<float32_t>(shape_loc++);
-
-            switch ((b2Shape::Type)shape_type)
+            switch ((b2Shape::Type)db2s.type[3])
             {
 
             case b2Shape::Type::e_circle:
             {
-                assert(shape_length == 1 + 2);
-                auto shape = b2CircleShape();
-                shape.m_radius = shape_radius;
+                assert(db2s.size() == 1 + 2);
 
-                shape.m_p = {db2ss[shape_loc++], db2ss[shape_loc++]};
+                b2s = new b2CircleShape();
+                auto &b2s_t = *(b2CircleShape *)b2s;
 
-                b2fdef.shape = &shape; // The shape will be cloned
-                b2fdef.userData.pointer = (uintptr_t)j;
-                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
+                b2s_t.m_radius = db2s[db2s_ptr++];
+
+                b2s_t.m_p = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
             }
             break;
 
             case b2Shape::e_edge:
             {
-                assert(shape_length == 1 + 9);
+                assert(db2s.size() == 1 + 9);
 
-                auto shape = b2EdgeShape();
-                shape.m_radius = shape_radius; // default: b2_polygonRadius
+                b2s = new b2EdgeShape();
+                auto &b2s_t = *(b2EdgeShape *)b2s;
 
-                shape.m_vertex0 = {db2ss[shape_loc++], db2ss[shape_loc++]};
-                shape.m_vertex1 = {db2ss[shape_loc++], db2ss[shape_loc++]};
-                shape.m_vertex2 = {db2ss[shape_loc++], db2ss[shape_loc++]};
-                shape.m_vertex3 = {db2ss[shape_loc++], db2ss[shape_loc++]};
-                shape.m_oneSided = (bool)db2ss[shape_loc++];
+                b2s_t.m_radius = db2s[db2s_ptr++]; // default: b2_polygonRadius
 
-                b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (uintptr_t)j;
-                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
+                b2s_t.m_vertex0 = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
+                b2s_t.m_vertex1 = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
+                b2s_t.m_vertex2 = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
+                b2s_t.m_vertex3 = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
+                b2s_t.m_oneSided = (bool)db2s[db2s_ptr++];
             }
             break;
 
             case b2Shape::e_polygon:
             {
-                assert(shape_length >= 1 + 6);
+                assert(db2s.size() >= 1 + 6);
 
-                auto shape = b2PolygonShape();
-                shape.m_radius = shape_radius; // default: b2_polygonRadius
+                b2s = new b2PolygonShape();
+                auto &b2s_t = *(b2PolygonShape *)b2s;
 
-                auto points = (b2Vec2 *)(&(db2ss[shape_loc]));
-                auto count = shape_length / 2;
-                shape.Set(points, count);
+                b2s_t.m_radius = db2s[db2s_ptr++]; // default: b2_polygonRadius
 
-                b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (uintptr_t)j;
-                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
+                auto points = (b2Vec2 *)(&(db2s[db2s_ptr]));
+                auto count = (db2s.size() - 1) / 2;
+                b2s_t.Set(points, count);
             }
             break;
 
             case b2Shape::e_chain:
             {
-                assert(shape_length >= 1 + 8);
+                assert(db2s.size() >= 1 + 8);
 
-                auto shape = b2ChainShape();
-                shape.m_radius = shape_radius;
+                b2s = new b2ChainShape();
+                auto &b2s_t = *(b2ChainShape *)b2s;
+
+                b2s_t.m_radius = db2s[db2s_ptr++];
 
                 /*
                 CreateChain or CreateLoop?
                 Since we record the "fusion point", m_prevVertex and m_nextVertex,
                 they are the same.
                 */
-                auto points = (b2Vec2 *)(&(db2ss[shape_loc]));
-                auto count = shape_length / 2 - 2;
-                shape.CreateChain(
+                auto points = (b2Vec2 *)(&(db2s[db2s_ptr]));
+                auto count = (db2s.size() - 1 - 2 * 2) / 2;
+                b2s_t.CreateChain(
                     points,
                     count,
-                    {db2ss[shape_loc + count * 2 + 0], db2ss[shape_loc + count * 2 + 1]},
-                    {db2ss[shape_loc + count * 2 + 2], db2ss[shape_loc + count * 2 + 3]});
-
-                b2fdef.shape = &shape;
-                b2fdef.userData.pointer = (uintptr_t)j;
-                db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
+                    {db2s[db2s_ptr + count * 2 + 0], db2s[db2s_ptr + count * 2 + 1]},
+                    {db2s[db2s_ptr + count * 2 + 2], db2s[db2s_ptr + count * 2 + 3]});
             }
             break;
             }
+
+            b2fdef.shape = b2s; // The shape will be cloned
+            b2fdef.userData.pointer = (uintptr_t)j;
+            db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
+            delete b2s; // virtual ~b2Shape()
         }
     }
 
@@ -414,14 +410,14 @@ auto dotB2Decoder::encode() -> void
         return;
 
     auto _db2 = new dotBox2d();
-    
+
     auto &db2is = _db2->get<db2Chunk<dotB2Info>>();
 
     auto &db2ws = _db2->get<db2Chunk<dotB2Wrold>>();
     auto &db2js = _db2->get<db2Chunk<dotB2Joint>>();
     auto &db2bs = _db2->get<db2Chunk<dotB2Body>>();
     auto &db2fs = _db2->get<db2Chunk<dotB2Fixture>>();
-    auto &db2ss = _db2->get<db2Chunk<float32_t>>();
+    auto &db2ss = _db2->get<db2Chunk<db2Chunk<float32_t>>>();
 
     auto &db2jxs = _db2->get<db2Chunk<float32_t>>();
 
@@ -501,8 +497,6 @@ auto dotB2Decoder::encode() -> void
                 b2f->GetFilterData().groupIndex,
 
                 /*shape*/
-                // b2f->GetShape()->GetType(),
-                // b2f->GetShape()->m_radius,
                 db2ss.size(),
                 // 0, //
 
@@ -511,17 +505,11 @@ auto dotB2Decoder::encode() -> void
 
             /*shape*/
             auto b2s = b2f->GetShape();
-            /*shape_length*/ db2ss.copy((int32_t)0);
 
-            union
-            {
-                char name[4] {'S', 'P', 0, 0};
-                int32_t id;
-            }shape_type;
-            shape_type.name[3] = (int8_t)b2s->GetType();
-            
-            /*shape_type*/ db2ss.copy(shape_type.id);
-            /*shape_radius*/ db2ss.copy((float32_t)b2s->m_radius);
+            const char type[4] = {'S', 'H', 'P', (int8_t)b2s->m_type};
+            auto &db2s = db2ss.emplace(type, db2ss.reflector->child);
+
+            /*shape_radius*/ db2s.push(b2s->m_radius);
 
             switch (b2s->GetType())
             {
@@ -529,10 +517,10 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_c = (b2CircleShape *)b2s;
 
-                db2ss.reserve(db2ss.size() + 1 * 2);
+                db2s.reserve(db2s.size() + 1 * 2);
 
-                db2ss.emplace(b2s_c->m_p.x);
-                db2ss.emplace(b2s_c->m_p.y);
+                db2s.emplace(b2s_c->m_p.x);
+                db2s.emplace(b2s_c->m_p.y);
             }
             break;
 
@@ -540,18 +528,18 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_e = (b2EdgeShape *)b2s;
 
-                db2ss.reserve(db2ss.size() + 4 * 2 + 1);
+                db2s.reserve(db2s.size() + 4 * 2 + 1);
 
-                db2ss.emplace(b2s_e->m_vertex0.x);
-                db2ss.emplace(b2s_e->m_vertex0.y);
-                db2ss.emplace(b2s_e->m_vertex1.x);
-                db2ss.emplace(b2s_e->m_vertex1.y);
-                db2ss.emplace(b2s_e->m_vertex2.x);
-                db2ss.emplace(b2s_e->m_vertex2.y);
-                db2ss.emplace(b2s_e->m_vertex3.x);
-                db2ss.emplace(b2s_e->m_vertex3.y);
+                db2s.emplace(b2s_e->m_vertex0.x);
+                db2s.emplace(b2s_e->m_vertex0.y);
+                db2s.emplace(b2s_e->m_vertex1.x);
+                db2s.emplace(b2s_e->m_vertex1.y);
+                db2s.emplace(b2s_e->m_vertex2.x);
+                db2s.emplace(b2s_e->m_vertex2.y);
+                db2s.emplace(b2s_e->m_vertex3.x);
+                db2s.emplace(b2s_e->m_vertex3.y);
 
-                db2ss.emplace((float32_t)b2s_e->m_oneSided);
+                db2s.emplace((float32_t)b2s_e->m_oneSided);
             }
             break;
 
@@ -559,12 +547,12 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_p = (b2PolygonShape *)b2s;
 
-                db2ss.reserve(db2ss.size() + b2s_p->m_count * 2);
+                db2s.reserve(db2s.size() + b2s_p->m_count * 2);
 
                 for (int i = 0; i < b2s_p->m_count; i++)
                 {
-                    db2ss.emplace(b2s_p->m_vertices[i].x);
-                    db2ss.emplace(b2s_p->m_vertices[i].y);
+                    db2s.emplace(b2s_p->m_vertices[i].x);
+                    db2s.emplace(b2s_p->m_vertices[i].y);
                 }
             }
             break;
@@ -573,24 +561,21 @@ auto dotB2Decoder::encode() -> void
             {
                 auto b2s_chain = (b2ChainShape *)b2s;
 
-                db2ss.reserve(db2ss.size() + b2s_chain->m_count * 2 + 2 * 2);
+                db2s.reserve(db2s.size() + b2s_chain->m_count * 2 + 2 * 2);
 
                 for (int i = 0; i < b2s_chain->m_count; i++)
                 {
-                    db2ss.emplace(b2s_chain->m_vertices[i].x);
-                    db2ss.emplace(b2s_chain->m_vertices[i].y);
+                    db2s.emplace(b2s_chain->m_vertices[i].x);
+                    db2s.emplace(b2s_chain->m_vertices[i].y);
                 }
 
-                db2ss.emplace(b2s_chain->m_prevVertex.x);
-                db2ss.emplace(b2s_chain->m_prevVertex.y);
-                db2ss.emplace(b2s_chain->m_nextVertex.x);
-                db2ss.emplace(b2s_chain->m_nextVertex.y);
+                db2s.emplace(b2s_chain->m_prevVertex.x);
+                db2s.emplace(b2s_chain->m_prevVertex.y);
+                db2s.emplace(b2s_chain->m_nextVertex.x);
+                db2s.emplace(b2s_chain->m_nextVertex.y);
             }
             break;
             }
-
-            auto &shape_length = db2ss.operator[]<int32_t>(db2fs[-1].shape);
-            shape_length = db2ss.size() - db2fs[-1].shape - 2;
         }
     }
 

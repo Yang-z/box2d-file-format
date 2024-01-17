@@ -114,6 +114,8 @@ public:
         }
         else
         {
+            // value_type shoud be of a flat data structure
+
             static const value_type *const pt{nullptr};
             static const value_type &vaule{*pt};
 

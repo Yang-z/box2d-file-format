@@ -11,7 +11,14 @@
 #include "db2_dynarray.h"
 #include "db2_reflector.h"
 
-/* */
+/*
+class db2Chunk is designed to process flat data structures for file storage.
+value type should be a POD (plain old data) type, or another db2Chunk as it's sub-chunk type.
+db2Chunk<T> requires being reflected before use, otherwise endian handling and destructing may fault.
+db2Chunk<T> could be downgraded to db2Chunk<char> when using, and that's why reflection is required.
+type-irrelative functions, as well as reflection mechanism, are adopted,
+to make it still functioning even when it's downgraded to db2Chunk<char>.
+*/
 
 #define DEF_IN_BASE(def) /* defined in base */
 
@@ -104,6 +111,25 @@ public:
     TYPE_IRRELATIVE db2Chunk(std::ifstream &fs, const bool isLittleEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr)
     {
         this->read(fs, isLittleEndian, reflector, CRC);
+    }
+
+    // only clear up reflected types with the innermost value-types of flat data structures
+    // further work is required?
+    TYPE_IRRELATIVE ~db2Chunk() override
+    {
+        if (!this->data)
+            return;
+
+        if (this->reflector->child)
+        {
+            auto &self = *(db2Chunk<db2Chunk<char>> *)this;
+            for (auto i = 0; i < self.size(); ++i)
+                self[i].~db2Chunk();
+        }
+
+        // free data, or leave it to base destructor?
+        ::free(this->data);
+        this->data = nullptr;
     }
 
 public:

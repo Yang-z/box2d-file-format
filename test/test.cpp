@@ -3,7 +3,7 @@
 #include <type_traits> // std::is_same
 
 #include "db2_hardware_difference.h"
-#include "db2_data_structure.h"
+#include "db2_structure.h"
 #include "db2_dynarray.h"
 #include "db2_decoder.h"
 

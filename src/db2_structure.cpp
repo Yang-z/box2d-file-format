@@ -1,4 +1,4 @@
-#include "db2_data_structure.h"
+#include "db2_structure.h"
 
 #include <fstream>
 #include <algorithm>

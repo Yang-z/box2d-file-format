@@ -1,7 +1,7 @@
 #pragma once
 
 #include "box2d/box2d.h"
-#include "db2_data_structure.h"
+#include "db2_structure.h"
 
 class dotB2Decoder
 {

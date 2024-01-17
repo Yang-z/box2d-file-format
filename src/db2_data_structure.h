@@ -2,7 +2,7 @@
 
 #include "db2_settings.h"
 #include "db2_hardware_difference.h"
-#include "db2_structure_reflector.h"
+#include "db2_reflector.h"
 #include "db2_dynarray.h"
 #include "db2_chunk.h"
 
@@ -155,27 +155,24 @@ public:
     auto load(const char *filePath) -> void;
     auto save(const char *filePath, bool asLittleEndian = false) -> void;
 
-    template <typename T>
-    auto chunk(const char *type) -> db2Chunk<T> &
+public:
+    template <typename CK_T>
+    auto get() -> CK_T &
     {
-        db2Chunk<T> *chunk = nullptr;
-
         for (auto i = 0; i < this->chunks.size(); ++i)
         {
-            auto &_chunk = this->chunks[i];
-            if (std::equal(_chunk->type, _chunk->type + 4, type))
-            {
-                chunk = (db2Chunk<T> *)_chunk;
-                break;
-            }
+            auto &p_chunk = this->chunks[i];
+            if (p_chunk->reflector->id == typeid(CK_T).hash_code())
+                return *(CK_T *)p_chunk;
         }
+        return this->add<CK_T>();
+    }
 
-        if (chunk == nullptr)
-        {
-            chunk = new db2Chunk<T>(type);
-            this->chunks.push((db2Chunk<char> *)chunk);
-        }
-
+    template <typename CK_T>
+    auto add() -> CK_T &
+    {
+        CK_T *chunk = new CK_T();
+        this->chunks.push((db2Chunk<char> *)chunk);
         return *chunk;
     }
 };

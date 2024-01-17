@@ -9,16 +9,18 @@
 
 #include "db2_hardware_difference.h"
 #include "db2_dynarray.h"
-#include "db2_structure_reflector.h"
+#include "db2_reflector.h"
 
 /* */
+
+#define DEF_IN_BASE(def) /* defined in base */
 
 template <typename T>
 class db2Chunk : public db2DynArray<T>
 {
 
 public:
-    TYPE_IRRELATIVE static auto ReadBytes(char *data, const int32_t length, std::ifstream &fs, const bool reverseEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReadBytes(char *data, const int32_t length, std::ifstream &fs, const bool reverseEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -32,7 +34,7 @@ public:
             db2Chunk::ReverseEndian(data, length, reflector);
     }
 
-    TYPE_IRRELATIVE static auto WriteBytes(char *data, const int32_t length, std::ofstream &fs, const bool reverseEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto WriteBytes(char *data, const int32_t length, std::ofstream &fs, const bool reverseEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -55,7 +57,7 @@ public:
     }
 
     // type-irrelative, since reflector is adopted
-    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const int32_t length, db2StructReflector *reflector = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const int32_t length, db2Reflector *reflector = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -74,33 +76,39 @@ public:
     }
 
 public:
-    ENDIAN_SENSITIVE; // int32_t length{0};  // defined in base
-    // char type[4]{'N', 'U', 'L', 'L'};
-    ENDIAN_SENSITIVE; // T *data{nullptr};  // defined in base
+    ENDIAN_SENSITIVE DEF_IN_BASE(int32_t length{0});
+    char type[4]{'N', 'U', 'L', 'L'};
+    ENDIAN_SENSITIVE DEF_IN_BASE(T *data{nullptr});
     ENDIAN_SENSITIVE uint32_t crc{};
 
-private:
+    ENDIAN_SENSITIVE int32_t length_chunk{0};
+
     // const bool isLittleEndian{hardwareDifference::IsLittleEndian()};
-    db2StructReflector *reflector{nullptr};
-    int32_t length_chunk{0};
+    db2Reflector *reflector{nullptr};
 
 public:
-    db2Chunk(const char *type = nullptr)
+    db2Chunk()
+    {
+        this->reflector = db2Reflector::GetReflector<db2Chunk<T>>();
+        ::memcpy(this->type, this->reflector->type, 4);
+    }
+
+    TYPE_IRRELATIVE db2Chunk(const char *type)
     {
         if (type)
         {
             ::memcpy(this->type, type, 4);
-            this->reflector = db2StructReflector::GetReflector(this->type);
+            this->reflector = db2Reflector::GetReflector(this->type);
         }
     }
 
-    db2Chunk(std::ifstream &fs, const bool isLittleEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr)
+    TYPE_IRRELATIVE db2Chunk(std::ifstream &fs, const bool isLittleEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr)
     {
         this->read(fs, isLittleEndian, reflector, CRC);
     }
 
 public:
-    TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, db2StructReflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         assert(this->length == 0);
 
@@ -115,7 +123,7 @@ public:
 
         // type
         db2Chunk::ReadBytes(this->type, sizeof(this->type), fs, false, nullptr, CRC);
-        this->reflector = reflector ? reflector : db2StructReflector::GetReflector(this->type);
+        this->reflector = reflector ? reflector : db2Reflector::GetReflector(this->type);
 
         // data
         if (this->reflector->child == nullptr)
@@ -189,7 +197,7 @@ public:
 
     TYPE_IRRELATIVE auto refreshReflector() -> void
     {
-        this->reflector = this->reflector ? this->reflector : db2StructReflector::GetReflector(this->type);
+        this->reflector = this->reflector ? this->reflector : db2Reflector::GetReflector(this->type);
 
         if (this->reflector == nullptr)
             return;

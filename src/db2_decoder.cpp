@@ -13,13 +13,13 @@ auto dotB2Decoder::decode() -> void
     if (!this->db2)
         return;
 
-    auto &db2ws = this->db2->chunk<dotB2Wrold>(db2ChunkType::WRLD);
-    auto &db2js = this->db2->chunk<dotB2Joint>(db2ChunkType::JINT);
-    auto &db2bs = this->db2->chunk<dotB2Body>(db2ChunkType::BODY);
-    auto &db2fs = this->db2->chunk<dotB2Fixture>(db2ChunkType::FXTR);
-    auto &db2ss = this->db2->chunk<float32_t>(db2ChunkType::SHaP);
+    auto &db2ws = this->db2->get<db2Chunk<dotB2Wrold>>();
+    auto &db2js = this->db2->get<db2Chunk<dotB2Joint>>();
+    auto &db2bs = this->db2->get<db2Chunk<dotB2Body>>();
+    auto &db2fs = this->db2->get<db2Chunk<dotB2Fixture>>();
+    auto &db2ss = this->db2->get<db2Chunk<float32_t>>();
 
-    auto &db2jxs = this->db2->chunk<float32_t>(db2ChunkType::JInX);
+    auto &db2jxs = this->db2->get<db2Chunk<float32_t>>();
 
     /*world*/
     auto &db2w = db2ws[0];
@@ -76,7 +76,7 @@ auto dotB2Decoder::decode() -> void
 
             // auto shape_length = db2ss[shape_loc++]<int32_t>;
             auto shape_length = db2ss.operator[]<int32_t>(shape_loc++); // what the fork?!
-            auto shape_type = db2ss.operator[]<int32_t>(shape_loc++);
+            auto shape_type = db2ss.operator[]<uint8_t[4]>(shape_loc++)[3];
             auto shape_radius = db2ss.operator[]<float32_t>(shape_loc++);
 
             switch ((b2Shape::Type)shape_type)
@@ -414,14 +414,16 @@ auto dotB2Decoder::encode() -> void
         return;
 
     auto _db2 = new dotBox2d();
-    auto &db2is = _db2->chunk<dotB2Info>(db2ChunkType::INFO);
-    auto &db2ws = _db2->chunk<dotB2Wrold>(db2ChunkType::WRLD);
-    auto &db2js = _db2->chunk<dotB2Joint>(db2ChunkType::JINT);
-    auto &db2bs = _db2->chunk<dotB2Body>(db2ChunkType::BODY);
-    auto &db2fs = _db2->chunk<dotB2Fixture>(db2ChunkType::FXTR);
-    auto &db2ss = _db2->chunk<float32_t>(db2ChunkType::SHaP);
+    
+    auto &db2is = _db2->get<db2Chunk<dotB2Info>>();
 
-    auto &db2jxs = _db2->chunk<float32_t>(db2ChunkType::JInX);
+    auto &db2ws = _db2->get<db2Chunk<dotB2Wrold>>();
+    auto &db2js = _db2->get<db2Chunk<dotB2Joint>>();
+    auto &db2bs = _db2->get<db2Chunk<dotB2Body>>();
+    auto &db2fs = _db2->get<db2Chunk<dotB2Fixture>>();
+    auto &db2ss = _db2->get<db2Chunk<float32_t>>();
+
+    auto &db2jxs = _db2->get<db2Chunk<float32_t>>();
 
     /*info*/
     // constructs an element in-place at the end
@@ -510,7 +512,15 @@ auto dotB2Decoder::encode() -> void
             /*shape*/
             auto b2s = b2f->GetShape();
             /*shape_length*/ db2ss.copy_back((int32_t)0);
-            /*shape_type*/ db2ss.copy_back((int32_t)b2s->GetType());
+
+            union
+            {
+                char name[4] {'S', 'P', 0, 0};
+                int32_t id;
+            }shape_type;
+            shape_type.name[3] = (int8_t)b2s->GetType();
+            
+            /*shape_type*/ db2ss.copy_back(shape_type.id);
             /*shape_radius*/ db2ss.copy_back((float32_t)b2s->m_radius);
 
             switch (b2s->GetType())

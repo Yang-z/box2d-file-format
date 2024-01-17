@@ -22,7 +22,7 @@ public:
 
 public:
     int32_t length{0}; // length in bytes
-    char type[4]{'N', 'U', 'L', 'L'};
+    // char type[4]{'N', 'U', 'L', 'L'};
     T *data{nullptr};
 
 private:

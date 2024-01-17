@@ -11,18 +11,18 @@ bool db2ChunkType::IsRegistered = db2ChunkType::RegisterType();
 
 auto db2ChunkType::RegisterType() -> bool
 {
-    db2StructReflector::Reflect<db2Chunk<dotB2Info>>(db2ChunkType::INFO);
-    db2StructReflector::Reflect<db2Chunk<dotB2Wrold>>(db2ChunkType::WRLD);
-    db2StructReflector::Reflect<db2Chunk<dotB2Joint>>(db2ChunkType::JINT);
-    db2StructReflector::Reflect<db2Chunk<dotB2Body>>(db2ChunkType::BODY);
-    db2StructReflector::Reflect<db2Chunk<dotB2Fixture>>(db2ChunkType::FXTR);
-    db2StructReflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::SHaP);
+    db2Reflector::Reflect<db2Chunk<dotB2Info>>(db2ChunkType::INFO);
+    db2Reflector::Reflect<db2Chunk<dotB2Wrold>>(db2ChunkType::WRLD);
+    db2Reflector::Reflect<db2Chunk<dotB2Joint>>(db2ChunkType::JINT);
+    db2Reflector::Reflect<db2Chunk<dotB2Body>>(db2ChunkType::BODY);
+    db2Reflector::Reflect<db2Chunk<dotB2Fixture>>(db2ChunkType::FXTR);
+    db2Reflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::SHaP);
 
-    db2StructReflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::JInX);
+    db2Reflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::JInX);
 
-    db2StructReflector::Reflect<db2Chunk<int32_t>>(db2ChunkType::DIcT);
-    db2StructReflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::LIsT);
-    db2StructReflector::Reflect<db2Chunk<char>>(db2ChunkType::CHAR);
+    db2Reflector::Reflect<db2Chunk<int32_t>>(db2ChunkType::DIcT);
+    db2Reflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::LIsT);
+    db2Reflector::Reflect<db2Chunk<char>>(db2ChunkType::CHAR);
 
     return true;
 }

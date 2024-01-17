@@ -138,7 +138,7 @@ public:
             auto pn = p0;
             while (pn - p0 < this->length_chunk)
             {
-                ((db2Chunk<db2Chunk<char>> *)this)->emplace_back(fs, isLittleEndian, this->reflector->child, CRC);
+                ((db2Chunk<db2Chunk<char>> *)this)->emplace(fs, isLittleEndian, this->reflector->child, CRC);
                 pn = fs.tellg();
             }
             assert(pn - p0 == this->length_chunk);

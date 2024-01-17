@@ -189,14 +189,14 @@ auto test_CRC() -> void
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
-    db2->get<db2Chunk<dotB2Info>>().emplace_back();
-    db2->get<db2Chunk<dotB2Wrold>>().emplace_back();
+    db2->get<db2Chunk<dotB2Info>>().emplace();
+    db2->get<db2Chunk<dotB2Wrold>>().emplace();
     for (int i = 0; i < 2; i++)
-        db2->get<db2Chunk<dotB2Body>>().emplace_back();
+        db2->get<db2Chunk<dotB2Body>>().emplace();
     for (int i = 0; i < 3; i++)
-        db2->get<db2Chunk<dotB2Fixture>>().emplace_back();
+        db2->get<db2Chunk<dotB2Fixture>>().emplace();
     for (int i = 0; i < 16; i++)
-        db2->get<db2Chunk<float32_t>>().emplace_back();
+        db2->get<db2Chunk<float32_t>>().emplace();
     db2->save("./test.B2d");
     delete db2;
     db2 = nullptr;

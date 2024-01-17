@@ -26,7 +26,7 @@ public:
     T *data{nullptr};
 
 private:
-    int32_t length_men{0};  // length in bytes
+    int32_t length_men{0}; // length in bytes
 
 public:
     ~db2DynArray()
@@ -93,11 +93,15 @@ public:
         this->length = size * sizeof(T);
     }
 
-    auto push(const T &t) -> void
+    auto push(const T &t) -> T &
     {
-        this->reserve(this->size() + 1);
-        ::new (this->data + this->size()) T(t);
+        auto size = this->size(); // old size
+
+        this->reserve(size + 1);
+        ::new (this->data + size) T(t);
         this->length += sizeof(T);
+
+        return this->data[size];
     }
 
     auto pop() -> void
@@ -107,26 +111,29 @@ public:
     }
 
     template <typename U>
-    auto copy_back(const U &u) -> U &
-    {
-        // this->reserve(this->size() + 1);
-        // ::memcpy(this->data + this->size(), &u, sizeof(T));
-        // this->length += sizeof(T);
-        // return reinterpret_cast<U &>(this->data[this->size() - 1]);
-
-        this->push(reinterpret_cast<const T &>(u));
-        return this->operator[]<U>(-1);
-    }
-
-    template <typename... Args>
-    auto emplace_back(Args &&...args) -> T &
+    auto copy(const U &u) -> U &
     {
         auto size = this->size(); // old size
 
         this->reserve(size + 1);
-        this->length += sizeof(T); // size() already changed
+        ::memcpy(this->data + size, &u, sizeof(T));
+        this->length += sizeof(T);
 
+        return reinterpret_cast<U &>(this->data[size]);
+
+        // this->push(reinterpret_cast<const T &>(u));
+        // return this->operator[]<U>(-1);
+    }
+
+    template <typename... Args>
+    auto emplace(Args &&...args) -> T &
+    {
+        auto size = this->size(); // old size
+
+        this->reserve(size + 1);
         ::new (this->data + size) T(args...);
+        this->length += sizeof(T);
+
         return this->data[size];
     }
 

@@ -109,6 +109,39 @@ auto test_equality() -> void
     printf("\n");
 }
 
+auto test_derived() -> void
+{
+    class Base
+    {
+    public:
+        Base()
+        {
+            std::cout << "Base constructor0 called." << std::endl;
+        }
+
+        Base(bool b)
+        {
+            std::cout << "Base constructor1 called." << std::endl;
+        }
+    };
+
+    class Derived : public Base
+    {
+    public:
+        Derived()
+        {
+            std::cout << "Derived constructor0 called." << std::endl;
+        }
+        Derived(bool b): Base(b) // call base default constructor if not specified
+        {
+            std::cout << "Derived constructor1 called." << std::endl;
+        }
+    };
+
+    Derived d0;
+    Derived d1(true);
+}
+
 auto test_hardware_difference() -> void
 {
 
@@ -289,6 +322,8 @@ auto main() -> int
     // test_cast_value();
 
     // test_equality();
+
+    // test_derived();
 
     // test_hardware_difference();
 

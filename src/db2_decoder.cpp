@@ -17,7 +17,7 @@ auto dotB2Decoder::decode() -> void
     auto &db2js = this->db2->get<db2Chunk<dotB2Joint>>();
     auto &db2bs = this->db2->get<db2Chunk<dotB2Body>>();
     auto &db2fs = this->db2->get<db2Chunk<dotB2Fixture>>();
-    auto &db2ss = this->db2->get<db2Chunk<db2Chunk<float32_t>>>();
+    auto &db2ss = this->db2->get<db2Chunk<dotB2Shape>>();
 
     auto &db2jxs = this->db2->get<db2Chunk<float32_t>>();
 
@@ -74,10 +74,9 @@ auto dotB2Decoder::decode() -> void
 
             /*shape*/
             auto &db2s = db2ss[db2f.shape];
-            auto db2s_ptr = 0;
             b2Shape *b2s = nullptr;
 
-            switch ((b2Shape::Type)db2s.type[3])
+            switch ((b2Shape::Type)db2s.type8_t())
             {
 
             case b2Shape::Type::e_circle:
@@ -87,8 +86,9 @@ auto dotB2Decoder::decode() -> void
                 b2s = new b2CircleShape();
                 auto &b2s_t = *(b2CircleShape *)b2s;
 
-                b2s_t.m_radius = db2s[db2s_ptr++];
+                b2s_t.m_radius = db2s.shape_radius();
 
+                auto db2s_ptr = db2s.shape_extend(); // 1
                 b2s_t.m_p = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
             }
             break;
@@ -100,8 +100,9 @@ auto dotB2Decoder::decode() -> void
                 b2s = new b2EdgeShape();
                 auto &b2s_t = *(b2EdgeShape *)b2s;
 
-                b2s_t.m_radius = db2s[db2s_ptr++]; // default: b2_polygonRadius
+                b2s_t.m_radius = db2s.shape_radius(); // default: b2_polygonRadius
 
+                auto db2s_ptr = db2s.shape_extend(); // 1
                 b2s_t.m_vertex0 = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
                 b2s_t.m_vertex1 = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
                 b2s_t.m_vertex2 = {db2s[db2s_ptr++], db2s[db2s_ptr++]};
@@ -117,8 +118,9 @@ auto dotB2Decoder::decode() -> void
                 b2s = new b2PolygonShape();
                 auto &b2s_t = *(b2PolygonShape *)b2s;
 
-                b2s_t.m_radius = db2s[db2s_ptr++]; // default: b2_polygonRadius
+                b2s_t.m_radius = db2s.shape_radius(); // default: b2_polygonRadius
 
+                auto db2s_ptr = db2s.shape_extend(); // 1
                 auto points = (b2Vec2 *)(&(db2s[db2s_ptr]));
                 auto count = (db2s.size() - 1) / 2;
                 b2s_t.Set(points, count);
@@ -132,13 +134,14 @@ auto dotB2Decoder::decode() -> void
                 b2s = new b2ChainShape();
                 auto &b2s_t = *(b2ChainShape *)b2s;
 
-                b2s_t.m_radius = db2s[db2s_ptr++];
+                b2s_t.m_radius = db2s.shape_radius();
 
                 /*
                 CreateChain or CreateLoop?
                 Since we record the "fusion point", m_prevVertex and m_nextVertex,
                 they are the same.
                 */
+                auto db2s_ptr = db2s.shape_extend(); // 1
                 auto points = (b2Vec2 *)(&(db2s[db2s_ptr]));
                 auto count = (db2s.size() - 1 - 2 * 2) / 2;
                 b2s_t.CreateChain(
@@ -417,7 +420,7 @@ auto dotB2Decoder::encode() -> void
     auto &db2js = _db2->get<db2Chunk<dotB2Joint>>();
     auto &db2bs = _db2->get<db2Chunk<dotB2Body>>();
     auto &db2fs = _db2->get<db2Chunk<dotB2Fixture>>();
-    auto &db2ss = _db2->get<db2Chunk<db2Chunk<float32_t>>>();
+    auto &db2ss = _db2->get<db2Chunk<dotB2Shape>>();
 
     auto &db2jxs = _db2->get<db2Chunk<float32_t>>();
 
@@ -505,13 +508,12 @@ auto dotB2Decoder::encode() -> void
 
             /*shape*/
             auto b2s = b2f->GetShape();
+            auto &db2s = db2ss.add_child();
 
-            const char type[4] = {'S', 'H', 'P', (int8_t)b2s->m_type};
-            auto &db2s = db2ss.emplace(type, db2ss.reflector->child);
+            /*shape_type*/ db2s.type8_t() = b2s->m_type;
+            /*shape_radius*/ db2s.emplace(b2s->m_radius);
 
-            /*shape_radius*/ db2s.push(b2s->m_radius);
-
-            switch (b2s->GetType())
+            switch (b2s->m_type)
             {
             case b2Shape::e_circle:
             {

@@ -94,18 +94,25 @@ public:
     db2Reflector *reflector{nullptr};
 
 public:
-    db2Chunk()
+    db2Chunk() {} // leave default constructor empty
+
+    db2Chunk(const bool auto_reflect)
     {
-        this->reflector = db2Reflector::GetReflector<db2Chunk<T>>();
-        ::memcpy(this->type, this->reflector->type, 4);
+        if (auto_reflect)
+        {
+            this->reflector = db2Reflector::GetReflector<db2Chunk<T>>();
+            ::memcpy(this->type, this->reflector->type, 4);
+        }
     }
 
-    TYPE_IRRELATIVE db2Chunk(const char *type, db2Reflector *reflector = nullptr)
+    TYPE_IRRELATIVE db2Chunk(const char *type, const bool auto_reflect = true)
     {
         if (type)
+        {
             ::memcpy(this->type, type, 4);
-
-        this->reflector = reflector ? reflector : (type ? db2Reflector::GetReflector(type) : nullptr);
+            if (auto_reflect)
+                this->reflector = db2Reflector::GetReflector(type);
+        }
     }
 
     TYPE_IRRELATIVE db2Chunk(std::ifstream &fs, const bool isLittleEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr)
@@ -130,6 +137,13 @@ public:
         // free data, or leave it to base destructor?
         ::free(this->data);
         this->data = nullptr;
+    }
+
+    auto add_child() -> T &
+    {
+        auto &child = this->emplace();
+        child.reflector = this->reflector->child;
+        return child;
     }
 
 public:

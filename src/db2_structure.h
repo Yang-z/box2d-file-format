@@ -8,15 +8,15 @@
 
 DB2_PRAGMA_PACK_ON
 
-// ENDIAN_SENSITIVE struct dotB2Shape
-// {
-//     int32_t _length{2};
+ENDIAN_SENSITIVE struct dotB2Shape : public db2Chunk<float32_t>
+{
+    dotB2Shape() : db2Chunk("SHP", false) {}
 
-//     char type[4]{'S', 'P', 0, 0};
-//     float32_t shape_radius{-0.0f};
+    int8_t &type8_t() { return reinterpret_cast<int8_t &>(this->type[3]); }
+    float32_t &shape_radius() { return (*this)[0]; }
 
-//     // ... extend data
-// };
+    int32_t shape_extend() { return 1; } // ... extend data
+};
 
 ENDIAN_SENSITIVE struct dotB2Fixture
 {
@@ -120,17 +120,17 @@ struct db2ChunkType
     static constexpr const char JINT[4]{'J', 'I', 'N', 'T'};
     static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
-    static constexpr const char SHpE[4]{'S', 'H', 'p', 'e'};
+    static constexpr const char SHpE[4]{'S', 'H', 'p', 'E'};
 
     static constexpr const char JInX[4]{'J', 'I', 'n', 'X'};
 
-    static constexpr const char DIcT[4]{'D', 'I', 'c', 'T'};
-    static constexpr const char LIsT[4]{'L', 'I', 's', 'T'};
-    static constexpr const char CHAR[4]{'C', 'H', 'A', 'R'};
+    // static constexpr const char DIcT[4]{'D', 'I', 'c', 'T'};
+    // static constexpr const char LIsT[4]{'L', 'I', 's', 'T'};
+    // static constexpr const char CHAR[4]{'C', 'H', 'A', 'R'};
 
-    static constexpr const char dIct[4]{'d', 'I', 'c', 't'};
-    static constexpr const char lIst[4]{'l', 'I', 's', 't'};
-    static constexpr const char cHAR[4]{'c', 'H', 'A', 'R'};
+    // static constexpr const char dIct[4]{'d', 'I', 'c', 't'};
+    // static constexpr const char lIst[4]{'l', 'I', 's', 't'};
+    // static constexpr const char cHAR[4]{'c', 'H', 'A', 'R'};
 
     static bool IsRegistered;
     static bool RegisterType();
@@ -171,7 +171,7 @@ public:
     template <typename CK_T>
     auto add() -> CK_T &
     {
-        CK_T *chunk = new CK_T();
+        CK_T *chunk = new CK_T(true);
         this->chunks.push((db2Chunk<char> *)chunk);
         return *chunk;
     }

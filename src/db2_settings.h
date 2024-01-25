@@ -1,7 +1,5 @@
 #pragma once
 
-#define DB2_NOTE(note)
-
 #include <cstdint>           // int8_t int16_t int32_t int64_t
 using int128_t = __int128_t; // GCC & Clang
 
@@ -19,3 +17,5 @@ using float64_t = double;
 #define DB2_PRAGMA_PACK(s) DB2_PRAGMA(pack(s))
 #define DB2_PRAGMA_PACK_ON DB2_PRAGMA_PACK(DB2_PACK_SIZE) // _Pragma("pack(8)")
 #define DB2_PRAGMA_PACK_OFF DB2_PRAGMA_PACK()             // _Pragma("pack()")
+
+#define DB2_NOTE(note)

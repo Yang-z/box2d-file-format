@@ -38,7 +38,7 @@ public:
     {
         for (int i = 0; i < db2Reflector::reflectors.size(); ++i)
         {
-            auto & reflector = db2Reflector::reflectors[i];
+            auto &reflector = db2Reflector::reflectors[i];
             if (std::equal(type, type + 4, reflector->type))
                 return reflector;
         }
@@ -50,7 +50,7 @@ public:
     {
         for (int i = 0; i < db2Reflector::reflectors.size(); ++i)
         {
-            auto & reflector = db2Reflector::reflectors[i];
+            auto &reflector = db2Reflector::reflectors[i];
             if (reflector->id == typeid(CK_T).hash_code())
                 return reflector;
         }

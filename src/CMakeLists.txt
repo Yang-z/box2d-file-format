@@ -12,8 +12,8 @@ target_include_directories(dot-box2d
 
 target_link_libraries(dot-box2d box2d)
 
-# set(CMAKE_CXX_FLAGS "-std=c++11")
-# set(CMAKE_CXX_STANDARD 14)
+# set(CMAKE_CXX_FLAGS "-std=c++2b")
+# set(CMAKE_CXX_STANDARD 20)
 set_target_properties(dot-box2d PROPERTIES
     LINKER_LANGUAGE CXX
     CXX_STANDARD 20

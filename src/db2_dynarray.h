@@ -22,11 +22,14 @@ public:
 
 public:
     int32_t length{0}; // length in bytes
-    // char type[4]{'N', 'U', 'L', 'L'};
     T *data{nullptr};
 
 private:
     int32_t length_men{0}; // length in bytes
+
+public:
+    const int32_t size() const { return this->length / sizeof(T); }
+    const int32_t capacity() const { return this->length_men / sizeof(T); }
 
 public:
     virtual ~db2DynArray()
@@ -47,31 +50,18 @@ public:
         return this->data[i];
     }
 
+    /*
     template <typename U>
     auto operator[](const int32_t index) const -> U &
     {
-        assert(sizeof(T) == sizeof(U));
+        // assert(sizeof(T) == sizeof(U));
         // const auto i = index >= 0 ? index : index + this->size();
         // return *(U *)(this->data + i);
         return reinterpret_cast<U &>((*this)[index]);
     }
+    */
 
-    auto size() const -> const int32_t
-    {
-        return this->length / sizeof(T);
-    }
-
-    auto capacity() -> int32_t
-    {
-        return this->length_men / sizeof(T);
-    }
-
-    auto reserve(const int32_t capacity, const bool expand = true) -> void
-    {
-        auto length_men = capacity * sizeof(T);
-        this->reserve_men(length_men, expand);
-    }
-
+    /*
     auto resize(const int32_t size) -> void
     {
         auto old_size = this->size();
@@ -92,6 +82,7 @@ public:
 
         this->length = size * sizeof(T);
     }
+    */
 
     auto push(const T &t) -> T &
     {
@@ -102,27 +93,6 @@ public:
         this->length += sizeof(T);
 
         return this->data[size];
-    }
-
-    auto pop() -> void
-    {
-        (this->data + this->size() - 1)->~T();
-        this->length -= sizeof(T);
-    }
-
-    template <typename U>
-    auto copy(const U &u) -> U &
-    {
-        auto size = this->size(); // old size
-
-        this->reserve(size + 1);
-        ::memcpy(this->data + size, &u, sizeof(T));
-        this->length += sizeof(T);
-
-        return reinterpret_cast<U &>(this->data[size]);
-
-        // this->push(reinterpret_cast<const T &>(u));
-        // return this->operator[]<U>(-1);
     }
 
     template <typename... Args>
@@ -137,7 +107,36 @@ public:
         return this->data[size];
     }
 
+    /*
+    template <typename U>
+    auto copy(const U &u) -> U &
+    {
+        auto size = this->size(); // old size
+
+        this->reserve(size + 1);
+        ::memcpy(this->data + size, &u, sizeof(T));
+        this->length += sizeof(T);
+
+        return reinterpret_cast<U &>(this->data[size]);
+
+        // this->push(reinterpret_cast<const T &>(u));
+        // return this->operator[]<U>(-1);
+    }
+    */
+
+    auto pop() -> void
+    {
+        (this->data + this->size() - 1)->~T();
+        this->length -= sizeof(T);
+    }
+
 public:
+    auto reserve(const int32_t capacity, const bool expand = true) -> void
+    {
+        auto length_men = capacity * sizeof(T);
+        this->reserve_men(length_men, expand);
+    }
+
     TYPE_IRRELATIVE auto reserve_men(int32_t length_men, const bool expand = true) -> void
     {
         if (length_men <= this->length_men)

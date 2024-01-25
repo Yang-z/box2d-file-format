@@ -15,7 +15,7 @@ ENDIAN_SENSITIVE struct dotB2Shape : public db2Chunk<float32_t>
     int8_t &type8_t() { return reinterpret_cast<int8_t &>(this->type[3]); }
     float32_t &shape_radius() { return (*this)[0]; }
 
-    int32_t shape_extend() { return 1; } // ... extend data
+    int32_t constexpr shape_extend() { return 1; } // ... extend data
 };
 
 ENDIAN_SENSITIVE struct dotB2Fixture
@@ -25,22 +25,16 @@ ENDIAN_SENSITIVE struct dotB2Fixture
     float32_t restitutionThreshold{1.0f};
     float32_t density{0.0f};
     bool isSensor{false};
-
     /* 1 byte gape */
-
     uint16_t filter_categoryBits{0x0001};
     uint16_t filter_maskBits{0xFFFF};
     int16_t filter_groupIndex{0};
 
-    int32_t shape{-1};
-    // int32_t shape_type{-1};
-    // float32_t shape_radius{-0.0f};
-    // int32_t shape_extend{-1};
+    int32_t shape{-1}; // one shape per fixture
 
-    int32_t extraDict{-1};
+    // int32_t extra{-1};
 
-    uint64_t userData{0};
-} DB2_NOTE(sizeof(dotB2Fixture) == 40);
+} DB2_NOTE(sizeof(dotB2Fixture) == 28);
 
 ENDIAN_SENSITIVE struct dotB2Body
 {
@@ -61,28 +55,25 @@ ENDIAN_SENSITIVE struct dotB2Body
     /* 3 bytes gape*/
     float32_t gravityScale{1.0f};
 
-    int32_t fixtureList{-1};
+    int32_t fixtureList{-1}; // one body could have multiple fixtures
     int32_t fixtureCount{0};
 
-    int32_t extraDict{-1};
-    /* 4 bytes gape*/
-    uint64_t userData{0};
-} DB2_NOTE(sizeof(dotB2Body) == 72);
+    // int32_t extra{-1};
 
-ENDIAN_SENSITIVE struct dotB2Joint
+} DB2_NOTE(sizeof(dotB2Body) == 56);
+
+ENDIAN_SENSITIVE struct dotB2Joint : public db2Chunk<float32_t>
 {
-    int32_t type{0};
-    int32_t bodyA{-1}; // index
-    int32_t bodyB{-1}; // index
-    bool collideConnected{false};
-    /* 3 bytes gape*/
-    int32_t extend; // index, and for a specified type of joint, the length is fixed.
+    dotB2Joint() : db2Chunk("JIN", false) {}
 
-    int32_t extraDict{-1};
+    int8_t &type8_t() { return reinterpret_cast<int8_t &>(this->type[3]); }
 
-    uint64_t userData{0};
+    int32_t &bodyA() { return reinterpret_cast<int32_t &>((*this)[0]); } // index
+    int32_t &bodyB() { return reinterpret_cast<int32_t &>((*this)[1]); } // index
+    bool &collideConnected() { return ((bool *)&((*this)[2]))[hardwareDifference::IsBigEndian() ? 0 : 3]; }
 
-} DB2_NOTE(sizeof(dotB2Joint) == 32);
+    int32_t constexpr extend() { return 3; } // ... extend data
+};
 
 ENDIAN_SENSITIVE struct dotB2Wrold
 {
@@ -94,6 +85,7 @@ ENDIAN_SENSITIVE struct dotB2Wrold
 
     int32_t jointList{0};
     int32_t jointCount{0};
+
 } DB2_NOTE(sizeof(dotB2Wrold) == 24);
 
 struct dotB2Info
@@ -117,12 +109,10 @@ struct db2ChunkType
 {
     static constexpr const char INFO[4]{'I', 'N', 'F', 'O'};
     static constexpr const char WRLD[4]{'W', 'R', 'L', 'D'};
-    static constexpr const char JINT[4]{'J', 'I', 'N', 'T'};
+    static constexpr const char JInT[4]{'J', 'I', 'n', 'T'};
     static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
     static constexpr const char SHpE[4]{'S', 'H', 'p', 'E'};
-
-    static constexpr const char JInX[4]{'J', 'I', 'n', 'X'};
 
     // static constexpr const char DIcT[4]{'D', 'I', 'c', 'T'};
     // static constexpr const char LIsT[4]{'L', 'I', 's', 'T'};

@@ -19,17 +19,15 @@ auto dotB2Decoder::decode() -> void
     auto &db2fs = this->db2->get<db2Chunk<dotB2Fixture>>();
     auto &db2ss = this->db2->get<db2Chunk<dotB2Shape>>();
 
-    auto &db2jxs = this->db2->get<db2Chunk<float32_t>>();
-
     /*world*/
     auto &db2w = db2ws[0];
     b2Vec2 gravity{db2w.gravity_x, db2w.gravity_y};
     this->b2w = new b2World{gravity};
 
     /*body*/
-    for (auto i = db2w.bodyList; i < db2w.bodyList + db2w.bodyCount; ++i)
+    for (auto b = db2w.bodyList; b < db2w.bodyList + db2w.bodyCount; ++b)
     {
-        auto &db2b = db2bs[i];
+        auto &db2b = db2bs[b];
 
         b2BodyDef b2bdef{};
         /*
@@ -51,15 +49,16 @@ auto dotB2Decoder::decode() -> void
         b2bdef.enabled = db2b.enabled;
         b2bdef.gravityScale = db2b.gravityScale;
 
-        b2bdef.userData.pointer = (uintptr_t)i;
+        /*userData*/ b2bdef.userData.pointer = (uintptr_t)b;
 
         auto *b2b = b2w->CreateBody(&b2bdef);
-        db2b.userData = (uint64_t)b2b;
+
+        /*.userData*/ db2bs.userData.push(b2b);
 
         /*fixture*/
-        for (auto j = db2b.fixtureList; j <= db2b.fixtureList + db2b.fixtureCount - 1; ++j)
+        for (auto f = db2b.fixtureList; f <= db2b.fixtureList + db2b.fixtureCount - 1; ++f)
         {
-            dotB2Fixture &db2f = db2fs[j];
+            dotB2Fixture &db2f = db2fs[f];
             b2FixtureDef b2fdef{};
 
             b2fdef.friction = db2f.friction;
@@ -154,223 +153,208 @@ auto dotB2Decoder::decode() -> void
             }
 
             b2fdef.shape = b2s; // The shape will be cloned
-            b2fdef.userData.pointer = (uintptr_t)j;
-            db2f.userData = (uint64_t)b2b->CreateFixture(&b2fdef);
-            delete b2s; // virtual ~b2Shape()
+            /*userData*/ b2fdef.userData.pointer = (uintptr_t)f;
+            /*.userData*/ db2fs.userData.push(b2b->CreateFixture(&b2fdef));
+            if (b2s)
+                delete b2s; // virtual ~b2Shape()
         }
     }
 
     /*joint*/
-    for (auto i = db2w.jointList; i < db2w.jointList + db2w.jointCount; ++i)
+    for (auto j = db2w.jointList; j < db2w.jointList + db2w.jointCount; ++j)
     {
-        auto &db2j = db2js[i];
+        auto &db2j = db2js[j];
 
-        auto p = db2j.extend;
-        /*joint_extCount*/ const auto joint_extCount = db2jxs.operator[]<int32_t>(p++);
+        auto p = db2j.extend();
 
-        switch (b2JointType(db2j.type))
+        b2JointDef *b2jdef{nullptr};
+
+        switch (b2JointType(db2j.type8_t()))
         {
         case b2JointType::e_revoluteJoint:
         {
-            b2RevoluteJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2RevoluteJointDef();
+            auto &b2jdef_t = *(b2RevoluteJointDef *)b2jdef;
 
-            assert(joint_extCount == 11);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.localAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.referenceAngle = db2jxs[p++];
-            b2jdef.enableLimit = (bool)db2jxs[p++];
-            b2jdef.lowerAngle = db2jxs[p++];
-            b2jdef.upperAngle = db2jxs[p++];
-            b2jdef.enableMotor = (bool)db2jxs[p++];
-            b2jdef.motorSpeed = db2jxs[p++];
-            b2jdef.maxMotorTorque = db2jxs[p++];
+            assert(db2j.size() == 3 + 11);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.localAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.referenceAngle = db2j[p++];
+            b2jdef_t.enableLimit = (bool)db2j[p++];
+            b2jdef_t.lowerAngle = db2j[p++];
+            b2jdef_t.upperAngle = db2j[p++];
+            b2jdef_t.enableMotor = (bool)db2j[p++];
+            b2jdef_t.motorSpeed = db2j[p++];
+            b2jdef_t.maxMotorTorque = db2j[p++];
         }
         break;
 
         case b2JointType::e_prismaticJoint:
         {
-            b2PrismaticJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2PrismaticJointDef();
+            auto &b2jdef_t = *(b2PrismaticJointDef *)b2jdef;
 
-            assert(joint_extCount == 13);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.localAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAxisA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.referenceAngle = db2jxs[p++];
-            b2jdef.enableLimit = (bool)db2jxs[p++];
-            b2jdef.lowerTranslation = db2jxs[p++];
-            b2jdef.upperTranslation = db2jxs[p++];
-            b2jdef.enableMotor = (bool)db2jxs[p++];
-            b2jdef.maxMotorForce = db2jxs[p++];
-            b2jdef.motorSpeed = db2jxs[p++];
+            assert(db2j.size() == 3 + 13);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.localAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAxisA = {db2j[p++], db2j[p++]};
+            b2jdef_t.referenceAngle = db2j[p++];
+            b2jdef_t.enableLimit = (bool)db2j[p++];
+            b2jdef_t.lowerTranslation = db2j[p++];
+            b2jdef_t.upperTranslation = db2j[p++];
+            b2jdef_t.enableMotor = (bool)db2j[p++];
+            b2jdef_t.maxMotorForce = db2j[p++];
+            b2jdef_t.motorSpeed = db2j[p++];
         }
         break;
 
         case b2JointType::e_distanceJoint:
         {
-            b2DistanceJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2DistanceJointDef();
+            auto &b2jdef_t = *(b2DistanceJointDef *)b2jdef;
 
-            assert(joint_extCount == 9);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.localAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.length = db2jxs[p++];
-            b2jdef.minLength = db2jxs[p++];
-            b2jdef.maxLength = db2jxs[p++];
-            b2jdef.stiffness = db2jxs[p++];
-            b2jdef.damping = db2jxs[p++];
+            assert(db2j.size() == 3 + 9);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.localAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.length = db2j[p++];
+            b2jdef_t.minLength = db2j[p++];
+            b2jdef_t.maxLength = db2j[p++];
+            b2jdef_t.stiffness = db2j[p++];
+            b2jdef_t.damping = db2j[p++];
         }
         break;
 
         case b2JointType::e_pulleyJoint:
         {
-            b2PulleyJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2PulleyJointDef();
+            auto &b2jdef_t = *(b2PulleyJointDef *)b2jdef;
 
-            assert(joint_extCount == 11);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.groundAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.groundAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.lengthA = db2jxs[p++];
-            b2jdef.lengthB = db2jxs[p++];
-            b2jdef.ratio = db2jxs[p++];
+            assert(db2j.size() == 3 + 11);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.groundAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.groundAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.lengthA = db2j[p++];
+            b2jdef_t.lengthB = db2j[p++];
+            b2jdef_t.ratio = db2j[p++];
         }
         break;
 
         case b2JointType::e_mouseJoint:
         {
-            b2MouseJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2MouseJointDef();
+            auto &b2jdef_t = *(b2MouseJointDef *)b2jdef;
 
-            assert(joint_extCount == 5);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.target = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.maxForce = db2jxs[p++];
-            b2jdef.stiffness = db2jxs[p++];
-            b2jdef.damping = db2jxs[p++];
+            assert(db2j.size() == 3 + 5);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.target = {db2j[p++], db2j[p++]};
+            b2jdef_t.maxForce = db2j[p++];
+            b2jdef_t.stiffness = db2j[p++];
+            b2jdef_t.damping = db2j[p++];
         }
         break;
 
         case b2JointType::e_gearJoint:
         {
-            b2GearJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2GearJointDef();
+            auto &b2jdef_t = *(b2GearJointDef *)b2jdef;
 
-            assert(joint_extCount == 3);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.joint1 = (b2Joint *)db2js[(int)db2jxs[p++]].userData;
-            b2jdef.joint2 = (b2Joint *)db2js[(int)db2jxs[p++]].userData;
-            b2jdef.ratio = db2jxs[p++];
+            assert(db2j.size() == 3 + 3);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.joint1 = (b2Joint *)db2js.userData[(int)db2j[p++]];
+            b2jdef_t.joint2 = (b2Joint *)db2js.userData[(int)db2j[p++]];
+            b2jdef_t.ratio = db2j[p++];
         }
         break;
 
         case b2JointType::e_wheelJoint:
         {
-            b2WheelJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2WheelJointDef();
+            auto &b2jdef_t = *(b2WheelJointDef *)b2jdef;
 
-            assert(joint_extCount == 14);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.localAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAxisA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.enableLimit = (bool)db2jxs[p++];
-            b2jdef.lowerTranslation = db2jxs[p++];
-            b2jdef.upperTranslation = db2jxs[p++];
-            b2jdef.enableMotor = (bool)db2jxs[p++];
-            b2jdef.maxMotorTorque = db2jxs[p++];
-            b2jdef.motorSpeed = db2jxs[p++];
-            b2jdef.stiffness = db2jxs[p++];
-            b2jdef.damping = db2jxs[p++];
+            assert(db2j.size() == 3 + 14);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.localAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAxisA = {db2j[p++], db2j[p++]};
+            b2jdef_t.enableLimit = (bool)db2j[p++];
+            b2jdef_t.lowerTranslation = db2j[p++];
+            b2jdef_t.upperTranslation = db2j[p++];
+            b2jdef_t.enableMotor = (bool)db2j[p++];
+            b2jdef_t.maxMotorTorque = db2j[p++];
+            b2jdef_t.motorSpeed = db2j[p++];
+            b2jdef_t.stiffness = db2j[p++];
+            b2jdef_t.damping = db2j[p++];
         }
         break;
 
         case b2JointType::e_weldJoint:
         {
-            b2WeldJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2WeldJointDef();
+            auto &b2jdef_t = *(b2WeldJointDef *)b2jdef;
 
-            assert(joint_extCount == 7);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.localAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.referenceAngle = db2jxs[p++];
-            b2jdef.stiffness = db2jxs[p++];
-            b2jdef.damping = db2jxs[p++];
+            assert(db2j.size() == 3 + 7);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.localAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.referenceAngle = db2j[p++];
+            b2jdef_t.stiffness = db2j[p++];
+            b2jdef_t.damping = db2j[p++];
         }
         break;
 
         case b2JointType::e_frictionJoint:
         {
+            b2jdef = new b2FrictionJointDef();
+            auto &b2jdef_t = *(b2FrictionJointDef *)b2jdef;
+
             b2FrictionJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            assert(joint_extCount == 6);
+            assert(db2j.size() == 3 + 6);
 
-            b2jdef.localAnchorA = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.localAnchorB = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.maxForce = db2jxs[p++];
-            b2jdef.maxTorque = db2jxs[p++];
-
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.localAnchorA = {db2j[p++], db2j[p++]};
+            b2jdef_t.localAnchorB = {db2j[p++], db2j[p++]};
+            b2jdef_t.maxForce = db2j[p++];
+            b2jdef_t.maxTorque = db2j[p++];
         }
         break;
 
@@ -382,28 +366,31 @@ auto dotB2Decoder::decode() -> void
 
         case b2JointType::e_motorJoint:
         {
-            b2MotorJointDef b2jdef;
-            b2jdef.bodyA = (b2Body *)db2bs[db2j.bodyA].userData;
-            b2jdef.bodyB = (b2Body *)db2bs[db2j.bodyB].userData;
-            b2jdef.collideConnected = db2j.collideConnected;
+            b2jdef = new b2MotorJointDef();
+            auto &b2jdef_t = *(b2MotorJointDef *)b2jdef;
 
-            assert(joint_extCount == 6);
+            b2jdef_t.bodyA = (b2Body *)db2bs.userData[db2j.bodyA()];
+            b2jdef_t.bodyB = (b2Body *)db2bs.userData[db2j.bodyB()];
+            b2jdef_t.collideConnected = db2j.collideConnected();
 
-            b2jdef.linearOffset = {db2jxs[p++], db2jxs[p++]};
-            b2jdef.angularOffset = db2jxs[p++];
-            b2jdef.maxForce = db2jxs[p++];
-            b2jdef.maxTorque = db2jxs[p++];
-            b2jdef.correctionFactor = db2jxs[p++];
+            assert(db2j.size() == 3 + 6);
 
-            b2jdef.userData.pointer = (uintptr_t)i;
-
-            db2j.userData = (uint64_t)b2w->CreateJoint(&b2jdef);
+            b2jdef_t.linearOffset = {db2j[p++], db2j[p++]};
+            b2jdef_t.angularOffset = db2j[p++];
+            b2jdef_t.maxForce = db2j[p++];
+            b2jdef_t.maxTorque = db2j[p++];
+            b2jdef_t.correctionFactor = db2j[p++];
         }
         break;
 
         default:
             break;
         }
+
+        /*userData*/ b2jdef->userData.pointer = (uintptr_t)j;
+        /*.userData*/ db2js.userData.push(b2w->CreateJoint(b2jdef));
+        if (b2jdef)
+            delete b2jdef;
     }
 }
 
@@ -422,8 +409,6 @@ auto dotB2Decoder::encode() -> void
     auto &db2fs = _db2->get<db2Chunk<dotB2Fixture>>();
     auto &db2ss = _db2->get<db2Chunk<dotB2Shape>>();
 
-    auto &db2jxs = _db2->get<db2Chunk<float32_t>>();
-
     /*info*/
     // constructs an element in-place at the end
     db2is.emplace(); // default
@@ -437,7 +422,9 @@ auto dotB2Decoder::encode() -> void
         this->b2w->GetBodyCount(),
 
         db2js.size(),
-        this->b2w->GetJointCount());
+        this->b2w->GetJointCount()
+        //
+    );
 
     /*body*/
     db2DynArray<b2Body *> bodies{};
@@ -445,9 +432,9 @@ auto dotB2Decoder::encode() -> void
     for (auto b2b = this->b2w->GetBodyList(); b2b; b2b = b2b->GetNext())
         bodies.push(b2b);
 
-    for (int i = bodies.size() - 1; i >= 0; --i) // reverse order
+    for (int b = bodies.size() - 1; b >= 0; --b) // reverse order
     {
-        auto b2b = bodies[i];
+        auto b2b = bodies[b];
 
         db2bs.emplace(
             b2b->GetType(),
@@ -467,13 +454,13 @@ auto dotB2Decoder::encode() -> void
 
             b2b->GetGravityScale(),
 
-            db2fs.size(),
-            0, //
+            /*fixtureList*/ db2fs.size(),
+            /*fixtureCount*/ 0
 
-            /*extraDict*/ -1,
-
-            (uint64_t)b2b);
-        b2b->GetUserData().pointer = (uintptr_t)i; // db2bs.size() - 1;
+            // /*extraDict*/ -1
+        );
+        /*.userData*/ db2bs.userData.push(b2b);
+        /*userData*/ b2b->GetUserData().pointer = (uintptr_t)b; // db2bs.size() - 1;
 
         /*fixture*/
         db2DynArray<b2Fixture *> fixtures{};
@@ -483,9 +470,9 @@ auto dotB2Decoder::encode() -> void
 
         db2bs[-1].fixtureCount = fixtures.size();
 
-        for (int i = fixtures.size() - 1; i >= 0; --i) // reverse order
+        for (int f = fixtures.size() - 1; f >= 0; --f) // reverse order
         {
-            auto b2f = fixtures[i];
+            auto b2f = fixtures[f];
 
             db2fs.emplace(
                 b2f->GetFriction(),
@@ -499,12 +486,12 @@ auto dotB2Decoder::encode() -> void
                 b2f->GetFilterData().maskBits,
                 b2f->GetFilterData().groupIndex,
 
-                /*shape*/
-                db2ss.size(),
-                // 0, //
+                /*shape*/ db2ss.size()
 
-                (uint64_t)b2f);
-            b2f->GetUserData().pointer = (uintptr_t)db2fs.size() - 1;
+                // /*extra*/ 0
+            );
+            /*.userData*/ db2fs.userData.push(b2f);
+            /*userData*/ b2f->GetUserData().pointer = (uintptr_t)db2fs.size() - 1;
 
             /*shape*/
             auto b2s = b2f->GetShape();
@@ -587,199 +574,173 @@ auto dotB2Decoder::encode() -> void
     for (auto b2j = this->b2w->GetJointList(); b2j; b2j = b2j->GetNext())
         joints.push(b2j);
 
-    for (int i = joints.size() - 1; i >= 0; --i) // reverse order
+    for (int j = joints.size() - 1; j >= 0; --j) // reverse order
     {
-        auto &b2j = joints[i];
+        auto &b2j = joints[j];
 
-        db2js.emplace(
-            b2j->GetType(),
-            int32_t(b2j->GetBodyA()->GetUserData().pointer),
-            int32_t(b2j->GetBodyB()->GetUserData().pointer),
-            b2j->GetCollideConnected(),
+        auto &db2j = db2js.add_child();
+        /*type*/ db2j.type8_t() = b2j->GetType();
+        /*bodyA*/ db2j.emplace(int32_t(b2j->GetBodyA()->GetUserData().pointer));
+        /*bodyB*/ db2j.emplace(int32_t(b2j->GetBodyB()->GetUserData().pointer));
+        /*collideConnected*/ db2j.emplace(b2j->GetCollideConnected());
 
-            db2jxs.size(),
-
-            (uint64_t)b2j);
-        b2j->GetUserData().pointer = (uintptr_t)i; // db2js.size() - 1;
-
-        /*joint_extCount*/ db2jxs.emplace(0);
+        /*.userData*/ db2js.userData.push(b2j);
+        /*userData*/ b2j->GetUserData().pointer = (uintptr_t)j; // db2js.size() - 1;
 
         switch (b2j->GetType())
         {
         case b2JointType::e_revoluteJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 11;
-
             auto b2j_r = (b2RevoluteJoint *)b2j;
-            db2jxs.emplace(b2j_r->GetLocalAnchorA().x);
-            db2jxs.emplace(b2j_r->GetLocalAnchorA().y);
-            db2jxs.emplace(b2j_r->GetLocalAnchorB().x);
-            db2jxs.emplace(b2j_r->GetLocalAnchorB().y);
-            db2jxs.emplace(b2j_r->GetReferenceAngle());
-            db2jxs.emplace((float32_t)b2j_r->IsLimitEnabled());
-            db2jxs.emplace(b2j_r->GetLowerLimit());
-            db2jxs.emplace(b2j_r->GetUpperLimit());
-            db2jxs.emplace((float32_t)b2j_r->IsMotorEnabled());
-            db2jxs.emplace(b2j_r->GetMotorSpeed());
-            db2jxs.emplace(b2j_r->GetMaxMotorTorque());
+            db2j.emplace(b2j_r->GetLocalAnchorA().x);
+            db2j.emplace(b2j_r->GetLocalAnchorA().y);
+            db2j.emplace(b2j_r->GetLocalAnchorB().x);
+            db2j.emplace(b2j_r->GetLocalAnchorB().y);
+            db2j.emplace(b2j_r->GetReferenceAngle());
+            db2j.emplace((float32_t)b2j_r->IsLimitEnabled());
+            db2j.emplace(b2j_r->GetLowerLimit());
+            db2j.emplace(b2j_r->GetUpperLimit());
+            db2j.emplace((float32_t)b2j_r->IsMotorEnabled());
+            db2j.emplace(b2j_r->GetMotorSpeed());
+            db2j.emplace(b2j_r->GetMaxMotorTorque());
         }
         break;
 
         case b2JointType::e_prismaticJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 13;
-
             auto b2j_p = (b2PrismaticJoint *)b2j;
-            db2jxs.emplace(b2j_p->GetLocalAnchorA().x);
-            db2jxs.emplace(b2j_p->GetLocalAnchorA().y);
-            db2jxs.emplace(b2j_p->GetLocalAnchorB().x);
-            db2jxs.emplace(b2j_p->GetLocalAnchorB().y);
-            db2jxs.emplace(b2j_p->GetLocalAxisA().x);
-            db2jxs.emplace(b2j_p->GetLocalAxisA().y);
-            db2jxs.emplace(b2j_p->GetReferenceAngle());
-            db2jxs.emplace((float32_t)b2j_p->IsLimitEnabled());
-            db2jxs.emplace(b2j_p->GetLowerLimit());
-            db2jxs.emplace(b2j_p->GetUpperLimit());
-            db2jxs.emplace((float32_t)b2j_p->IsMotorEnabled());
-            db2jxs.emplace(b2j_p->GetMaxMotorForce());
-            db2jxs.emplace(b2j_p->GetMotorSpeed());
+            db2j.emplace(b2j_p->GetLocalAnchorA().x);
+            db2j.emplace(b2j_p->GetLocalAnchorA().y);
+            db2j.emplace(b2j_p->GetLocalAnchorB().x);
+            db2j.emplace(b2j_p->GetLocalAnchorB().y);
+            db2j.emplace(b2j_p->GetLocalAxisA().x);
+            db2j.emplace(b2j_p->GetLocalAxisA().y);
+            db2j.emplace(b2j_p->GetReferenceAngle());
+            db2j.emplace((float32_t)b2j_p->IsLimitEnabled());
+            db2j.emplace(b2j_p->GetLowerLimit());
+            db2j.emplace(b2j_p->GetUpperLimit());
+            db2j.emplace((float32_t)b2j_p->IsMotorEnabled());
+            db2j.emplace(b2j_p->GetMaxMotorForce());
+            db2j.emplace(b2j_p->GetMotorSpeed());
         }
         break;
 
         case b2JointType::e_distanceJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 9;
-
             auto b2j_d = (b2DistanceJoint *)b2j;
-            db2jxs.emplace(b2j_d->GetLocalAnchorA().x);
-            db2jxs.emplace(b2j_d->GetLocalAnchorA().y);
-            db2jxs.emplace(b2j_d->GetLocalAnchorB().x);
-            db2jxs.emplace(b2j_d->GetLocalAnchorB().y);
-            db2jxs.emplace(b2j_d->GetLength());
-            db2jxs.emplace(b2j_d->GetMinLength());
-            db2jxs.emplace(b2j_d->GetMaxLength());
-            db2jxs.emplace(b2j_d->GetStiffness());
-            db2jxs.emplace(b2j_d->GetDamping());
+            db2j.emplace(b2j_d->GetLocalAnchorA().x);
+            db2j.emplace(b2j_d->GetLocalAnchorA().y);
+            db2j.emplace(b2j_d->GetLocalAnchorB().x);
+            db2j.emplace(b2j_d->GetLocalAnchorB().y);
+            db2j.emplace(b2j_d->GetLength());
+            db2j.emplace(b2j_d->GetMinLength());
+            db2j.emplace(b2j_d->GetMaxLength());
+            db2j.emplace(b2j_d->GetStiffness());
+            db2j.emplace(b2j_d->GetDamping());
         }
         break;
 
         case b2JointType::e_pulleyJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 11;
-
             auto b2j_p = (b2PulleyJoint *)b2j;
-            db2jxs.emplace(b2j_p->GetGroundAnchorA().x);
-            db2jxs.emplace(b2j_p->GetGroundAnchorA().y);
-            db2jxs.emplace(b2j_p->GetGroundAnchorB().x);
-            db2jxs.emplace(b2j_p->GetGroundAnchorB().y);
+            db2j.emplace(b2j_p->GetGroundAnchorA().x);
+            db2j.emplace(b2j_p->GetGroundAnchorA().y);
+            db2j.emplace(b2j_p->GetGroundAnchorB().x);
+            db2j.emplace(b2j_p->GetGroundAnchorB().y);
 
             auto localAnchorA = b2j_p->GetBodyA()->GetLocalPoint(b2j_p->GetAnchorA());
-            db2jxs.emplace(localAnchorA.x);
-            db2jxs.emplace(localAnchorA.y);
+            db2j.emplace(localAnchorA.x);
+            db2j.emplace(localAnchorA.y);
             auto localAnchorB = b2j_p->GetBodyB()->GetLocalPoint(b2j_p->GetAnchorB());
-            db2jxs.emplace(localAnchorB.x);
-            db2jxs.emplace(localAnchorB.y);
+            db2j.emplace(localAnchorB.x);
+            db2j.emplace(localAnchorB.y);
 
-            db2jxs.emplace(b2j_p->GetLengthA());
-            db2jxs.emplace(b2j_p->GetLengthB());
-            db2jxs.emplace(b2j_p->GetRatio());
+            db2j.emplace(b2j_p->GetLengthA());
+            db2j.emplace(b2j_p->GetLengthB());
+            db2j.emplace(b2j_p->GetRatio());
         }
         break;
 
         case b2JointType::e_mouseJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 5;
-
             auto b2j_m = (b2MouseJoint *)b2j;
-            db2jxs.emplace(b2j_m->GetTarget().x);
-            db2jxs.emplace(b2j_m->GetTarget().y);
-            db2jxs.emplace(b2j_m->GetMaxForce());
-            db2jxs.emplace(b2j_m->GetStiffness());
-            db2jxs.emplace(b2j_m->GetDamping());
+            db2j.emplace(b2j_m->GetTarget().x);
+            db2j.emplace(b2j_m->GetTarget().y);
+            db2j.emplace(b2j_m->GetMaxForce());
+            db2j.emplace(b2j_m->GetStiffness());
+            db2j.emplace(b2j_m->GetDamping());
         }
         break;
 
         case b2JointType::e_gearJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 3;
-
             auto b2j_g = (b2GearJoint *)b2j;
-            db2jxs.emplace((float32_t)b2j_g->GetJoint1()->GetUserData().pointer);
-            db2jxs.emplace((float32_t)b2j_g->GetJoint2()->GetUserData().pointer);
-            db2jxs.emplace(b2j_g->GetRatio());
+            db2j.emplace((float32_t)b2j_g->GetJoint1()->GetUserData().pointer);
+            db2j.emplace((float32_t)b2j_g->GetJoint2()->GetUserData().pointer);
+            db2j.emplace(b2j_g->GetRatio());
         }
         break;
 
         case b2JointType::e_wheelJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 14;
-
             auto b2j_w = (b2WheelJoint *)b2j;
-            db2jxs.emplace(b2j_w->GetLocalAnchorA().x);
-            db2jxs.emplace(b2j_w->GetLocalAnchorA().y);
-            db2jxs.emplace(b2j_w->GetLocalAnchorB().x);
-            db2jxs.emplace(b2j_w->GetLocalAnchorB().y);
-            db2jxs.emplace(b2j_w->GetLocalAxisA().x);
-            db2jxs.emplace(b2j_w->GetLocalAxisA().y);
-            db2jxs.emplace((float32_t)b2j_w->IsLimitEnabled());
-            db2jxs.emplace(b2j_w->GetLowerLimit());
-            db2jxs.emplace(b2j_w->GetUpperLimit());
-            db2jxs.emplace((float32_t)b2j_w->IsMotorEnabled());
-            db2jxs.emplace(b2j_w->GetMaxMotorTorque());
-            db2jxs.emplace(b2j_w->GetMotorSpeed());
-            db2jxs.emplace(b2j_w->GetStiffness());
-            db2jxs.emplace(b2j_w->GetDamping());
+            db2j.emplace(b2j_w->GetLocalAnchorA().x);
+            db2j.emplace(b2j_w->GetLocalAnchorA().y);
+            db2j.emplace(b2j_w->GetLocalAnchorB().x);
+            db2j.emplace(b2j_w->GetLocalAnchorB().y);
+            db2j.emplace(b2j_w->GetLocalAxisA().x);
+            db2j.emplace(b2j_w->GetLocalAxisA().y);
+            db2j.emplace((float32_t)b2j_w->IsLimitEnabled());
+            db2j.emplace(b2j_w->GetLowerLimit());
+            db2j.emplace(b2j_w->GetUpperLimit());
+            db2j.emplace((float32_t)b2j_w->IsMotorEnabled());
+            db2j.emplace(b2j_w->GetMaxMotorTorque());
+            db2j.emplace(b2j_w->GetMotorSpeed());
+            db2j.emplace(b2j_w->GetStiffness());
+            db2j.emplace(b2j_w->GetDamping());
         }
         break;
 
         case b2JointType::e_weldJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 7;
-
             auto b2j_w = (b2WeldJoint *)b2j;
-            db2jxs.emplace(b2j_w->GetLocalAnchorA().x);
-            db2jxs.emplace(b2j_w->GetLocalAnchorA().y);
-            db2jxs.emplace(b2j_w->GetLocalAnchorB().x);
-            db2jxs.emplace(b2j_w->GetLocalAnchorB().y);
-            db2jxs.emplace(b2j_w->GetReferenceAngle());
-            db2jxs.emplace(b2j_w->GetStiffness());
-            db2jxs.emplace(b2j_w->GetDamping());
+            db2j.emplace(b2j_w->GetLocalAnchorA().x);
+            db2j.emplace(b2j_w->GetLocalAnchorA().y);
+            db2j.emplace(b2j_w->GetLocalAnchorB().x);
+            db2j.emplace(b2j_w->GetLocalAnchorB().y);
+            db2j.emplace(b2j_w->GetReferenceAngle());
+            db2j.emplace(b2j_w->GetStiffness());
+            db2j.emplace(b2j_w->GetDamping());
         }
         break;
 
         case b2JointType::e_frictionJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 6;
-
             auto b2j_f = (b2FrictionJoint *)b2j;
-            db2jxs.emplace(b2j_f->GetLocalAnchorA().x);
-            db2jxs.emplace(b2j_f->GetLocalAnchorA().y);
-            db2jxs.emplace(b2j_f->GetLocalAnchorB().x);
-            db2jxs.emplace(b2j_f->GetLocalAnchorB().y);
-            db2jxs.emplace(b2j_f->GetMaxForce());
-            db2jxs.emplace(b2j_f->GetMaxTorque());
+            db2j.emplace(b2j_f->GetLocalAnchorA().x);
+            db2j.emplace(b2j_f->GetLocalAnchorA().y);
+            db2j.emplace(b2j_f->GetLocalAnchorB().x);
+            db2j.emplace(b2j_f->GetLocalAnchorB().y);
+            db2j.emplace(b2j_f->GetMaxForce());
+            db2j.emplace(b2j_f->GetMaxTorque());
         }
         break;
 
         case b2JointType::e_ropeJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 0;
-
             // auto b2j_r = (b2RopeJoint *)b2j;
         }
         break;
 
         case b2JointType::e_motorJoint:
         {
-            /*joint_extCount*/ db2jxs.operator[]<int32_t>(db2js[-1].extend) = 6;
-
             auto b2j_m = (b2MotorJoint *)b2j;
-            db2jxs.emplace(b2j_m->GetLinearOffset().x);
-            db2jxs.emplace(b2j_m->GetLinearOffset().y);
-            db2jxs.emplace(b2j_m->GetAngularOffset());
-            db2jxs.emplace(b2j_m->GetMaxForce());
-            db2jxs.emplace(b2j_m->GetMaxTorque());
-            db2jxs.emplace(b2j_m->GetCorrectionFactor());
+            db2j.emplace(b2j_m->GetLinearOffset().x);
+            db2j.emplace(b2j_m->GetLinearOffset().y);
+            db2j.emplace(b2j_m->GetAngularOffset());
+            db2j.emplace(b2j_m->GetMaxForce());
+            db2j.emplace(b2j_m->GetMaxTorque());
+            db2j.emplace(b2j_m->GetCorrectionFactor());
         }
         break;
 

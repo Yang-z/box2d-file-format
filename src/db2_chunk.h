@@ -93,6 +93,8 @@ public:
     // const bool isLittleEndian{hardwareDifference::IsLittleEndian()};
     db2Reflector *reflector{nullptr};
 
+    db2DynArray<void *> userData;
+
 public:
     db2Chunk() {} // leave default constructor empty
 

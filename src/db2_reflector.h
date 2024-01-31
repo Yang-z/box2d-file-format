@@ -12,6 +12,7 @@
 template <typename...>
 using void_t = void;
 
+// Implementation of has_value_type
 template <typename CK_T, typename = void>
 struct has_value_type : std::false_type
 {
@@ -20,6 +21,19 @@ struct has_value_type : std::false_type
 template <typename CK_T>
 struct has_value_type<CK_T, void_t<typename CK_T::value_type>> : std::true_type
 {
+};
+
+// Implementation of default_value_type
+template <typename T, typename = void>
+struct default_value_type
+{
+    using type = T;
+};
+
+template <typename T>
+struct default_value_type<T, void_t<typename T::value_type>>
+{
+    using type = typename T::value_type;
 };
 
 class db2Reflector
@@ -63,22 +77,14 @@ public:
             delete db2Reflector::reflectors[i];
     }
 
-    template <typename CK_T>
-    static constexpr auto Reflectable() -> bool
-    {
-        if constexpr (has_value_type<CK_T>::value)
-            if constexpr (std::is_base_of<db2DynArray<typename CK_T::value_type>, CK_T>::value)
-                return true;
-        return false;
-    }
-
     // instance
 public:
     char type[4]{'N', 'U', 'L', 'L'};
     size_t id;
     // std::type_info info;
-    uint8_t length{0};
 
+    // element paremeters
+    uint8_t length{0};
     db2DynArray<uint8_t> offsets{};
     db2DynArray<uint8_t> lengths{};
 
@@ -91,41 +97,47 @@ public:
         {
             this->child->~db2Reflector();
             delete this->child;
+            this->child = nullptr;
         }
     }
 
     template <typename CK_T>
     auto reflect(const char *type) -> void
     {
-        assert(db2Reflector::Reflectable<CK_T>());
-
         ::memcpy(this->type, type, 4);
         this->id = typeid(CK_T).hash_code();
 
-        using value_type = typename CK_T::value_type;
+        using value_type = typename default_value_type<CK_T>::type;
 
-        this->length = sizeof(value_type);
-
-        if constexpr (db2Reflector::Reflectable<value_type>())
+        if constexpr (!has_value_type<value_type>::value)
+        {
+            this->reflect_POD<value_type>();
+        }
+        else
         {
             this->child = new db2Reflector();
             child->parent = this;
             child->reflect<value_type>("CHLD");
         }
-        else
-        {
-            // value_type shoud be of a flat data structure
+    }
 
-            static const value_type *const pt{nullptr};
-            static const value_type &vaule{*pt};
+    template <typename T>
+    auto reflect_POD() -> void
+    {
+        this->length = sizeof(T);
 
-            boost::pfr::for_each_field(
-                vaule,
-                [&](auto &field)
-                {
-                    this->offsets.push((char *)&field - (char *)&vaule);
-                    this->lengths.push(sizeof(field));
-                });
-        }
+        // T shoud be of a POD (plain old data) type
+
+        static const T *const pt{nullptr};
+        static const T &vaule{*pt};
+
+        boost::pfr::for_each_field(
+            vaule,
+            [&](auto &field)
+            {
+                this->offsets.push((char *)&field - (char *)&vaule);
+                this->lengths.push(sizeof(field));
+            } //
+        );
     }
 };

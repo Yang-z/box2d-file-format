@@ -3,6 +3,7 @@
 // #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include <functional>
 
 #include "db2_settings.h"
 
@@ -131,6 +132,14 @@ public:
     }
 
 public:
+    auto for_each(std::function<bool(T &)> func) -> void
+    {
+        for (int32_t i = 0; i < this->size(); ++i)
+            if (!func(this->data[i])) // continue?
+                break;
+    }
+
+public:
     auto reserve(const int32_t capacity, const bool expand = true) -> void
     {
         auto length_men = capacity * sizeof(T);
@@ -147,6 +156,8 @@ public:
             auto exp = int32_t(std::log2(length_men));
             length_men = int32_t(std::pow(2, exp + 1));
         }
+
+        assert(length_men <= INT32_MAX); // 2GB
 
         *(void **)(&this->data) = ::realloc(this->data, length_men);
         this->length_men = length_men;

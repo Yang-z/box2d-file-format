@@ -18,10 +18,6 @@ auto db2ChunkType::RegisterType() -> bool
     db2Reflector::Reflect<db2Chunk<dotB2Fixture>>(db2ChunkType::FXTR);
     db2Reflector::Reflect<db2Chunk<dotB2Shape>>(db2ChunkType::SHpE);
 
-    // db2Reflector::Reflect<db2Chunk<int32_t>>(db2ChunkType::DIcT);
-    // db2Reflector::Reflect<db2Chunk<float32_t>>(db2ChunkType::LIsT);
-    // db2Reflector::Reflect<db2Chunk<char>>(db2ChunkType::CHAR);
-
     return true;
 }
 

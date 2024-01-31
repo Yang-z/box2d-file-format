@@ -8,8 +8,8 @@
 #include <boost/crc.hpp>
 
 #include "db2_hardware_difference.h"
-#include "db2_dynarray.h"
 #include "db2_reflector.h"
+#include "db2_dynarray.h"
 
 /*
 class db2Chunk is designed to process flat data structures for file storage.
@@ -139,13 +139,6 @@ public:
         // free data, or leave it to base destructor?
         ::free(this->data);
         this->data = nullptr;
-    }
-
-    auto add_child() -> T &
-    {
-        auto &child = this->emplace();
-        child.reflector = this->reflector->child;
-        return child;
     }
 
 public:
@@ -282,5 +275,23 @@ public:
                 this->length_chunk = this->length;
             }
         }
+    }
+
+public:
+    // auto add_child() -> T &
+    // {
+    //     auto &child = this->emplace();
+    //     child.reflector = this->reflector->child;
+    //     return child;
+    // }
+
+    template <typename... Args>
+    auto emplace(Args &&...args) -> T &
+    {
+        auto &element = this->db2DynArray<T>::emplace(args...);
+        if constexpr (has_value_type<T>::value) // sub-chunk
+            if (element.reflector == nullptr)
+                element.reflector = this->reflector->child;
+        return element;
     }
 };

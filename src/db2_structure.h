@@ -1,9 +1,5 @@
 #pragma once
 
-#include "db2_settings.h"
-#include "db2_hardware_difference.h"
-#include "db2_reflector.h"
-#include "db2_dynarray.h"
 #include "db2_chunk.h"
 
 DB2_PRAGMA_PACK_ON
@@ -12,7 +8,7 @@ ENDIAN_SENSITIVE struct dotB2Shape : public db2Chunk<float32_t>
 {
     dotB2Shape() : db2Chunk("SHP", false) {}
 
-    int8_t &type8_t() { return reinterpret_cast<int8_t &>(this->type[3]); }
+    int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
     float32_t &shape_radius() { return (*this)[0]; }
 
     int32_t constexpr shape_extend() { return 1; } // ... extend data
@@ -66,7 +62,7 @@ ENDIAN_SENSITIVE struct dotB2Joint : public db2Chunk<float32_t>
 {
     dotB2Joint() : db2Chunk("JIN", false) {}
 
-    int8_t &type8_t() { return reinterpret_cast<int8_t &>(this->type[3]); }
+    int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
 
     int32_t &bodyA() { return reinterpret_cast<int32_t &>((*this)[0]); } // index
     int32_t &bodyB() { return reinterpret_cast<int32_t &>((*this)[1]); } // index
@@ -113,14 +109,6 @@ struct db2ChunkType
     static constexpr const char BODY[4]{'B', 'O', 'D', 'Y'};
     static constexpr const char FXTR[4]{'F', 'X', 'T', 'R'};
     static constexpr const char SHpE[4]{'S', 'H', 'p', 'E'};
-
-    // static constexpr const char DIcT[4]{'D', 'I', 'c', 'T'};
-    // static constexpr const char LIsT[4]{'L', 'I', 's', 'T'};
-    // static constexpr const char CHAR[4]{'C', 'H', 'A', 'R'};
-
-    // static constexpr const char dIct[4]{'d', 'I', 'c', 't'};
-    // static constexpr const char lIst[4]{'l', 'I', 's', 't'};
-    // static constexpr const char cHAR[4]{'c', 'H', 'A', 'R'};
 
     static bool IsRegistered;
     static bool RegisterType();

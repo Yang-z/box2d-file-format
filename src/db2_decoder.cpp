@@ -75,7 +75,7 @@ auto dotB2Decoder::decode() -> void
             auto &db2s = db2ss[db2f.shape];
             b2Shape *b2s = nullptr;
 
-            switch ((b2Shape::Type)db2s.type8_t())
+            switch ((b2Shape::Type)db2s.type3())
             {
 
             case b2Shape::Type::e_circle:
@@ -169,7 +169,7 @@ auto dotB2Decoder::decode() -> void
 
         b2JointDef *b2jdef{nullptr};
 
-        switch (b2JointType(db2j.type8_t()))
+        switch (b2JointType(db2j.type3()))
         {
         case b2JointType::e_revoluteJoint:
         {
@@ -495,9 +495,9 @@ auto dotB2Decoder::encode() -> void
 
             /*shape*/
             auto b2s = b2f->GetShape();
-            auto &db2s = db2ss.add_child();
+            /*add sub-chunk*/ auto &db2s = db2ss.emplace();
 
-            /*shape_type*/ db2s.type8_t() = b2s->m_type;
+            /*shape_type*/ db2s.type3() = b2s->m_type;
             /*shape_radius*/ db2s.emplace(b2s->m_radius);
 
             switch (b2s->m_type)
@@ -578,8 +578,8 @@ auto dotB2Decoder::encode() -> void
     {
         auto &b2j = joints[j];
 
-        auto &db2j = db2js.add_child();
-        /*type*/ db2j.type8_t() = b2j->GetType();
+        /*add sub-chunk*/ auto &db2j = db2js.emplace();
+        /*type*/ db2j.type3() = b2j->GetType();
         /*bodyA*/ db2j.emplace(int32_t(b2j->GetBodyA()->GetUserData().pointer));
         /*bodyB*/ db2j.emplace(int32_t(b2j->GetBodyB()->GetUserData().pointer));
         /*collideConnected*/ db2j.emplace(b2j->GetCollideConnected());

@@ -11,6 +11,14 @@
 // #include <boost/pfr/core.hpp>
 // #include <boost/pfr/core_name.hpp>
 
+auto test_c_array() -> void
+{
+    char type[4]{'N', 'U', 'L', 'L'};
+    // type = {'a', 'b', 'c', 'd'}; // no
+    // type = "abc"; // no
+    printf("type = %s\n", type);
+}
+
 auto test_size() -> void
 {
     union UN
@@ -132,7 +140,7 @@ auto test_derived() -> void
         {
             std::cout << "Derived constructor0 called." << std::endl;
         }
-        Derived(bool b): Base(b) // call base default constructor if not specified
+        Derived(bool b) : Base(b) // call base default constructor if not specified
         {
             std::cout << "Derived constructor1 called." << std::endl;
         }
@@ -165,13 +173,22 @@ auto test_reflection() -> void
     struct S
     {
         int i0{22};
+        float f0{33.33f};
         bool b0{true};
-        // int ia[3]{1, 2, 3}; // array is not supported
+        // int ai[3]{1, 2, 3}; // array is not supported
+        char a0{'c'}, a1{'h'}, a2{'a'}, a3{'r'};
         struct
         {
             int i1{33};
             float b2{44.0f};
         } s1;
+
+        union U
+        {
+            int i{1};
+            float32_t f;
+        } u0;
+
     } s0;
 
     float s1 = 3.14;
@@ -179,13 +196,15 @@ auto test_reflection() -> void
     int count = 0;
     boost::pfr::for_each_field(
         s0,
-        [&s0, &count](auto &chunk)
+        [&s0, &count](auto &field)
         {
             ++count;
-            printf("%d: %d\n", sizeof(chunk), chunk);
+            printf("%s: %d: %d\n", typeid(field).name(), sizeof(field), field);
             // printf("%d\n", boost::pfr::get_name<count, s0>());
-        });
-    printf("count: %d\n", count);
+        } //
+    );
+
+    printf("%s count: %d\n", typeid(s0).name(), count);
 
     auto size = boost::pfr::tuple_size<S>::value;
     for (std::size_t i = 0; i < size; ++i)

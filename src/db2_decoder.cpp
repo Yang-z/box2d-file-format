@@ -2,22 +2,22 @@
 
 #include <assert.h>
 
-dotB2Decoder::~dotB2Decoder()
+db2Decoder::~db2Decoder()
 {
     delete this->db2;
     delete this->b2w;
 }
 
-auto dotB2Decoder::decode() -> void
+auto db2Decoder::decode() -> void
 {
     if (!this->db2)
         return;
 
-    auto &db2ws = this->db2->get<db2Chunk<dotB2Wrold>>();
-    auto &db2js = this->db2->get<db2Chunk<dotB2Joint>>();
-    auto &db2bs = this->db2->get<db2Chunk<dotB2Body>>();
-    auto &db2fs = this->db2->get<db2Chunk<dotB2Fixture>>();
-    auto &db2ss = this->db2->get<db2Chunk<dotB2Shape>>();
+    auto &db2ws = this->db2->get<db2Chunk<db2Wrold>>();
+    auto &db2js = this->db2->get<db2Chunk<db2Joint>>();
+    auto &db2bs = this->db2->get<db2Chunk<db2Body>>();
+    auto &db2fs = this->db2->get<db2Chunk<db2Fixture>>();
+    auto &db2ss = this->db2->get<db2Chunk<db2Shape>>();
 
     /*world*/
     auto &db2w = db2ws[0];
@@ -58,7 +58,7 @@ auto dotB2Decoder::decode() -> void
         /*fixture*/
         for (auto f = db2b.fixtureList; f <= db2b.fixtureList + db2b.fixtureCount - 1; ++f)
         {
-            dotB2Fixture &db2f = db2fs[f];
+            db2Fixture &db2f = db2fs[f];
             b2FixtureDef b2fdef{};
 
             b2fdef.friction = db2f.friction;
@@ -394,20 +394,20 @@ auto dotB2Decoder::decode() -> void
     }
 }
 
-auto dotB2Decoder::encode() -> void
+auto db2Decoder::encode() -> void
 {
     if (!this->b2w)
         return;
 
     auto _db2 = new dotBox2d();
 
-    auto &db2is = _db2->get<db2Chunk<dotB2Info>>();
+    auto &db2is = _db2->get<db2Chunk<db2Info>>();
 
-    auto &db2ws = _db2->get<db2Chunk<dotB2Wrold>>();
-    auto &db2js = _db2->get<db2Chunk<dotB2Joint>>();
-    auto &db2bs = _db2->get<db2Chunk<dotB2Body>>();
-    auto &db2fs = _db2->get<db2Chunk<dotB2Fixture>>();
-    auto &db2ss = _db2->get<db2Chunk<dotB2Shape>>();
+    auto &db2ws = _db2->get<db2Chunk<db2Wrold>>();
+    auto &db2js = _db2->get<db2Chunk<db2Joint>>();
+    auto &db2bs = _db2->get<db2Chunk<db2Body>>();
+    auto &db2fs = _db2->get<db2Chunk<db2Fixture>>();
+    auto &db2ss = _db2->get<db2Chunk<db2Shape>>();
 
     /*info*/
     // constructs an element in-place at the end

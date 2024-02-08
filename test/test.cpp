@@ -241,12 +241,12 @@ auto test_CRC() -> void
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
-    db2->get<db2Chunk<dotB2Info>>().emplace();
-    db2->get<db2Chunk<dotB2Wrold>>().emplace();
+    db2->get<db2Chunk<db2Info>>().emplace();
+    db2->get<db2Chunk<db2Wrold>>().emplace();
     for (int i = 0; i < 2; i++)
-        db2->get<db2Chunk<dotB2Body>>().emplace();
+        db2->get<db2Chunk<db2Body>>().emplace();
     for (int i = 0; i < 3; i++)
-        db2->get<db2Chunk<dotB2Fixture>>().emplace();
+        db2->get<db2Chunk<db2Fixture>>().emplace();
     for (int i = 0; i < 16; i++)
         db2->get<db2Chunk<float32_t>>().emplace();
     db2->save("./test.B2d");
@@ -278,7 +278,7 @@ auto test_step(b2World *b2w) -> void
 
 auto test_encoding() -> void
 {
-    dotB2Decoder der{};
+    db2Decoder der{};
     der.b2w = new b2World{{0.0f, -9.8f}};
 
     /*body*/
@@ -326,7 +326,7 @@ auto test_encoding() -> void
 
 auto test_decoding() -> void
 {
-    dotB2Decoder der{};
+    db2Decoder der{};
     // der.db2 = new dotBox2d{"./test_encode.B2d"};
     der.db2 = new dotBox2d{"./test_encode_BE.B2d"};
     der.decode();

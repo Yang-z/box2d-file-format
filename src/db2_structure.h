@@ -4,9 +4,9 @@
 
 DB2_PRAGMA_PACK_ON
 
-ENDIAN_SENSITIVE struct dotB2Shape : public db2Chunk<float32_t>
+ENDIAN_SENSITIVE struct db2Shape : public db2Chunk<float32_t>
 {
-    dotB2Shape() : db2Chunk("SHP", false) {}
+    db2Shape() : db2Chunk("SHP", false) {}
 
     int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
     float32_t &shape_radius() { return (*this)[0]; }
@@ -14,7 +14,7 @@ ENDIAN_SENSITIVE struct dotB2Shape : public db2Chunk<float32_t>
     int32_t constexpr shape_extend() { return 1; } // ... extend data
 };
 
-ENDIAN_SENSITIVE struct dotB2Fixture
+ENDIAN_SENSITIVE struct db2Fixture
 {
     float32_t friction{0.2f};
     float32_t restitution{0.0f};
@@ -30,9 +30,9 @@ ENDIAN_SENSITIVE struct dotB2Fixture
 
     // int32_t extra{-1};
 
-} DB2_NOTE(sizeof(dotB2Fixture) == 28);
+} DB2_NOTE(sizeof(db2Fixture) == 28);
 
-ENDIAN_SENSITIVE struct dotB2Body
+ENDIAN_SENSITIVE struct db2Body
 {
     int32_t type{0};
     float32_t position_x{0.0f};
@@ -56,11 +56,11 @@ ENDIAN_SENSITIVE struct dotB2Body
 
     // int32_t extra{-1};
 
-} DB2_NOTE(sizeof(dotB2Body) == 56);
+} DB2_NOTE(sizeof(db2Body) == 56);
 
-ENDIAN_SENSITIVE struct dotB2Joint : public db2Chunk<float32_t>
+ENDIAN_SENSITIVE struct db2Joint : public db2Chunk<float32_t>
 {
-    dotB2Joint() : db2Chunk("JIN", false) {}
+    db2Joint() : db2Chunk("JIN", false) {}
 
     int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
 
@@ -71,7 +71,7 @@ ENDIAN_SENSITIVE struct dotB2Joint : public db2Chunk<float32_t>
     int32_t constexpr extend() { return 3; } // ... extend data
 };
 
-ENDIAN_SENSITIVE struct dotB2Wrold
+ENDIAN_SENSITIVE struct db2Wrold
 {
     float32_t gravity_x{0.0f};
     float32_t gravity_y{0.0f};
@@ -82,9 +82,9 @@ ENDIAN_SENSITIVE struct dotB2Wrold
     int32_t jointList{0};
     int32_t jointCount{0};
 
-} DB2_NOTE(sizeof(dotB2Wrold) == 24);
+} DB2_NOTE(sizeof(db2Wrold) == 24);
 
-struct dotB2Info
+struct db2Info
 {
     const uint8_t packSize{DB2_PACK_SIZE};
     const uint8_t notUsed{0}; // bool isLittleEndian{hardwareDifference::IsLittleEndian()};
@@ -97,7 +97,7 @@ struct dotB2Info
     uint8_t ver_box2d_1{4};
     uint8_t ver_box2d_2{1};
 
-} DB2_NOTE(sizeof(dotB2Info) == 8);
+} DB2_NOTE(sizeof(db2Info) == 8);
 
 DB2_PRAGMA_PACK_OFF
 

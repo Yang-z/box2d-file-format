@@ -1,11 +1,6 @@
 #include "db2_structure.h"
 
 #include <fstream>
-#include <algorithm>
-
-#include <assert.h>
-
-#include <type_traits> // std::is_same
 
 bool db2ChunkType::IsRegistered = db2ChunkType::RegisterType();
 
@@ -29,12 +24,6 @@ dotBox2d::dotBox2d(const char *file)
     dotBox2d::load(file);
 }
 
-dotBox2d::~dotBox2d()
-{
-    for (auto i = 0; i < this->chunks.size(); ++i)
-        delete this->chunks[i];
-}
-
 auto dotBox2d::load(const char *filePath) -> void
 {
     std::ifstream fs{filePath, std::ios::binary};
@@ -53,8 +42,8 @@ auto dotBox2d::load(const char *filePath) -> void
     // read chunk
     while (fs.peek() != EOF)
     {
-        this->chunks.push(new db2Chunk<char>{fs, isFileLittleEndian});
-        // this->chunks[-1]->read(fs, isFileLittleEndian);
+        this->chunks.emplace(fs, isFileLittleEndian);
+        // this->chunks[-1].read(fs, isFileLittleEndian);
     };
 
     fs.close();
@@ -71,7 +60,7 @@ auto dotBox2d::save(const char *filePath, bool asLittleEndian) -> void
     this->head[3] = hardwareDifference::IsLittleEndian() ? 'd' : 'D';
 
     for (auto i = 0; i < this->chunks.size(); ++i)
-        this->chunks[i]->write(fs, asLittleEndian);
+        this->chunks[i].write(fs, asLittleEndian);
 
     fs.close();
 }

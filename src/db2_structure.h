@@ -124,33 +124,11 @@ public:
         'B', '2', uint8_t(hardwareDifference::IsBigEndian() ? 'D' : 'd'),
         0x0D, 0x0A, 0x1A, 0x0A};
 
-    db2DynArray<db2Chunk<char> *> chunks;
+    db2Chunks chunks;
 
     dotBox2d(const char *file = nullptr);
-    ~dotBox2d();
 
 public:
     auto load(const char *filePath) -> void;
     auto save(const char *filePath, bool asLittleEndian = false) -> void;
-
-public:
-    template <typename CK_T>
-    auto get() -> CK_T &
-    {
-        for (auto i = 0; i < this->chunks.size(); ++i)
-        {
-            auto &p_chunk = this->chunks[i];
-            if (p_chunk->reflector->id == typeid(CK_T).hash_code())
-                return *(CK_T *)p_chunk;
-        }
-        return this->add<CK_T>();
-    }
-
-    template <typename CK_T>
-    auto add() -> CK_T &
-    {
-        CK_T *chunk = new CK_T(true);
-        this->chunks.push((db2Chunk<char> *)chunk);
-        return *chunk;
-    }
 };

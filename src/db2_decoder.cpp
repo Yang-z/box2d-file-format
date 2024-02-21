@@ -1,6 +1,6 @@
 #include "db2_decoder.h"
 
-#include <assert.h>
+// #include <assert.h>
 
 db2Decoder::~db2Decoder()
 {
@@ -13,11 +13,11 @@ auto db2Decoder::decode() -> void
     if (!this->db2)
         return;
 
-    auto &db2ws = this->db2->get<db2Chunk<db2Wrold>>();
-    auto &db2js = this->db2->get<db2Chunk<db2Joint>>();
-    auto &db2bs = this->db2->get<db2Chunk<db2Body>>();
-    auto &db2fs = this->db2->get<db2Chunk<db2Fixture>>();
-    auto &db2ss = this->db2->get<db2Chunk<db2Shape>>();
+    auto &db2ws = this->db2->chunks.get<db2Chunk<db2Wrold>>();
+    auto &db2js = this->db2->chunks.get<db2Chunk<db2Joint>>();
+    auto &db2bs = this->db2->chunks.get<db2Chunk<db2Body>>();
+    auto &db2fs = this->db2->chunks.get<db2Chunk<db2Fixture>>();
+    auto &db2ss = this->db2->chunks.get<db2Chunk<db2Shape>>();
 
     /*world*/
     auto &db2w = db2ws[0];
@@ -32,7 +32,7 @@ auto db2Decoder::decode() -> void
         b2BodyDef b2bdef{};
         /*
         We can't control the packsize of libbox2d,
-        so we cna't use ::memcpy safely.
+        so we cna't use std::memcpy safely.
         Instead we set each field manually.
         */
         b2bdef.type = b2BodyType(db2b.type);
@@ -401,13 +401,13 @@ auto db2Decoder::encode() -> void
 
     auto _db2 = new dotBox2d();
 
-    auto &db2is = _db2->get<db2Chunk<db2Info>>();
+    auto &db2is = _db2->chunks.get<db2Chunk<db2Info>>();
 
-    auto &db2ws = _db2->get<db2Chunk<db2Wrold>>();
-    auto &db2js = _db2->get<db2Chunk<db2Joint>>();
-    auto &db2bs = _db2->get<db2Chunk<db2Body>>();
-    auto &db2fs = _db2->get<db2Chunk<db2Fixture>>();
-    auto &db2ss = _db2->get<db2Chunk<db2Shape>>();
+    auto &db2ws = _db2->chunks.get<db2Chunk<db2Wrold>>();
+    auto &db2js = _db2->chunks.get<db2Chunk<db2Joint>>();
+    auto &db2bs = _db2->chunks.get<db2Chunk<db2Body>>();
+    auto &db2fs = _db2->chunks.get<db2Chunk<db2Fixture>>();
+    auto &db2ss = _db2->chunks.get<db2Chunk<db2Shape>>();
 
     /*info*/
     // constructs an element in-place at the end

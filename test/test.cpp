@@ -33,6 +33,18 @@ auto test_size() -> void
     printf("un.name + 1 = %d\n", un.name + 1);
 }
 
+auto test_cast_reference() -> void
+{
+    int i = 0;
+    auto &cast_i_f = reinterpret_cast<float &>(i);
+    // auto &force_i_f = (float)i; // initial value of reference to non-const must be an lvalueC/C++(461)
+    auto &force_i_f = (float &)i;
+    auto &force_i_f_p = *(float *)&i;
+    printf((void *)&i == (void *)&force_i_f ? "true\n" : "false\n"); // true
+    printf(&cast_i_f == &force_i_f ? "true\n" : "false\n");          // true
+    printf(&cast_i_f == &force_i_f_p ? "true\n" : "false\n");        // true
+}
+
 auto test_cast_pointer() -> void
 {
     int *data{nullptr};
@@ -241,14 +253,14 @@ auto test_CRC() -> void
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
-    db2->get<db2Chunk<db2Info>>().emplace();
-    db2->get<db2Chunk<db2Wrold>>().emplace();
+    db2->chunks.get<db2Chunk<db2Info>>().emplace();
+    db2->chunks.get<db2Chunk<db2Wrold>>().emplace();
     for (int i = 0; i < 2; i++)
-        db2->get<db2Chunk<db2Body>>().emplace();
+        db2->chunks.get<db2Chunk<db2Body>>().emplace();
     for (int i = 0; i < 3; i++)
-        db2->get<db2Chunk<db2Fixture>>().emplace();
+        db2->chunks.get<db2Chunk<db2Fixture>>().emplace();
     for (int i = 0; i < 16; i++)
-        db2->get<db2Chunk<float32_t>>().emplace();
+        db2->chunks.get<db2Chunk<float32_t>>().emplace();
     db2->save("./test.B2d");
     delete db2;
     db2 = nullptr;
@@ -337,6 +349,8 @@ auto test_decoding() -> void
 auto main() -> int
 {
     // test_size();
+
+    // test_cast_reference();
     // test_cast_pointer();
     // test_cast_value();
 

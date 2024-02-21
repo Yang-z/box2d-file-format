@@ -1,8 +1,10 @@
 #pragma once
 
-#include <cstring> // ::memcpy  std::equal
-#include <type_traits>
-#include <typeinfo>
+#include <cstring> // std::memcpy
+
+#include <algorithm>          // std::equal
+#include <type_traits>        // std::is_same ...
+#include <typeinfo>           // std::typeinfo
 #include <boost/pfr/core.hpp> // reflect
 
 #include "db2_settings.h"
@@ -104,7 +106,7 @@ public:
     template <typename CK_T>
     auto reflect(const char *type) -> void
     {
-        ::memcpy(this->type, type, 4);
+        std::memcpy(this->type, type, 4);
         this->id = typeid(CK_T).hash_code();
 
         using value_type = typename default_value_type<CK_T>::type;

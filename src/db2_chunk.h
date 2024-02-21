@@ -1,11 +1,9 @@
 #pragma once
 
+#include <cstring> // std::memcpy
 #include <fstream>
-#include <cstring>
 
-#include <assert.h>
-
-#include <boost/crc.hpp>
+#include <boost/crc.hpp> // crc
 
 #include "db2_hardware_difference.h"
 #include "db2_reflector.h"
@@ -21,6 +19,11 @@ to make it still functioning even when it's downgraded to db2Chunk<char>.
 */
 
 #define DEF_IN_BASE(def) /* defined in base */
+
+template <typename T>
+class db2Chunk;
+
+class db2Chunks;
 
 template <typename T>
 class db2Chunk : public db2DynArray<T>
@@ -48,8 +51,8 @@ public:
 
         if (reverseEndian)
         {
-            auto data_r = (char *)::malloc(length);
-            ::memcpy(data_r, data, length);
+            auto data_r = (char *)std::malloc(length);
+            std::memcpy(data_r, data, length);
             data = data_r;
             db2Chunk::ReverseEndian(data, length, reflector);
         }
@@ -60,7 +63,7 @@ public:
         fs.write(data, length);
 
         if (reverseEndian)
-            ::free(data);
+            std::free(data);
     }
 
     // type-irrelative, since reflector is adopted
@@ -93,6 +96,8 @@ public:
     // const bool isLittleEndian{hardwareDifference::IsLittleEndian()};
     db2Reflector *reflector{nullptr};
 
+    db2Chunks *root{nullptr};
+
     db2DynArray<void *> userData;
 
 public:
@@ -103,15 +108,16 @@ public:
         if (auto_reflect)
         {
             this->reflector = db2Reflector::GetReflector<db2Chunk<T>>();
-            ::memcpy(this->type, this->reflector->type, 4);
+            if (this->reflector)
+                std::memcpy(this->type, this->reflector->type, 4);
         }
     }
 
-    TYPE_IRRELATIVE db2Chunk(const char *type, const bool auto_reflect = true)
+    TYPE_IRRELATIVE db2Chunk(const char *type, const bool auto_reflect = false)
     {
         if (type)
         {
-            ::memcpy(this->type, type, 4);
+            std::memcpy(this->type, type, 4);
             if (auto_reflect)
                 this->reflector = db2Reflector::GetReflector(type);
         }
@@ -137,7 +143,7 @@ public:
         }
 
         // free data, or leave it to base destructor?
-        ::free(this->data);
+        std::free(this->data);
         this->data = nullptr;
     }
 
@@ -290,8 +296,40 @@ public:
     {
         auto &element = this->db2DynArray<T>::emplace(args...);
         if constexpr (has_value_type<T>::value) // sub-chunk
+        {
             if (element.reflector == nullptr)
                 element.reflector = this->reflector->child;
+            if (element.root == nullptr)
+                element.root = this->root;
+        }
         return element;
     }
+
+    T &push(const T &t) = delete;
+};
+
+class db2Chunks : public db2DynArray<db2Chunk<char>>
+{
+public:
+    template <typename CK_T>
+    auto get() -> CK_T &
+    {
+        for (auto i = 0; i < this->size(); ++i)
+        {
+            auto &chunk = this->data[i];
+            if (chunk.reflector->id == typeid(CK_T).hash_code())
+                return *(CK_T *)&chunk;
+        }
+        return this->emplace<CK_T>(true);
+    }
+
+    template <typename CK_T = db2Chunk<char>, typename... Args>
+    auto emplace(Args &&...args) -> CK_T &
+    {
+        auto &chunk = this->db2DynArray<db2Chunk<char>>::emplace<CK_T>(args...);
+        chunk.root = this;
+        return chunk;
+    }
+
+    db2Chunk<char> &push(const db2Chunk<char> &t) = delete;
 };

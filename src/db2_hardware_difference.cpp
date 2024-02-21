@@ -1,7 +1,7 @@
 #include "db2_hardware_difference.h"
 
+#include <cassert>
 #include <limits> // std::numeric_limits<float>::is_iec559
-#include <assert.h>
 
 bool hardwareDifference::IsCompatible = hardwareDifference::Check();
 

@@ -1,8 +1,9 @@
 #pragma once
 
-// #include <stdlib.h>
-#include <assert.h>
-#include <math.h>
+#include <cassert> // assert static_assert
+#include <cstdlib> // std::malloc std::free std::realloc
+#include <cmath>   // std::log2 std::pow
+
 #include <functional>
 
 #include "db2_settings.h"
@@ -41,26 +42,28 @@ public:
         for (int32_t i = 0; i < this->size(); ++i)
             (this->data + i)->~T();
 
-        ::free(this->data);
+        std::free(this->data);
         this->data = nullptr;
     }
 
     auto operator[](const int32_t index) const -> T &
     {
-        const auto i = index >= 0 ? index : index + this->size();
-        return this->data[i];
+        // const auto i = index >= 0 ? index : index + this->size();
+        // return this->data[i];
+
+        return this->at(index);
     }
 
-    /*
-    template <typename U>
-    auto operator[](const int32_t index) const -> U &
+    template <typename U = T>
+    auto at(const int32_t index) const -> U &
     {
-        // assert(sizeof(T) == sizeof(U));
-        // const auto i = index >= 0 ? index : index + this->size();
+        static_assert(sizeof(T) == sizeof(U));
+
+        const auto i = index >= 0 ? index : index + this->size();
+
         // return *(U *)(this->data + i);
-        return reinterpret_cast<U &>((*this)[index]);
+        return reinterpret_cast<U &>(this->data[i]);
     }
-    */
 
     /*
     auto resize(const int32_t size) -> void
@@ -87,25 +90,30 @@ public:
 
     auto push(const T &t) -> T &
     {
-        auto size = this->size(); // old size
+        // auto size = this->size(); // old size
 
-        this->reserve(size + 1);
-        ::new (this->data + size) T(t);
-        this->length += sizeof(T);
+        // this->reserve(size + 1);
+        // ::new (this->data + size) T(t);
+        // this->length += sizeof(T);
 
-        return this->data[size];
+        // return this->data[size];
+
+        return this->emplace(t);
     }
 
-    template <typename... Args>
-    auto emplace(Args &&...args) -> T &
+    template <typename U = T, typename... Args>
+    auto emplace(Args &&...args) -> U &
     {
         auto size = this->size(); // old size
 
         this->reserve(size + 1);
-        ::new (this->data + size) T(args...);
-        this->length += sizeof(T);
+        ::new (this->data + size) U(args...);
+        this->length += sizeof(U);
 
-        return this->data[size];
+        // return *(U *)&this->data[size];
+        // return *(U *)(this->data + size);
+        // return reinterpret_cast<U &>(this->data[size]);
+        return this->at<U>(size);
     }
 
     /*
@@ -115,7 +123,7 @@ public:
         auto size = this->size(); // old size
 
         this->reserve(size + 1);
-        ::memcpy(this->data + size, &u, sizeof(T));
+        std::memcpy(this->data + size, &u, sizeof(T));
         this->length += sizeof(T);
 
         return reinterpret_cast<U &>(this->data[size]);
@@ -159,7 +167,7 @@ public:
 
         assert(length_men <= INT32_MAX); // 2GB
 
-        *(void **)(&this->data) = ::realloc(this->data, length_men);
+        *(void **)(&this->data) = std::realloc(this->data, length_men);
         this->length_men = length_men;
     }
 };

@@ -1,5 +1,5 @@
 # Data Structure
-A BOX2D (or B2) file contains every piece of information needed to create a B2World. 
+A BOX2D (or B2) file contains every piece of information needed to create a b2World. 
 
 ## Head
 At the beginning of a BOX2D file, an 8-byte signature is presented, this design is borrowed form PNG file standard:
@@ -18,22 +18,23 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 |----       |----           |----           |----       |
 |4 bytes    |4 bytes        |Length bytes	|4 bytes    |
 * Endian of length, CRC and chunk data is indicated by the 4th byte of the head. Big-endian or network-byte-order is recommended for file storage.
+* The CRC is computed over the chunk type and chunk data, but not the length.
 
 ### Chunk Types/Names
 
 |Chunk type|Date stored|
 |----|----|
-|INFO|dotBox2dInfo[1]|
-|WRLD|dotB2Wrold[1]|
-|JINT|dotB2Joint[]|
-|BODY|dotB2Body[]|
-|FXTR|dotB2Fixture[]|
-|SHpX|float32_t[]|
-|JInX|float32_t[]|
+|INFO|db2Info[1]|
+|WRLD|db2Wrold[1]|
+|JInT|db2Joint[]|
+|BODY|db2Body[]|
+|FXTR|db2Fixture[]|
+|SHpE|db2Shape[]|
+* The case of the third letter indicates whether the chunk contains fixed-length sub-structure. Lowercase means it stores variable-length sub-chunks. Like b2shape or b2joint, data structure with variants(extended structures) normally require different lengthes to store its variants, so adopting variable-length sub-chunk is nessary.
 
 ### Chunk Data
 #### INFO
-INFO is short for dotBox2d information, and it stores the data defined by dotB2Info. See:
+INFO is short for dotBox2d information, and it stores the data defined by db2Info. See:
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |packSize|1 byte|char|8|
@@ -46,7 +47,7 @@ INFO is short for dotBox2d information, and it stores the data defined by dotB2I
 |ver_box2d_2|1 byte|uint8_t||
 
 #### WRLD
-WRLD, short for World, it's data unit is dotB2Wrold.
+WRLD, short for world, it's data unit is db2Wrold.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |gravity_x|4 bytes|float32_t||
@@ -56,19 +57,20 @@ WRLD, short for World, it's data unit is dotB2Wrold.
 |jointList|4 byte|int32_t||
 |jointCount|4 byte|int32_t||
 
-#### JINT
-JINT is short for joint, and it's data unit is dotB2Joint.
+#### JInT
+JInT is short for joint. Data unit of this chunk is db2Joint, which is not a fixed-length structure. Actually, the data unit db2Joint is an sub-chunk, which is extendable. The whole chunk can be considered as a two-dimensional variable-length array.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
-|type|4 bytes|int32_t|0(e_unknownJoint)|
+|sub_chunk_length|4 bytes|int32_t|
+|sub_chunk_type|4 bytes|char[4]|['J', 'I', 'N' ,0(e_unknownJoint)]|
 |bodyA|4 bytes|int32_t||
 |bodyB|4 bytes|int32_t||
-|collideConnected|1 bytes|bool|false|
-|extend|4 bytes|int32_t||
-|userData|8 bytes|uint64_t||
+|collideConnected|1(4) bytes|bool|false|
+|extend|4 bytes * n|int32_t or float32_t or bool||
+* n = sub_chunk_length/4 - 3
 
 #### BODY
-BODY, the chunk data of which is an array of it's data unit dotB2Body.
+BODY, the chunk data of which is an array of it's data unit db2Body.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |type|4 bytes|int32_t|0|
@@ -88,10 +90,9 @@ BODY, the chunk data of which is an array of it's data unit dotB2Body.
 |gravityScale|4 bytes|float32_t|1.0f|
 |fixtureList|4 bytes|int32_t||
 |fixtureCount|4 bytes|int32_t||
-|userData|8 bytes|uint64_t||
 
 #### FXTR
-FXTR is short for Fixture, and it's data unit is dotB2Fixture.
+FXTR is short for fixture, and it's data unit is db2Fixture.
 |Data|Length|C++ type|default value|
 |----|----|----|----|
 |friction|4 bytes|float32_t|0.2f|
@@ -102,21 +103,14 @@ FXTR is short for Fixture, and it's data unit is dotB2Fixture.
 |filter_categoryBits|2 bytes|uint16_t|0x0001|
 |filter_maskBits|2 bytes|uint16_t|0xFFFF|
 |filter_groupIndex|2 bytes|int16_t|0|
-|shape_type|4 bytes|int32_t||
-|shape_radius|4 bytes|float32_t||
-|shape_extend|4 bytes|int32_t||
-|userData|8 bytes|uint64_t||
+|shape|4 bytes|int32_t||
 
-#### SHpX
-SHpX, short for Shap Extend. This trunk can be considered as an two-dimensional array. Every element of the trunk or every row/subarray of the two-dimensional array is a variable-length array, representing a set of shap extend data, and the first 4 byte stores the length value. Since we can't declare data unit as variable length format, the data unit of this trunk is declared as an 4 bytes data format, float32_t. However, the actual data format could be int32_t or bool, so data may need casting (reinterpret_cast or static_cast) before using.
+#### SHpE
+SHpE, short for shap. It's data unit is db2Shape, which acts as variable-length sub-chunk. The whole chunk stores a two-dimensional variable-length array. 
 |Data|Length|C++ type|default value|
 |----|----|----|----|
-|length|4 bytes|reinterpret_cast&lt;int32_t&gt;||
-|shape_extend|4 bytes * length|float32_t, static_cast&lt;bool&gt;||
-
-#### JInX
-JInX, short for Joint Extend. Same as SHpX, this trunk can be considered as an two-dimensional array with subarrays of variable-length arrays. Every subarray stores a set of joint extend data, with the first 4 byte indicating the length. The data unit of this trunk is declared as float32_t, but actual data format could be int32_t or bool. So casting (reinterpret_cast or static_cast) could be required.
-|Data|Length|C++ type|default value|
-|----|----|----|----|
-|length|4 bytes|reinterpret_cast&lt;int32_t&gt;||
-|joint_extend|4 bytes * length|float32_t, static_cast&lt;bool&gt;||
+|sub_chunk_length|4 bytes|int32_t|
+|sub_chunk_type|4 bytes|char[4]|['S', 'H', 'P' ,0(e_circle)]|
+|shape_radius|4 bytes|float32_t|0|
+|extend|4 bytes * n|int32_t or float32_t or bool||
+* n = sub_chunk_length/4 - 1

@@ -25,6 +25,17 @@ class db2Chunk;
 
 class db2Chunks;
 
+template <typename T, typename = void>
+struct is_db2Chunk : std::false_type
+{
+};
+
+template <typename T>
+struct is_db2Chunk<T, std::enable_if_t<has_value_type<T>::value>>
+{
+    static constexpr bool value = std::is_same<db2Chunk<typename T::value_type>, T>::value || std::is_base_of<db2Chunk<typename T::value_type>, T>::value;
+};
+
 template <typename T>
 class db2Chunk : public db2DynArray<T>
 {
@@ -199,7 +210,7 @@ public:
 
         if (this->reflector == nullptr || this->reflector->parent == nullptr)
         {
-            this->refreshReflector();
+            // this->refreshReflector();
             this->refreshLengthChunk();
         }
 
@@ -235,6 +246,7 @@ public:
         }
     }
 
+    /*
     TYPE_IRRELATIVE auto refreshReflector() -> void
     {
         this->reflector = this->reflector ? this->reflector : db2Reflector::GetReflector(this->type);
@@ -253,6 +265,7 @@ public:
             }
         }
     }
+    */
 
     TYPE_IRRELATIVE auto refreshLengthChunk() -> void
     {
@@ -284,18 +297,11 @@ public:
     }
 
 public:
-    // auto add_child() -> T &
-    // {
-    //     auto &child = this->emplace();
-    //     child.reflector = this->reflector->child;
-    //     return child;
-    // }
-
     template <typename... Args>
     auto emplace(Args &&...args) -> T &
     {
         auto &element = this->db2DynArray<T>::emplace(args...);
-        if constexpr (has_value_type<T>::value) // sub-chunk
+        if constexpr (is_db2Chunk<T>::value) // sub-chunk
         {
             if (element.reflector == nullptr)
                 element.reflector = this->reflector->child;

@@ -6,8 +6,6 @@ DB2_PRAGMA_PACK_ON
 
 ENDIAN_SENSITIVE struct db2Shape : public db2Chunk<float32_t>
 {
-    db2Shape() : db2Chunk("SHP", false) {}
-
     int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
     float32_t &shape_radius() { return (*this)[0]; }
 
@@ -60,8 +58,6 @@ ENDIAN_SENSITIVE struct db2Body
 
 ENDIAN_SENSITIVE struct db2Joint : public db2Chunk<float32_t>
 {
-    db2Joint() : db2Chunk("JIN", false) {}
-
     int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
 
     int32_t &bodyA() { return reinterpret_cast<int32_t &>((*this)[0]); } // index

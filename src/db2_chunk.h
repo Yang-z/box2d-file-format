@@ -98,7 +98,7 @@ public:
 
 public:
     ENDIAN_SENSITIVE DEF_IN_BASE(int32_t length{0});
-    char type[4]{'N', 'U', 'L', 'L'};
+    char type[4]{0, 0, 0, 0};
     ENDIAN_SENSITIVE DEF_IN_BASE(T *data{nullptr});
     ENDIAN_SENSITIVE uint32_t crc{};
 
@@ -124,7 +124,8 @@ public:
         }
     }
 
-    TYPE_IRRELATIVE db2Chunk(const char *type, const bool auto_reflect = false)
+    /*
+    TYPE_IRRELATIVE db2Chunk(const char *type, const bool auto_reflect)
     {
         if (type)
         {
@@ -133,11 +134,7 @@ public:
                 this->reflector = db2Reflector::GetReflector(type);
         }
     }
-
-    TYPE_IRRELATIVE db2Chunk(std::ifstream &fs, const bool isLittleEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr)
-    {
-        this->read(fs, isLittleEndian, reflector, CRC);
-    }
+    */
 
     // only clear up reflected types with the innermost value-types of flat data structures
     // further work is required?
@@ -159,7 +156,7 @@ public:
     }
 
 public:
-    TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, boost::crc_32_type *CRC = nullptr) -> void
     {
         assert(this->length == 0);
 
@@ -174,7 +171,8 @@ public:
 
         // type
         db2Chunk::ReadBytes(this->type, sizeof(this->type), fs, false, nullptr, CRC);
-        this->reflector = reflector ? reflector : db2Reflector::GetReflector(this->type);
+        if (this->reflector == nullptr)
+            this->reflector = db2Reflector::GetReflector(this->type);
 
         // data
         if (this->reflector->child == nullptr)
@@ -189,7 +187,8 @@ public:
             auto pn = p0;
             while (pn - p0 < this->length_chunk)
             {
-                ((db2Chunk<db2Chunk<char>> *)this)->emplace(fs, isLittleEndian, this->reflector->child, CRC);
+                auto &child = ((db2Chunk<db2Chunk<char>> *)this)->emplace();
+                child.read(fs, isLittleEndian, CRC); // recursion
                 pn = fs.tellg();
             }
             assert(pn - p0 == this->length_chunk);
@@ -303,10 +302,12 @@ public:
         auto &element = this->db2DynArray<T>::emplace(args...);
         if constexpr (is_db2Chunk<T>::value) // sub-chunk
         {
-            if (element.reflector == nullptr)
-                element.reflector = this->reflector->child;
             if (element.root == nullptr)
                 element.root = this->root;
+            if (element.reflector == nullptr)
+                element.reflector = this->reflector->child;
+            if (*(int32_t *)&element.type == 0)
+                std::memcpy(element.type, element.reflector->type, 4);
         }
         return element;
     }
@@ -320,13 +321,22 @@ public:
     template <typename CK_T>
     auto get() -> CK_T &
     {
+        auto &chunk = this->at<CK_T>();
+        if (&chunk != nullptr)
+            return chunk;
+        return this->emplace<CK_T>(true);
+    }
+
+    template <typename CK_T>
+    auto at() const -> CK_T &
+    {
         for (auto i = 0; i < this->size(); ++i)
         {
             auto &chunk = this->data[i];
             if (chunk.reflector->id == typeid(CK_T).hash_code())
                 return *(CK_T *)&chunk;
         }
-        return this->emplace<CK_T>(true);
+        return *(CK_T *)nullptr;
     }
 
     template <typename CK_T = db2Chunk<char>, typename... Args>

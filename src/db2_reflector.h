@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring> // std::memcpy
+#include <cctype>
 
 #include <algorithm>          // std::equal
 #include <type_traits>        // std::is_same ...
@@ -107,19 +108,28 @@ public:
     auto reflect(const char *type) -> void
     {
         std::memcpy(this->type, type, 4);
+        if (this->parent)
+            this->type[3] = 0;
+
         this->id = typeid(CK_T).hash_code();
 
         using value_type = typename default_value_type<CK_T>::type;
 
+        // this->type[2] = !has_value_type<value_type>::value ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
+
         if constexpr (!has_value_type<value_type>::value)
         {
+            this->type[2] = std::toupper(this->type[2]);
+
             this->reflect_POD<value_type>();
         }
         else
         {
+            this->type[2] = std::tolower(this->type[2]);
+
             this->child = new db2Reflector();
             child->parent = this;
-            child->reflect<value_type>("CHLD");
+            child->reflect<value_type>(type);
         }
     }
 

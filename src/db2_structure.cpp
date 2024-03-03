@@ -42,8 +42,8 @@ auto dotBox2d::load(const char *filePath) -> void
     // read chunk
     while (fs.peek() != EOF)
     {
-        this->chunks.emplace(fs, isFileLittleEndian);
-        // this->chunks[-1].read(fs, isFileLittleEndian);
+        auto &chunk = this->chunks.emplace();
+        chunk.read(fs, isFileLittleEndian);
     };
 
     fs.close();

@@ -48,9 +48,6 @@ public:
 
     auto operator[](const int32_t index) const -> T &
     {
-        // const auto i = index >= 0 ? index : index + this->size();
-        // return this->data[i];
-
         return this->at(index);
     }
 
@@ -61,8 +58,8 @@ public:
 
         const auto i = index >= 0 ? index : index + this->size();
 
-        // return *(U *)(this->data + i);
-        return reinterpret_cast<U &>(this->data[i]);
+        return *(U *)(this->data + i);
+        // return reinterpret_cast<U &>(this->data[i]);
     }
 
     /*
@@ -88,50 +85,28 @@ public:
     }
     */
 
-    auto push(const T &t) -> T &
-    {
-        // auto size = this->size(); // old size
-
-        // this->reserve(size + 1);
-        // ::new (this->data + size) T(t);
-        // this->length += sizeof(T);
-
-        // return this->data[size];
-
-        return this->emplace(t);
-    }
-
     template <typename U = T, typename... Args>
     auto emplace(Args &&...args) -> U &
     {
+        static_assert(sizeof(T) == sizeof(U));
+
         auto size = this->size(); // old size
 
         this->reserve(size + 1);
         ::new (this->data + size) U(args...);
         this->length += sizeof(U);
 
+        return *(U *)(this->data + size);
         // return *(U *)&this->data[size];
-        // return *(U *)(this->data + size);
+        // return *reinterpret_cast<U *>(this->data + size);
         // return reinterpret_cast<U &>(this->data[size]);
-        return this->at<U>(size);
+        // return this->at<U>(size);
     }
 
-    /*
-    template <typename U>
-    auto copy(const U &u) -> U &
+    auto push(const T &t) -> T &
     {
-        auto size = this->size(); // old size
-
-        this->reserve(size + 1);
-        std::memcpy(this->data + size, &u, sizeof(T));
-        this->length += sizeof(T);
-
-        return reinterpret_cast<U &>(this->data[size]);
-
-        // this->push(reinterpret_cast<const T &>(u));
-        // return this->operator[]<U>(-1);
+        return this->emplace(t);
     }
-    */
 
     auto pop() -> void
     {

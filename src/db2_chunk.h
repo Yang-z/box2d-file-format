@@ -114,6 +114,7 @@ public:
 public:
     db2Chunk() {} // leave default constructor empty
 
+    /*
     db2Chunk(const bool auto_reflect)
     {
         if (auto_reflect)
@@ -123,6 +124,7 @@ public:
                 std::memcpy(this->type, this->reflector->type, 4);
         }
     }
+    */
 
     /*
     TYPE_IRRELATIVE db2Chunk(const char *type, const bool auto_reflect)
@@ -156,6 +158,15 @@ public:
     }
 
 public:
+    template <typename CK_T = db2Chunk<T>>
+    auto reflect(const char *type = nullptr) -> void
+    {
+        this->reflector = type ? db2Reflector::GetReflector(type) : db2Reflector::GetReflector<CK_T>();
+
+        if (this->reflector)
+            std::memcpy(this->type, this->reflector->type, 4);
+    }
+
     TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, boost::crc_32_type *CRC = nullptr) -> void
     {
         assert(this->length == 0);
@@ -324,7 +335,7 @@ public:
         auto &chunk = this->at<CK_T>();
         if (&chunk != nullptr)
             return chunk;
-        return this->emplace<CK_T>(true);
+        return this->emplace<CK_T>();
     }
 
     template <typename CK_T>
@@ -339,11 +350,14 @@ public:
         return *(CK_T *)nullptr;
     }
 
-    template <typename CK_T = db2Chunk<char>, typename... Args>
-    auto emplace(Args &&...args) -> CK_T &
+    template <typename CK_T = void, typename default_type = typename std::conditional<std::is_same<CK_T, void>::value, db2Chunk<char>, CK_T>::type>
+    auto emplace() -> default_type &
     {
-        auto &chunk = this->db2DynArray<db2Chunk<char>>::emplace<CK_T>(args...);
+        auto &chunk = this->db2DynArray<db2Chunk<char>>::emplace<default_type>();
         chunk.root = this;
+        if constexpr (!std::is_same<CK_T, void>::value)
+            chunk.template reflect<CK_T>(); // !!
+
         return chunk;
     }
 

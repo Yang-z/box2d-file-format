@@ -86,7 +86,7 @@ public:
     */
 
     template <typename U = T, typename... Args>
-    auto emplace(Args &&...args) -> U &
+    auto emplace_back(Args &&...args) -> U &
     {
         static_assert(sizeof(T) == sizeof(U));
 
@@ -103,9 +103,9 @@ public:
         // return this->at<U>(size);
     }
 
-    auto push(const T &t) -> T &
+    auto push_back(const T &t) -> T &
     {
-        return this->emplace(t);
+        return this->emplace_back(t);
     }
 
     auto pop() -> void

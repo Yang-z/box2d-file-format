@@ -53,7 +53,7 @@ auto db2Decoder::decode() -> void
 
         auto *b2b = b2w->CreateBody(&b2bdef);
 
-        /*.userData*/ db2bs.userData.push(b2b);
+        /*.userData*/ db2bs.userData.push_back(b2b);
 
         /*fixture*/
         for (auto f = db2b.fixtureList; f <= db2b.fixtureList + db2b.fixtureCount - 1; ++f)
@@ -154,7 +154,7 @@ auto db2Decoder::decode() -> void
 
             b2fdef.shape = b2s; // The shape will be cloned
             /*userData*/ b2fdef.userData.pointer = (uintptr_t)f;
-            /*.userData*/ db2fs.userData.push(b2b->CreateFixture(&b2fdef));
+            /*.userData*/ db2fs.userData.push_back(b2b->CreateFixture(&b2fdef));
             if (b2s)
                 delete b2s; // virtual ~b2Shape()
         }
@@ -388,7 +388,7 @@ auto db2Decoder::decode() -> void
         }
 
         /*userData*/ b2jdef->userData.pointer = (uintptr_t)j;
-        /*.userData*/ db2js.userData.push(b2w->CreateJoint(b2jdef));
+        /*.userData*/ db2js.userData.push_back(b2w->CreateJoint(b2jdef));
         if (b2jdef)
             delete b2jdef;
     }
@@ -411,10 +411,10 @@ auto db2Decoder::encode() -> void
 
     /*info*/
     // constructs an element in-place at the end
-    db2is.emplace(); // default
+    db2is.emplace_back(); // default
 
     /*world*/
-    db2ws.emplace(
+    db2ws.emplace_back(
         this->b2w->GetGravity().x,
         this->b2w->GetGravity().y,
 
@@ -430,13 +430,13 @@ auto db2Decoder::encode() -> void
     db2DynArray<b2Body *> bodies{};
     bodies.reserve(this->b2w->GetBodyCount(), false);
     for (auto b2b = this->b2w->GetBodyList(); b2b; b2b = b2b->GetNext())
-        bodies.push(b2b);
+        bodies.push_back(b2b);
 
     for (int b = bodies.size() - 1; b >= 0; --b) // reverse order
     {
         auto b2b = bodies[b];
 
-        db2bs.emplace(
+        db2bs.emplace_back(
             b2b->GetType(),
             b2b->GetPosition().x,
             b2b->GetPosition().y,
@@ -459,14 +459,14 @@ auto db2Decoder::encode() -> void
 
             // /*extraDict*/ -1
         );
-        /*.userData*/ db2bs.userData.push(b2b);
+        /*.userData*/ db2bs.userData.push_back(b2b);
         /*userData*/ b2b->GetUserData().pointer = (uintptr_t)b; // db2bs.size() - 1;
 
         /*fixture*/
         db2DynArray<b2Fixture *> fixtures{};
         // fixtures.reserve(b2b->GetFixtureCount(), false); // no way to get fixture count directly
         for (auto b2f = b2b->GetFixtureList(); b2f; b2f = b2f->GetNext())
-            fixtures.push(b2f);
+            fixtures.push_back(b2f);
 
         db2bs[-1].fixtureCount = fixtures.size();
 
@@ -474,7 +474,7 @@ auto db2Decoder::encode() -> void
         {
             auto b2f = fixtures[f];
 
-            db2fs.emplace(
+            db2fs.emplace_back(
                 b2f->GetFriction(),
                 b2f->GetRestitution(),
                 b2f->GetRestitutionThreshold(),
@@ -490,15 +490,15 @@ auto db2Decoder::encode() -> void
 
                 // /*extra*/ 0
             );
-            /*.userData*/ db2fs.userData.push(b2f);
+            /*.userData*/ db2fs.userData.push_back(b2f);
             /*userData*/ b2f->GetUserData().pointer = (uintptr_t)db2fs.size() - 1;
 
             /*shape*/
             auto b2s = b2f->GetShape();
-            /*add sub-chunk*/ auto &db2s = db2ss.emplace();
+            /*add sub-chunk*/ auto &db2s = db2ss.emplace_back();
 
             /*shape_type*/ db2s.type3() = b2s->m_type;
-            /*shape_radius*/ db2s.emplace(b2s->m_radius);
+            /*shape_radius*/ db2s.emplace_back(b2s->m_radius);
 
             switch (b2s->m_type)
             {
@@ -508,8 +508,8 @@ auto db2Decoder::encode() -> void
 
                 db2s.reserve(db2s.size() + 1 * 2);
 
-                db2s.emplace(b2s_c->m_p.x);
-                db2s.emplace(b2s_c->m_p.y);
+                db2s.emplace_back(b2s_c->m_p.x);
+                db2s.emplace_back(b2s_c->m_p.y);
             }
             break;
 
@@ -519,16 +519,16 @@ auto db2Decoder::encode() -> void
 
                 db2s.reserve(db2s.size() + 4 * 2 + 1);
 
-                db2s.emplace(b2s_e->m_vertex0.x);
-                db2s.emplace(b2s_e->m_vertex0.y);
-                db2s.emplace(b2s_e->m_vertex1.x);
-                db2s.emplace(b2s_e->m_vertex1.y);
-                db2s.emplace(b2s_e->m_vertex2.x);
-                db2s.emplace(b2s_e->m_vertex2.y);
-                db2s.emplace(b2s_e->m_vertex3.x);
-                db2s.emplace(b2s_e->m_vertex3.y);
+                db2s.emplace_back(b2s_e->m_vertex0.x);
+                db2s.emplace_back(b2s_e->m_vertex0.y);
+                db2s.emplace_back(b2s_e->m_vertex1.x);
+                db2s.emplace_back(b2s_e->m_vertex1.y);
+                db2s.emplace_back(b2s_e->m_vertex2.x);
+                db2s.emplace_back(b2s_e->m_vertex2.y);
+                db2s.emplace_back(b2s_e->m_vertex3.x);
+                db2s.emplace_back(b2s_e->m_vertex3.y);
 
-                db2s.emplace((float32_t)b2s_e->m_oneSided);
+                db2s.emplace_back((float32_t)b2s_e->m_oneSided);
             }
             break;
 
@@ -540,8 +540,8 @@ auto db2Decoder::encode() -> void
 
                 for (int i = 0; i < b2s_p->m_count; i++)
                 {
-                    db2s.emplace(b2s_p->m_vertices[i].x);
-                    db2s.emplace(b2s_p->m_vertices[i].y);
+                    db2s.emplace_back(b2s_p->m_vertices[i].x);
+                    db2s.emplace_back(b2s_p->m_vertices[i].y);
                 }
             }
             break;
@@ -554,14 +554,14 @@ auto db2Decoder::encode() -> void
 
                 for (int i = 0; i < b2s_chain->m_count; i++)
                 {
-                    db2s.emplace(b2s_chain->m_vertices[i].x);
-                    db2s.emplace(b2s_chain->m_vertices[i].y);
+                    db2s.emplace_back(b2s_chain->m_vertices[i].x);
+                    db2s.emplace_back(b2s_chain->m_vertices[i].y);
                 }
 
-                db2s.emplace(b2s_chain->m_prevVertex.x);
-                db2s.emplace(b2s_chain->m_prevVertex.y);
-                db2s.emplace(b2s_chain->m_nextVertex.x);
-                db2s.emplace(b2s_chain->m_nextVertex.y);
+                db2s.emplace_back(b2s_chain->m_prevVertex.x);
+                db2s.emplace_back(b2s_chain->m_prevVertex.y);
+                db2s.emplace_back(b2s_chain->m_nextVertex.x);
+                db2s.emplace_back(b2s_chain->m_nextVertex.y);
             }
             break;
             }
@@ -572,19 +572,19 @@ auto db2Decoder::encode() -> void
     db2DynArray<b2Joint *> joints{};
     joints.reserve(this->b2w->GetJointCount(), false);
     for (auto b2j = this->b2w->GetJointList(); b2j; b2j = b2j->GetNext())
-        joints.push(b2j);
+        joints.push_back(b2j);
 
     for (int j = joints.size() - 1; j >= 0; --j) // reverse order
     {
         auto &b2j = joints[j];
 
-        /*add sub-chunk*/ auto &db2j = db2js.emplace();
+        /*add sub-chunk*/ auto &db2j = db2js.emplace_back();
         /*type*/ db2j.type3() = b2j->GetType();
-        /*bodyA*/ db2j.emplace(int32_t(b2j->GetBodyA()->GetUserData().pointer));
-        /*bodyB*/ db2j.emplace(int32_t(b2j->GetBodyB()->GetUserData().pointer));
-        /*collideConnected*/ db2j.emplace(b2j->GetCollideConnected());
+        /*bodyA*/ db2j.emplace_back(int32_t(b2j->GetBodyA()->GetUserData().pointer));
+        /*bodyB*/ db2j.emplace_back(int32_t(b2j->GetBodyB()->GetUserData().pointer));
+        /*collideConnected*/ db2j.emplace_back(b2j->GetCollideConnected());
 
-        /*.userData*/ db2js.userData.push(b2j);
+        /*.userData*/ db2js.userData.push_back(b2j);
         /*userData*/ b2j->GetUserData().pointer = (uintptr_t)j; // db2js.size() - 1;
 
         switch (b2j->GetType())
@@ -592,137 +592,137 @@ auto db2Decoder::encode() -> void
         case b2JointType::e_revoluteJoint:
         {
             auto b2j_r = (b2RevoluteJoint *)b2j;
-            db2j.emplace(b2j_r->GetLocalAnchorA().x);
-            db2j.emplace(b2j_r->GetLocalAnchorA().y);
-            db2j.emplace(b2j_r->GetLocalAnchorB().x);
-            db2j.emplace(b2j_r->GetLocalAnchorB().y);
-            db2j.emplace(b2j_r->GetReferenceAngle());
-            db2j.emplace((float32_t)b2j_r->IsLimitEnabled());
-            db2j.emplace(b2j_r->GetLowerLimit());
-            db2j.emplace(b2j_r->GetUpperLimit());
-            db2j.emplace((float32_t)b2j_r->IsMotorEnabled());
-            db2j.emplace(b2j_r->GetMotorSpeed());
-            db2j.emplace(b2j_r->GetMaxMotorTorque());
+            db2j.emplace_back(b2j_r->GetLocalAnchorA().x);
+            db2j.emplace_back(b2j_r->GetLocalAnchorA().y);
+            db2j.emplace_back(b2j_r->GetLocalAnchorB().x);
+            db2j.emplace_back(b2j_r->GetLocalAnchorB().y);
+            db2j.emplace_back(b2j_r->GetReferenceAngle());
+            db2j.emplace_back((float32_t)b2j_r->IsLimitEnabled());
+            db2j.emplace_back(b2j_r->GetLowerLimit());
+            db2j.emplace_back(b2j_r->GetUpperLimit());
+            db2j.emplace_back((float32_t)b2j_r->IsMotorEnabled());
+            db2j.emplace_back(b2j_r->GetMotorSpeed());
+            db2j.emplace_back(b2j_r->GetMaxMotorTorque());
         }
         break;
 
         case b2JointType::e_prismaticJoint:
         {
             auto b2j_p = (b2PrismaticJoint *)b2j;
-            db2j.emplace(b2j_p->GetLocalAnchorA().x);
-            db2j.emplace(b2j_p->GetLocalAnchorA().y);
-            db2j.emplace(b2j_p->GetLocalAnchorB().x);
-            db2j.emplace(b2j_p->GetLocalAnchorB().y);
-            db2j.emplace(b2j_p->GetLocalAxisA().x);
-            db2j.emplace(b2j_p->GetLocalAxisA().y);
-            db2j.emplace(b2j_p->GetReferenceAngle());
-            db2j.emplace((float32_t)b2j_p->IsLimitEnabled());
-            db2j.emplace(b2j_p->GetLowerLimit());
-            db2j.emplace(b2j_p->GetUpperLimit());
-            db2j.emplace((float32_t)b2j_p->IsMotorEnabled());
-            db2j.emplace(b2j_p->GetMaxMotorForce());
-            db2j.emplace(b2j_p->GetMotorSpeed());
+            db2j.emplace_back(b2j_p->GetLocalAnchorA().x);
+            db2j.emplace_back(b2j_p->GetLocalAnchorA().y);
+            db2j.emplace_back(b2j_p->GetLocalAnchorB().x);
+            db2j.emplace_back(b2j_p->GetLocalAnchorB().y);
+            db2j.emplace_back(b2j_p->GetLocalAxisA().x);
+            db2j.emplace_back(b2j_p->GetLocalAxisA().y);
+            db2j.emplace_back(b2j_p->GetReferenceAngle());
+            db2j.emplace_back((float32_t)b2j_p->IsLimitEnabled());
+            db2j.emplace_back(b2j_p->GetLowerLimit());
+            db2j.emplace_back(b2j_p->GetUpperLimit());
+            db2j.emplace_back((float32_t)b2j_p->IsMotorEnabled());
+            db2j.emplace_back(b2j_p->GetMaxMotorForce());
+            db2j.emplace_back(b2j_p->GetMotorSpeed());
         }
         break;
 
         case b2JointType::e_distanceJoint:
         {
             auto b2j_d = (b2DistanceJoint *)b2j;
-            db2j.emplace(b2j_d->GetLocalAnchorA().x);
-            db2j.emplace(b2j_d->GetLocalAnchorA().y);
-            db2j.emplace(b2j_d->GetLocalAnchorB().x);
-            db2j.emplace(b2j_d->GetLocalAnchorB().y);
-            db2j.emplace(b2j_d->GetLength());
-            db2j.emplace(b2j_d->GetMinLength());
-            db2j.emplace(b2j_d->GetMaxLength());
-            db2j.emplace(b2j_d->GetStiffness());
-            db2j.emplace(b2j_d->GetDamping());
+            db2j.emplace_back(b2j_d->GetLocalAnchorA().x);
+            db2j.emplace_back(b2j_d->GetLocalAnchorA().y);
+            db2j.emplace_back(b2j_d->GetLocalAnchorB().x);
+            db2j.emplace_back(b2j_d->GetLocalAnchorB().y);
+            db2j.emplace_back(b2j_d->GetLength());
+            db2j.emplace_back(b2j_d->GetMinLength());
+            db2j.emplace_back(b2j_d->GetMaxLength());
+            db2j.emplace_back(b2j_d->GetStiffness());
+            db2j.emplace_back(b2j_d->GetDamping());
         }
         break;
 
         case b2JointType::e_pulleyJoint:
         {
             auto b2j_p = (b2PulleyJoint *)b2j;
-            db2j.emplace(b2j_p->GetGroundAnchorA().x);
-            db2j.emplace(b2j_p->GetGroundAnchorA().y);
-            db2j.emplace(b2j_p->GetGroundAnchorB().x);
-            db2j.emplace(b2j_p->GetGroundAnchorB().y);
+            db2j.emplace_back(b2j_p->GetGroundAnchorA().x);
+            db2j.emplace_back(b2j_p->GetGroundAnchorA().y);
+            db2j.emplace_back(b2j_p->GetGroundAnchorB().x);
+            db2j.emplace_back(b2j_p->GetGroundAnchorB().y);
 
             auto localAnchorA = b2j_p->GetBodyA()->GetLocalPoint(b2j_p->GetAnchorA());
-            db2j.emplace(localAnchorA.x);
-            db2j.emplace(localAnchorA.y);
+            db2j.emplace_back(localAnchorA.x);
+            db2j.emplace_back(localAnchorA.y);
             auto localAnchorB = b2j_p->GetBodyB()->GetLocalPoint(b2j_p->GetAnchorB());
-            db2j.emplace(localAnchorB.x);
-            db2j.emplace(localAnchorB.y);
+            db2j.emplace_back(localAnchorB.x);
+            db2j.emplace_back(localAnchorB.y);
 
-            db2j.emplace(b2j_p->GetLengthA());
-            db2j.emplace(b2j_p->GetLengthB());
-            db2j.emplace(b2j_p->GetRatio());
+            db2j.emplace_back(b2j_p->GetLengthA());
+            db2j.emplace_back(b2j_p->GetLengthB());
+            db2j.emplace_back(b2j_p->GetRatio());
         }
         break;
 
         case b2JointType::e_mouseJoint:
         {
             auto b2j_m = (b2MouseJoint *)b2j;
-            db2j.emplace(b2j_m->GetTarget().x);
-            db2j.emplace(b2j_m->GetTarget().y);
-            db2j.emplace(b2j_m->GetMaxForce());
-            db2j.emplace(b2j_m->GetStiffness());
-            db2j.emplace(b2j_m->GetDamping());
+            db2j.emplace_back(b2j_m->GetTarget().x);
+            db2j.emplace_back(b2j_m->GetTarget().y);
+            db2j.emplace_back(b2j_m->GetMaxForce());
+            db2j.emplace_back(b2j_m->GetStiffness());
+            db2j.emplace_back(b2j_m->GetDamping());
         }
         break;
 
         case b2JointType::e_gearJoint:
         {
             auto b2j_g = (b2GearJoint *)b2j;
-            db2j.emplace((float32_t)b2j_g->GetJoint1()->GetUserData().pointer);
-            db2j.emplace((float32_t)b2j_g->GetJoint2()->GetUserData().pointer);
-            db2j.emplace(b2j_g->GetRatio());
+            db2j.emplace_back((float32_t)b2j_g->GetJoint1()->GetUserData().pointer);
+            db2j.emplace_back((float32_t)b2j_g->GetJoint2()->GetUserData().pointer);
+            db2j.emplace_back(b2j_g->GetRatio());
         }
         break;
 
         case b2JointType::e_wheelJoint:
         {
             auto b2j_w = (b2WheelJoint *)b2j;
-            db2j.emplace(b2j_w->GetLocalAnchorA().x);
-            db2j.emplace(b2j_w->GetLocalAnchorA().y);
-            db2j.emplace(b2j_w->GetLocalAnchorB().x);
-            db2j.emplace(b2j_w->GetLocalAnchorB().y);
-            db2j.emplace(b2j_w->GetLocalAxisA().x);
-            db2j.emplace(b2j_w->GetLocalAxisA().y);
-            db2j.emplace((float32_t)b2j_w->IsLimitEnabled());
-            db2j.emplace(b2j_w->GetLowerLimit());
-            db2j.emplace(b2j_w->GetUpperLimit());
-            db2j.emplace((float32_t)b2j_w->IsMotorEnabled());
-            db2j.emplace(b2j_w->GetMaxMotorTorque());
-            db2j.emplace(b2j_w->GetMotorSpeed());
-            db2j.emplace(b2j_w->GetStiffness());
-            db2j.emplace(b2j_w->GetDamping());
+            db2j.emplace_back(b2j_w->GetLocalAnchorA().x);
+            db2j.emplace_back(b2j_w->GetLocalAnchorA().y);
+            db2j.emplace_back(b2j_w->GetLocalAnchorB().x);
+            db2j.emplace_back(b2j_w->GetLocalAnchorB().y);
+            db2j.emplace_back(b2j_w->GetLocalAxisA().x);
+            db2j.emplace_back(b2j_w->GetLocalAxisA().y);
+            db2j.emplace_back((float32_t)b2j_w->IsLimitEnabled());
+            db2j.emplace_back(b2j_w->GetLowerLimit());
+            db2j.emplace_back(b2j_w->GetUpperLimit());
+            db2j.emplace_back((float32_t)b2j_w->IsMotorEnabled());
+            db2j.emplace_back(b2j_w->GetMaxMotorTorque());
+            db2j.emplace_back(b2j_w->GetMotorSpeed());
+            db2j.emplace_back(b2j_w->GetStiffness());
+            db2j.emplace_back(b2j_w->GetDamping());
         }
         break;
 
         case b2JointType::e_weldJoint:
         {
             auto b2j_w = (b2WeldJoint *)b2j;
-            db2j.emplace(b2j_w->GetLocalAnchorA().x);
-            db2j.emplace(b2j_w->GetLocalAnchorA().y);
-            db2j.emplace(b2j_w->GetLocalAnchorB().x);
-            db2j.emplace(b2j_w->GetLocalAnchorB().y);
-            db2j.emplace(b2j_w->GetReferenceAngle());
-            db2j.emplace(b2j_w->GetStiffness());
-            db2j.emplace(b2j_w->GetDamping());
+            db2j.emplace_back(b2j_w->GetLocalAnchorA().x);
+            db2j.emplace_back(b2j_w->GetLocalAnchorA().y);
+            db2j.emplace_back(b2j_w->GetLocalAnchorB().x);
+            db2j.emplace_back(b2j_w->GetLocalAnchorB().y);
+            db2j.emplace_back(b2j_w->GetReferenceAngle());
+            db2j.emplace_back(b2j_w->GetStiffness());
+            db2j.emplace_back(b2j_w->GetDamping());
         }
         break;
 
         case b2JointType::e_frictionJoint:
         {
             auto b2j_f = (b2FrictionJoint *)b2j;
-            db2j.emplace(b2j_f->GetLocalAnchorA().x);
-            db2j.emplace(b2j_f->GetLocalAnchorA().y);
-            db2j.emplace(b2j_f->GetLocalAnchorB().x);
-            db2j.emplace(b2j_f->GetLocalAnchorB().y);
-            db2j.emplace(b2j_f->GetMaxForce());
-            db2j.emplace(b2j_f->GetMaxTorque());
+            db2j.emplace_back(b2j_f->GetLocalAnchorA().x);
+            db2j.emplace_back(b2j_f->GetLocalAnchorA().y);
+            db2j.emplace_back(b2j_f->GetLocalAnchorB().x);
+            db2j.emplace_back(b2j_f->GetLocalAnchorB().y);
+            db2j.emplace_back(b2j_f->GetMaxForce());
+            db2j.emplace_back(b2j_f->GetMaxTorque());
         }
         break;
 
@@ -735,12 +735,12 @@ auto db2Decoder::encode() -> void
         case b2JointType::e_motorJoint:
         {
             auto b2j_m = (b2MotorJoint *)b2j;
-            db2j.emplace(b2j_m->GetLinearOffset().x);
-            db2j.emplace(b2j_m->GetLinearOffset().y);
-            db2j.emplace(b2j_m->GetAngularOffset());
-            db2j.emplace(b2j_m->GetMaxForce());
-            db2j.emplace(b2j_m->GetMaxTorque());
-            db2j.emplace(b2j_m->GetCorrectionFactor());
+            db2j.emplace_back(b2j_m->GetLinearOffset().x);
+            db2j.emplace_back(b2j_m->GetLinearOffset().y);
+            db2j.emplace_back(b2j_m->GetAngularOffset());
+            db2j.emplace_back(b2j_m->GetMaxForce());
+            db2j.emplace_back(b2j_m->GetMaxTorque());
+            db2j.emplace_back(b2j_m->GetCorrectionFactor());
         }
         break;
 

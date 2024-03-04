@@ -198,7 +198,7 @@ public:
             auto pn = p0;
             while (pn - p0 < this->length_chunk)
             {
-                auto &child = ((db2Chunk<db2Chunk<char>> *)this)->emplace();
+                auto &child = ((db2Chunk<db2Chunk<char>> *)this)->emplace_back();
                 child.read(fs, isLittleEndian, CRC); // recursion
                 pn = fs.tellg();
             }
@@ -308,9 +308,9 @@ public:
 
 public:
     template <typename... Args>
-    auto emplace(Args &&...args) -> T &
+    auto emplace_back(Args &&...args) -> T &
     {
-        auto &element = this->db2DynArray<T>::emplace(args...);
+        auto &element = this->db2DynArray<T>::emplace_back(args...);
         if constexpr (is_db2Chunk<T>::value) // sub-chunk
         {
             if (element.root == nullptr)
@@ -323,7 +323,7 @@ public:
         return element;
     }
 
-    T &push(const T &t) = delete;
+    T &push_back(const T &t) = delete;
 };
 
 class db2Chunks : public db2DynArray<db2Chunk<char>>
@@ -353,7 +353,7 @@ public:
     template <typename CK_T = void, typename default_type = typename std::conditional<std::is_same<CK_T, void>::value, db2Chunk<char>, CK_T>::type>
     auto emplace() -> default_type &
     {
-        auto &chunk = this->db2DynArray<db2Chunk<char>>::emplace<default_type>();
+        auto &chunk = this->db2DynArray<db2Chunk<char>>::emplace_back<default_type>();
         chunk.root = this;
         if constexpr (!std::is_same<CK_T, void>::value)
             chunk.template reflect<CK_T>(); // !!
@@ -361,5 +361,5 @@ public:
         return chunk;
     }
 
-    db2Chunk<char> &push(const db2Chunk<char> &t) = delete;
+    db2Chunk<char> &push_back(const db2Chunk<char> &t) = delete;
 };

@@ -48,7 +48,7 @@ public:
     template <typename CK_T>
     static auto Reflect(const char *type) -> void
     {
-        db2Reflector::reflectors.push(new db2Reflector())->reflect<CK_T>(type);
+        db2Reflector::reflectors.push_back(new db2Reflector())->reflect<CK_T>(type);
     }
 
     static auto GetReflector(const char *type) -> db2Reflector *
@@ -147,8 +147,8 @@ public:
             vaule,
             [&](auto &field)
             {
-                this->offsets.push((char *)&field - (char *)&vaule);
-                this->lengths.push(sizeof(field));
+                this->offsets.push_back((char *)&field - (char *)&vaule);
+                this->lengths.push_back(sizeof(field));
             } //
         );
     }

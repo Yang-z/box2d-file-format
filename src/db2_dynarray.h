@@ -86,21 +86,32 @@ public:
     */
 
     template <typename U = T, typename... Args>
+    auto emplace(const int32_t &index, Args &&...args) -> U &
+    {
+        static_assert(sizeof(T) == sizeof(U));
+        assert(0 <= index < this->size());
+
+        auto ptr = this->data + index;
+        ptr->~U();
+        ::new (ptr) U(std::forward<Args>(args)...);
+
+        return *(U *)ptr;
+    }
+
+    template <typename U = T, typename... Args>
     auto emplace_back(Args &&...args) -> U &
     {
         static_assert(sizeof(T) == sizeof(U));
 
         auto size = this->size(); // old size
-
         this->reserve(size + 1);
-        ::new (this->data + size) U(args...);
+
+        auto ptr = this->data + size;
+        // ::new (ptr) U(args...);
+        ::new (ptr) U(std::forward<Args>(args)...);
         this->length += sizeof(U);
 
-        return *(U *)(this->data + size);
-        // return *(U *)&this->data[size];
-        // return *reinterpret_cast<U *>(this->data + size);
-        // return reinterpret_cast<U &>(this->data[size]);
-        // return this->at<U>(size);
+        return *(U *)ptr;
     }
 
     auto push_back(const T &t) -> T &

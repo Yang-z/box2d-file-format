@@ -33,7 +33,7 @@ struct is_db2Chunk : std::false_type
 template <typename T>
 struct is_db2Chunk<T, std::enable_if_t<has_value_type<T>::value>>
 {
-    static constexpr bool value = std::is_same<db2Chunk<typename T::value_type>, T>::value || std::is_base_of<db2Chunk<typename T::value_type>, T>::value;
+    static constexpr bool value = std::is_base_of<db2Chunk<typename T::value_type>, T>::value;
 };
 
 template <typename T>
@@ -112,31 +112,7 @@ public:
     db2DynArray<void *> userData;
 
 public:
-    db2Chunk() {} // leave default constructor empty
-
-    /*
-    db2Chunk(const bool auto_reflect)
-    {
-        if (auto_reflect)
-        {
-            this->reflector = db2Reflector::GetReflector<db2Chunk<T>>();
-            if (this->reflector)
-                std::memcpy(this->type, this->reflector->type, 4);
-        }
-    }
-    */
-
-    /*
-    TYPE_IRRELATIVE db2Chunk(const char *type, const bool auto_reflect)
-    {
-        if (type)
-        {
-            std::memcpy(this->type, type, 4);
-            if (auto_reflect)
-                this->reflector = db2Reflector::GetReflector(type);
-        }
-    }
-    */
+    TYPE_IRRELATIVE db2Chunk() {} // leave default constructor empty
 
     // only clear up reflected types with the innermost value-types of flat data structures
     // further work is required?
@@ -157,16 +133,17 @@ public:
         this->data = nullptr;
     }
 
-public:
-    template <typename CK_T = db2Chunk<T>>
-    auto reflect(const char *type = nullptr) -> void
+    TYPE_IRRELATIVE auto pre_init(db2Reflector *reflector, db2Chunks *root) -> void
     {
-        this->reflector = type ? db2Reflector::GetReflector(type) : db2Reflector::GetReflector<CK_T>();
-
-        if (this->reflector)
+        this->root = root;
+        this->reflector = reflector;
+        if (this->reflector /* && *(int32_t *)&this->type == 0 */)
             std::memcpy(this->type, this->reflector->type, 4);
     }
 
+    TYPE_IRRELATIVE auto init() -> void {}
+
+public:
     TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, boost::crc_32_type *CRC = nullptr) -> void
     {
         assert(this->length == 0);
@@ -181,7 +158,7 @@ public:
             CRC = new boost::crc_32_type{};
 
         // type
-        db2Chunk::ReadBytes(this->type, sizeof(this->type), fs, false, nullptr, CRC);
+        db2Chunk::ReadBytes(this->type, sizeof(this->type), fs, false, nullptr, CRC); // overwrite type with data from file
         if (this->reflector == nullptr)
             this->reflector = db2Reflector::GetReflector(this->type);
 
@@ -219,10 +196,7 @@ public:
         const bool reverseEndian = hardwareDifference::IsLittleEndian() != asLittleEndian;
 
         if (this->reflector == nullptr || this->reflector->parent == nullptr)
-        {
-            // this->refreshReflector();
             this->refreshLengthChunk();
-        }
 
         // length
         db2Chunk::WriteBytes((char *)&this->length_chunk, sizeof(this->length_chunk), fs, reverseEndian, nullptr, CRC);
@@ -256,53 +230,22 @@ public:
         }
     }
 
-    /*
-    TYPE_IRRELATIVE auto refreshReflector() -> void
-    {
-        this->reflector = this->reflector ? this->reflector : db2Reflector::GetReflector(this->type);
-
-        if (this->reflector == nullptr)
-            return;
-
-        if (this->reflector->child != nullptr)
-        {
-            auto &self = *(db2Chunk<db2Chunk<char>> *)this;
-            for (auto i = 0; i < self.size(); ++i)
-            {
-                auto &child = self[i];
-                child.reflector = this->reflector->child;
-                child.refreshReflector();
-            }
-        }
-    }
-    */
-
     TYPE_IRRELATIVE auto refreshLengthChunk() -> void
     {
-        if (this->reflector == nullptr)
+        if (!this->reflector || !this->reflector->child)
         {
             this->length_chunk = this->length;
+            return;
         }
-        else
+
+        this->length_chunk = 0;
+
+        auto this_ = (db2Chunk<db2Chunk<char>> *)this;
+        for (auto i = 0; i < this_->size(); ++i)
         {
-            if (this->reflector->child != nullptr)
-            {
-                this->length_chunk = 0;
-
-                auto &self = *(db2Chunk<db2Chunk<char>> *)this;
-                for (auto i = 0; i < self.size(); ++i)
-                {
-                    auto &child = self[i];
-                    // child.reflector = this->reflector->child;
-                    child.refreshLengthChunk();
-
-                    this->length_chunk += child.length_chunk + 2 * 4;
-                }
-            }
-            else
-            {
-                this->length_chunk = this->length;
-            }
+            auto child = this_->data + i;
+            child->refreshLengthChunk();
+            this->length_chunk += child->length_chunk + 4 * 2;
         }
     }
 
@@ -310,17 +253,17 @@ public:
     template <typename... Args>
     auto emplace_back(Args &&...args) -> T &
     {
-        auto &element = this->db2DynArray<T>::emplace_back(args...);
         if constexpr (is_db2Chunk<T>::value) // sub-chunk
         {
-            if (element.root == nullptr)
-                element.root = this->root;
-            if (element.reflector == nullptr)
-                element.reflector = this->reflector->child;
-            if (*(int32_t *)&element.type == 0)
-                std::memcpy(element.type, element.reflector->type, 4);
+            auto &element = this->db2DynArray<T>::emplace_back();
+            element.pre_init(this->reflector->child, this->root);
+            element.init(std::forward<Args>(args)...);
+            return element;
         }
-        return element;
+        else
+        {
+            return this->db2DynArray<T>::emplace_back(std::forward<Args>(args)...);
+        }
     }
 
     T &push_back(const T &t) = delete;
@@ -333,9 +276,7 @@ public:
     auto get() -> CK_T &
     {
         auto &chunk = this->at<CK_T>();
-        if (&chunk != nullptr)
-            return chunk;
-        return this->emplace<CK_T>();
+        return &chunk ? chunk : this->emplace<CK_T>();
     }
 
     template <typename CK_T>
@@ -343,9 +284,9 @@ public:
     {
         for (auto i = 0; i < this->size(); ++i)
         {
-            auto &chunk = this->data[i];
-            if (chunk.reflector->id == typeid(CK_T).hash_code())
-                return *(CK_T *)&chunk;
+            auto p_chunk = this->data + i;
+            if (p_chunk->reflector->id == typeid(CK_T).hash_code())
+                return *(CK_T *)p_chunk;
         }
         return *(CK_T *)nullptr;
     }
@@ -354,10 +295,7 @@ public:
     auto emplace() -> default_type &
     {
         auto &chunk = this->db2DynArray<db2Chunk<char>>::emplace_back<default_type>();
-        chunk.root = this;
-        if constexpr (!std::is_same<CK_T, void>::value)
-            chunk.template reflect<CK_T>(); // !!
-
+        chunk.pre_init(db2Reflector::GetReflector<CK_T>(), this);
         return chunk;
     }
 

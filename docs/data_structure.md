@@ -31,6 +31,7 @@ At the beginning of a BOX2D file, an 8-byte signature is presented, this design 
 |FXTR|db2Fixture[]|
 |SHpE|db2Shape[]|
 * The case of the third letter indicates whether the chunk contains fixed-length sub-structure. Lowercase means it stores variable-length sub-chunks. Like b2shape or b2joint, data structure with variants(extended structures) normally require different lengthes to store its variants, so adopting variable-length sub-chunk is nessary.
+* The case of the fourth letter indicates whether the chunk is safe to copy. Lowercase means it is safe to to copy without addintional modification. Upcase means it may contains links to other chunks, and those links might require relocating if linked chunks are touched. (However, sub-chunks do not require copy safety check independently. Actually, the fourth letter of a sub-chunk is normally set to '\0' or other int8_t values, to represent the type of extended date types.)
 
 ### Chunk Data
 #### INFO

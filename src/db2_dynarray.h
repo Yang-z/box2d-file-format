@@ -60,11 +60,12 @@ public: // Element access
     {
         static_assert(sizeof(U) == sizeof(T));
 
-        U *ptr = nullptr;
+        T *ptr = nullptr;
         if (&index != nullptr)
         {
-            const auto i = index >= 0 ? index : index + this->size();
-            if (0 <= i < this->size())
+            auto size = this->size();
+            const auto i = index >= 0 ? index : index + size;
+            if (0 <= i && i < size)
                 ptr = this->data + i;
         }
         return *(U *)(ptr);
@@ -75,7 +76,7 @@ public: // Modifiers
     auto emplace(const int32_t &index, Args &&...args) -> U &
     {
         static_assert(sizeof(U) == sizeof(T));
-        assert(0 <= index < this->size());
+        assert(0 <= index && index < this->size());
 
         auto ptr = this->data + index;
         ptr->~U();

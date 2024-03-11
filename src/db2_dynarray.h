@@ -71,8 +71,6 @@ public: // Element access
     }
 
 public: // Modifiers
-
-
     template <typename U = T, typename... Args>
     auto emplace(const int32_t &index, Args &&...args) -> U &
     {
@@ -102,6 +100,41 @@ public: // Modifiers
         return *(U *)ptr;
     }
 
+    template <typename U = T, typename... Args>
+    auto append(Args &&...args) -> void
+    {
+        // (this->emplace_back<U>(std::forward<Args>(args)), ...); // one arg for one U
+
+        static_assert(sizeof(U) == sizeof(T));
+
+        auto size_old = this->size();
+        auto size_append = sizeof...(args);
+        this->reserve(size_old + size_append);
+
+        auto ptr = this->data + size_old;
+        // (::new(ptr++) U(std::forward<Args>(args)), ...); // one arg for one U
+        // ::new (ptr) U[size_append](std::forward<Args>(args)...); // all args for every U?
+        // ::new (ptr) U[]{std::forward<Args>(args)...}; // new U until all args is used
+        new (ptr) U[size_append]{std::forward<Args>(args)...}; // new U by [size_append] even when all args is used
+        this->length += sizeof(U) * size_append;
+    }
+
+    template <typename U = T>
+    auto append_range(const std::initializer_list<U> &arg_list) -> void
+    {
+        static_assert(sizeof(U) == sizeof(T));
+
+        auto size_old = this->size();
+        auto size_append = arg_list.size();
+        this->reserve(size_old + size_append);
+
+        auto ptr = this->data + size_old;
+        for (const auto &arg : arg_list)
+            ::new (ptr++) U(std::move(arg));
+
+        this->length += sizeof(U) * size_append;
+    }
+
     template <typename T_> // for perfect forwarding
     auto push_back(T_ &&t) -> T &
     {
@@ -113,6 +146,29 @@ public: // Modifiers
         (this->data + this->size() - 1)->~T();
         this->length -= sizeof(T);
     }
+
+    /*
+    auto resize(const int32_t size) -> void
+    {
+        auto old_size = this->size();
+
+        if (size == old_size)
+            return;
+        else if (size < old_size)
+        {
+            for (int32_t i = size; i < old_size; ++i)
+                (this->data + i)->~T();
+        }
+        else if (size > old_size)
+        {
+            this->reserve(size);
+            for (int32_t i = old_size; i < size; ++i)
+                new (this->data + i) T();
+        }
+
+        this->length = size * sizeof(T);
+    }
+    */
 
 public:
     auto for_each(std::function<bool(T &)> func) -> void

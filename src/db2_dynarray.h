@@ -46,49 +46,37 @@ public:
         this->data = nullptr;
     }
 
+public: // Element access
     auto operator[](const int32_t index) const -> T &
     {
-        return this->at(index);
+        const auto i = index >= 0 ? index : index + this->size();
+        auto ptr = this->data + i;
+        return *(T *)(ptr);
+        // return *reinterpret_cast<U *>(ptr);
     }
 
     template <typename U = T>
-    auto at(const int32_t index) const -> U &
+    auto at(const int32_t &index) const -> U & // If no such element exists, null is returned
     {
-        static_assert(sizeof(T) == sizeof(U));
+        static_assert(sizeof(U) == sizeof(T));
 
-        const auto i = index >= 0 ? index : index + this->size();
-
-        return *(U *)(this->data + i);
-        // return reinterpret_cast<U &>(this->data[i]);
+        U *ptr = nullptr;
+        if (&index != nullptr)
+        {
+            const auto i = index >= 0 ? index : index + this->size();
+            if (0 <= i < this->size())
+                ptr = this->data + i;
+        }
+        return *(U *)(ptr);
     }
 
-    /*
-    auto resize(const int32_t size) -> void
-    {
-        auto old_size = this->size();
+public: // Modifiers
 
-        if (size == old_size)
-            return;
-        else if (size < old_size)
-        {
-            for (int32_t i = size; i < old_size; ++i)
-                (this->data + i)->~T();
-        }
-        else if (size > old_size)
-        {
-            this->reserve(size);
-            for (int32_t i = old_size; i < size; ++i)
-                new (this->data + i) T();
-        }
-
-        this->length = size * sizeof(T);
-    }
-    */
 
     template <typename U = T, typename... Args>
     auto emplace(const int32_t &index, Args &&...args) -> U &
     {
-        static_assert(sizeof(T) == sizeof(U));
+        static_assert(sizeof(U) == sizeof(T));
         assert(0 <= index < this->size());
 
         auto ptr = this->data + index;
@@ -101,7 +89,7 @@ public:
     template <typename U = T, typename... Args>
     auto emplace_back(Args &&...args) -> U &
     {
-        static_assert(sizeof(T) == sizeof(U));
+        static_assert(sizeof(U) == sizeof(T));
 
         auto size = this->size(); // old size
         this->reserve(size + 1);
@@ -114,12 +102,13 @@ public:
         return *(U *)ptr;
     }
 
-    auto push_back(const T &t) -> T &
+    template <typename T_> // for perfect forwarding
+    auto push_back(T_ &&t) -> T &
     {
-        return this->emplace_back(t);
+        return this->emplace_back(std::forward<T_>(t));
     }
 
-    auto pop() -> void
+    auto pop_back() -> void
     {
         (this->data + this->size() - 1)->~T();
         this->length -= sizeof(T);

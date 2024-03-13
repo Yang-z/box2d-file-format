@@ -1,15 +1,21 @@
-
+#include <cmath>
 #include <iostream>
 #include <type_traits> // std::is_same
-
-#include "db2_hardware_difference.h"
-#include "db2_structure.h"
-#include "db2_dynarray.h"
-#include "db2_decoder.h"
 
 #include <boost/pfr.hpp> // reflect
 // #include <boost/pfr/core.hpp>
 // #include <boost/pfr/core_name.hpp>
+
+#include "db2_settings.h"
+#include "db2_hardware_difference.h"
+
+#include "db2_dynarray.h"
+#include "db2_chunk.h"
+#include "db2_cson.h"
+
+#include "db2_structure.h"
+
+#include "db2_decoder.h"
 
 auto test_c_array() -> void
 {
@@ -129,7 +135,7 @@ auto test_equality() -> void
     printf("\n");
 }
 
-auto test_derived() -> void
+auto test_derived_init() -> void
 {
     class Base
     {
@@ -152,7 +158,8 @@ auto test_derived() -> void
         {
             std::cout << "Derived constructor0 called." << std::endl;
         }
-        Derived(bool b) : Base(b) // call base default constructor if not specified
+        Derived(bool b)
+            : Base(b) // call base default constructor if not specified
         {
             std::cout << "Derived constructor1 called." << std::endl;
         }
@@ -162,22 +169,202 @@ auto test_derived() -> void
     Derived d1(true);
 }
 
-auto test_hardware_difference() -> void
+auto test_derived_func() -> void
 {
+    class Base
+    {
+    public:
+        void func_t()
+        {
+            std::cout << "Type of this: " << typeid(decltype(*this)).name() << std::endl;
+        }
+        void func1()
+        {
+            std::cout << "Base func1() called." << std::endl;
+            this->func2();
+            this->func3();
+        }
+        void func2()
+        {
+            std::cout << "Base func2() called." << std::endl;
+        }
+        virtual void func3()
+        {
+            std::cout << "Base func3() called." << std::endl;
+        }
+    };
 
-    // std::cout << "Is little endian: " << (hardwareDifference::IsLittleEndian() ? "true" : "false") << std::endl;
-    // std::cout << "Is little endian (bit endianness): " << (hardwareDifference::IsLittleEndian_Bit() ? "true" : "false") << std::endl;
-    // std::cout << "Date Structure Alignment offset: " << +hardwareDifference::GetDataStructureAlignment() << std::endl;
-    // std::cout << "Date Structure Alignment offset (packed): " << +hardwareDifference::GetDataStructureAlignment(true) << std::endl;
+    class Derived : public Base
+    {
+    public:
+        void func2()
+        {
+            std::cout << "Derived func2() called." << std::endl;
+        }
+        void func3() override // key word "override" is not nessary
+        {
+            std::cout << "Derived func3() called." << std::endl;
+        }
+    };
 
-    printf("Is little endian: %s\n", hardwareDifference::IsLittleEndian() ? "true" : "false");
-    printf("Is little endian (bit endianness): %s\n", hardwareDifference::IsLittleEndian_Bit() ? "true" : "false");
-    printf("Date Structure Alignment offset: %d\n", hardwareDifference::GetDataStructureAlignment());
-    printf("Date Structure Alignment offset (packed): %d\n", hardwareDifference::GetDataStructureAlignment(true));
+    Base b;
+    b.func_t();
+    Derived d;
+    d.func_t();
 
-    int32_t i4r = 8;
-    hardwareDifference::ReverseEndian((char *)&i4r, sizeof(i4r));
-    printf("int32_t i32 = 8; //reversed = %d\n", i4r);
+    d.func1();
+
+    /*
+    output:
+    Type of this: Z17test_derived_funcvE4Base
+    Type of this: Z17test_derived_funcvE4Base
+    Base func1() called.
+    Base func2() called.
+    Derived func3() called.
+    */
+}
+
+struct test_l_r_value_t
+{
+    template <typename T>
+    void test(T &t) { std::cout << "left value" << std::endl; }
+
+    template <typename T>
+    void test(T &&t) { std::cout << "right value" << std::endl; }
+};
+
+struct test_forwarding_t
+{
+    // Perfect forwarding = Universal references(T &&t) + std::forward
+    template <typename T>
+    auto forward(T &&t)
+    {
+        test_l_r_value_t l_r;
+
+        l_r.test(t);
+        l_r.test(std::forward<T>(t));
+        l_r.test(std::forward<decltype(t)>(t));
+        std::cout << "typeid(T) == typeid(decltype(t)) ? " << (typeid(T) == typeid(decltype(t)) ? "true" : "false") << std::endl;
+        std::cout << "std::is_same_v<T, decltype(t)> ? " << (std::is_same_v<T, decltype(t)> ? "true" : "false") << std::endl;
+        l_r.test(std::move(t));
+        std::cout << "======================" << std::endl;
+    }
+};
+
+auto test_forwarding() -> void
+{
+    test_forwarding_t test{};
+
+    test.forward(0);
+    /*
+    left value
+    right value
+    right value
+    typeid(T) == typeid(decltype(t)) ? true
+    std::is_same_v<T, decltype(t)> ? false
+    right value
+    */
+
+    int i = 0;
+    test.forward(i);
+    /*
+    left value
+    left value
+    left value
+    typeid(T) == typeid(decltype(t)) ? true
+    std::is_same_v<T, decltype(t)> ? true
+    right value
+    */
+}
+
+auto test_func_return_type() -> void
+{
+    struct test
+    {
+        auto get_()
+        {
+            return 1;
+        }
+
+        auto get() -> int
+        {
+            return 1;
+        }
+
+        auto get_lr() -> int &
+        {
+            static int x = 1;
+            return x;
+        }
+
+        auto get_rr() -> int &&
+        {
+            return 1;
+        }
+
+        auto get_xr() -> int &
+        {
+            int x = 1;
+            return x;
+        }
+
+        auto get_rr_as_lr() -> const int &
+        {
+            return 1;
+        }
+
+        auto get_lr_as_rr() -> int &&
+        {
+            static int x = 1;
+            return std::move(x);
+        }
+    };
+
+    test t;
+    // t.get_() = 2; // no
+    // t.get() = 2; // no
+    t.get_lr() = 2;
+    // t.get_rr() = 2; // no
+    t.get_xr() = 2;
+    // t.get_rr_as_lr() = 2; // no, because of const
+    // t.get_lr_as_rr() = 2; // no
+
+    test_l_r_value_t t_lr;
+
+    int i_ = t.get_();                        //
+    t_lr.test(i_);                            // left value
+    int i = t.get();                          //
+    t_lr.test(i);                             // left value
+    int &i_lr = t.get_lr();                   //
+    t_lr.test(i_lr);                          // left value
+    int &&i_rr = t.get_rr();                  //
+    t_lr.test(i_rr);                          // left value
+    int &i_xr = t.get_xr();                   //
+    t_lr.test(i_xr);                          // left value
+    const int &i_rr_as_lr = t.get_rr_as_lr(); //
+    t_lr.test(i_rr_as_lr);                    // left value
+    int &&i_lr_as_rr = t.get_lr_as_rr();      //
+    t_lr.test(i_lr_as_rr);                    // left value
+
+    std::cout << "==================" << std::endl;
+
+    t_lr.test(t.get_());         // right value
+    t_lr.test(t.get());          // right value
+    t_lr.test(t.get_lr());       // left value
+    t_lr.test(t.get_rr());       // right value
+    t_lr.test(t.get_xr());       // left value
+    t_lr.test(t.get_rr_as_lr()); // left value
+    t_lr.test(t.get_lr_as_rr()); // right value
+
+    std::cout << "==================" << std::endl;
+
+    /*
+    Funny.
+    A function() says it is a right value reference, and it acutually is right value.
+    While, a variable says it is a right value reference, but it acutually is left value.
+
+    Function() is able to return right value, and that's an additional reason why std::forward could work.
+    */
 }
 
 auto test_reflection() -> void
@@ -227,16 +414,23 @@ auto test_reflection() -> void
 
 auto test_typeid() -> void
 {
-    printf("sizeof(size_t) = %d\n", sizeof(size_t));
+    printf("sizeof(size_t) = %d\n", sizeof(size_t)); // sizeof(size_t) = 8
 
-    printf("typeid(int) : %s %zu\n", typeid(int).name(), typeid(int).hash_code());
-    printf("typeid(bool) : %s %zu\n", typeid(bool).name(), typeid(bool).hash_code());
-    printf("typeid(float) : %s %zu\n", typeid(float).name(), typeid(float).hash_code());
+    printf("typeid(bool) : %s %zu\n", typeid(bool).name(), typeid(bool).hash_code());    // typeid(bool) : b 10838281452030117757
+    printf("typeid(int) : %s %zu\n", typeid(int).name(), typeid(int).hash_code());       // typeid(int) : i 6253375586064260614
+    printf("typeid(float) : %s %zu\n", typeid(float).name(), typeid(float).hash_code()); // typeid(float) : f 8968846175329310707
 
-    printf("typeid(db2Chunk<float32_t>) = : %s %zu\n", typeid(db2Chunk<float32_t>).name(), typeid(db2Chunk<float32_t>).hash_code());
-    printf("typeid(db2Chunk<int32_t>) = : %s %zu\n", typeid(db2Chunk<int32_t>).name(), typeid(db2Chunk<int32_t>).hash_code());
-    printf("typeid(db2Chunk<db2Chunk<int32_t>>) = : %s %zu\n", typeid(db2Chunk<db2Chunk<int32_t>>).name(), typeid(db2Chunk<db2Chunk<int32_t>>).hash_code());
+    printf("typeid(db2Chunk<int32_t>) : %s %zu\n", typeid(db2Chunk<int32_t>).name(), typeid(db2Chunk<int32_t>).hash_code());                               // typeid(db2Chunk<int32_t>) : 8db2ChunkIiE 8939727042291170200
+    printf("typeid(db2Chunk<float32_t>) : %s %zu\n", typeid(db2Chunk<float32_t>).name(), typeid(db2Chunk<float32_t>).hash_code());                         // typeid(db2Chunk<float32_t>) : 8db2ChunkIfE 18096401828085413589
+    printf("typeid(db2Chunk<db2Chunk<int32_t>>) : %s %zu\n", typeid(db2Chunk<db2Chunk<int32_t>>).name(), typeid(db2Chunk<db2Chunk<int32_t>>).hash_code()); // typeid(db2Chunk<db2Chunk<int32_t>>) : 8db2ChunkIS_IiEE 1831950841763916697
+
+    class CK_int32 : public db2Chunk<int32_t>
+    {
+    };
+    printf("typeid(CK_int32>) : %s %zu\n", typeid(CK_int32).name(), typeid(CK_int32).hash_code()); // typeid(CK_int32>) : Z11test_typeidvE8CK_int32 221492753444786947
 }
+
+/* ================================ */
 
 auto test_CRC() -> void
 {
@@ -250,25 +444,95 @@ auto test_CRC() -> void
     printf("%X\n", crc.checksum());
 }
 
+auto test_hardware_difference() -> void
+{
+
+    // std::cout << "Is little endian: " << (hardwareDifference::IsLittleEndian() ? "true" : "false") << std::endl;
+    // std::cout << "Is little endian (bit endianness): " << (hardwareDifference::IsLittleEndian_Bit() ? "true" : "false") << std::endl;
+    // std::cout << "Date Structure Alignment offset: " << +hardwareDifference::GetDataStructureAlignment() << std::endl;
+    // std::cout << "Date Structure Alignment offset (packed): " << +hardwareDifference::GetDataStructureAlignment(true) << std::endl;
+
+    printf("Is little endian: %s\n", hardwareDifference::IsLittleEndian() ? "true" : "false");
+    printf("Is little endian (bit endianness): %s\n", hardwareDifference::IsLittleEndian_Bit() ? "true" : "false");
+    printf("Date Structure Alignment offset: %d\n", hardwareDifference::GetDataStructureAlignment());
+    printf("Date Structure Alignment offset (packed): %d\n", hardwareDifference::GetDataStructureAlignment(true));
+
+    int32_t i4r = 8;
+    hardwareDifference::ReverseEndian((char *)&i4r, sizeof(i4r));
+    printf("int32_t i32 = 8; //reversed = %d\n", i4r);
+}
+
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
-    db2->chunks.get<db2Chunk<db2Info>>().emplace();
-    db2->chunks.get<db2Chunk<db2Wrold>>().emplace();
+    db2->chunks.get<db2Chunk<db2Info>>().emplace_back();
+
+    db2->chunks.get<db2Chunk<db2Wrold>>().emplace_back();
+    db2->chunks.get<db2Chunk<db2Joint>>().emplace_back();
     for (int i = 0; i < 2; i++)
-        db2->chunks.get<db2Chunk<db2Body>>().emplace();
+        db2->chunks.get<db2Chunk<db2Body>>().emplace_back();
     for (int i = 0; i < 3; i++)
-        db2->chunks.get<db2Chunk<db2Fixture>>().emplace();
-    for (int i = 0; i < 16; i++)
-        db2->chunks.get<db2Chunk<float32_t>>().emplace();
-    db2->save("./test.B2d");
+        db2->chunks.get<db2Chunk<db2Fixture>>().emplace_back();
+    for (int i = 0; i < 5; i++)
+        db2->chunks.get<db2Chunk<db2Shape>>().emplace_back();
+
+    // dict
+    auto &dict = db2->chunks.get<db2Chunk<db2Dict>>().emplace_back();
+
+    if (true) // test for db2Dynarry::append
+    {
+        auto &da = reinterpret_cast<db2DynArray<db2DictElement> &>(dict);
+        da.emplace_back(0, 'e', 'p', 'b', '0', 0); // good
+
+        // da.append(1, 'a', 'p', 'd', '1', 1, 2, 'a', 'p', 'd', '2', 2, 3); // compilable but ill
+        da.append(db2DictElement{1, 'a', 'p', 'd', '1', 1}, db2DictElement{2, 'a', 'p', 'd', '2', 2});
+
+        // da.append_range({1, 'a', 'p', 'r', '1', 1}, {2, 'a', 'p', 'r', '2', 2}, {3, 'a', 'p', 'r', '3', 3}); // not compilable
+        // da.append_range({'1', 'a', 'p', 'r', '1', '1'}, {'2', 'a', 'p', 'r', '2', '2'}); // (std::initializer_list<Args>... args_lists) // all args within {} need to be of a same type.
+        da.append_range({{1, 'a', 'p', 'r', '1', 1}, {2, 'a', 'p', 'r', '2', 2}}); // (std::initializer_list<U> arg_list)
+        // da.append_range({ std::make_tuple(1, 'a', 'p', 'r', '1', 1), {2, 'a', 'p', 'r', '2', 2} }); // (const std::initializer_list<std::tuple<Args...>> &arg_list)
+    }
+
+    dict.get(1) = 2;
+    dict.get<float32_t>(2) = acos(-1.0); // M_PI
+
+    const auto &i = dict.at<int32_t>(1);
+    const auto &f = dict.at<float32_t>(2);
+    const auto &null = dict.at<int32_t>(3);
+
+    auto &d = dict.find(*(int32_t *)nullptr, nullptr);
+    auto &d2 = dict.find(2);
+
+    dict.ref<db2Chunk<db2Shape>>(100) = 2;
+    dict.ref<db2Chunk<db2Body>>(101, 1);
+
+    // list
+    auto &list = db2->chunks.get<db2Chunk<db2List>>().emplace_back();
+    list.emplace_back<int32_t>(1);
+    list.emplace_back<int32_t>(3);
+    // list.append<int32_t>(11, 12, 13);
+    // list.append({21},{22}); // no
+
+    auto &list1 = db2->chunks.get<db2Chunk<db2List>>().emplace_back();
+    list1.emplace_back<float32_t>(acos(-1.0)); // M_PI
+    list1.emplace_back<float32_t>(exp(1.0));   // M_E
+
+    // string
+    auto &str = db2->chunks.get<db2Chunk<db2String>>().emplace_back("Hello");
+    str.append_range(" ");
+    str += "world!";
+
+    // dereference
+    dict.emplace<db2Chunk<db2String>>(300, "dereferenced");
+    auto &str2 = dict.at<db2Chunk<db2String>>(300);
+
+    db2->save("./test.B2D");
     delete db2;
-    db2 = nullptr;
 }
 
 auto test_data_structure_read() -> void
 {
-    dotBox2d db2{"./test.B2d"};
+    dotBox2d db2{"./test.B2D"};
     return;
 }
 
@@ -356,20 +620,26 @@ auto main() -> int
 
     // test_equality();
 
-    // test_derived();
+    // test_derived_init();
+    // test_derived_func();
 
-    // test_hardware_difference();
+    // test_forwarding();
+    // test_func_return_type();
 
     // test_reflection();
     // test_typeid();
 
+    /* ================================ */
+
     // test_CRC();
 
-    // test_data_structure_write();
+    // test_hardware_difference();
+
+    test_data_structure_write();
     // test_data_structure_read();
 
-    test_encoding();
-    test_decoding();
+    // test_encoding();
+    // test_decoding();
 
     return 0;
 }

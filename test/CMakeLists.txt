@@ -4,6 +4,16 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} TEST_SOURCE_FILES)
 add_executable(test ${TEST_SOURCE_FILES})
 target_link_libraries(test PRIVATE dot-box2d)
 
+# set(CMAKE_CXX_FLAGS "-std=c++2b")
+# set(CMAKE_CXX_STANDARD 20)
+set_target_properties(test PROPERTIES
+    LINKER_LANGUAGE CXX
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+    # VERSION ${PROJECT_VERSION}
+    # SOVERSION ${PROJECT_VERSION_MAJOR}
+)
 ################################################################
 
 # print the type of boost lib

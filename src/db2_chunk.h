@@ -251,6 +251,22 @@ public:
 
 public:
     template <typename... Args>
+    auto emplace(const int32_t &index, Args &&...args) -> T &
+    {
+        if constexpr (is_db2Chunk<T>::value) // sub-chunk
+        {
+            auto &element = this->db2DynArray<T>::emplace(index);
+            element.pre_init(this->reflector->child, this->root);
+            element.init(std::forward<Args>(args)...);
+            return element;
+        }
+        else
+        {
+            return this->db2DynArray<T>::emplace(index, std::forward<Args>(args)...);
+        }
+    }
+
+    template <typename... Args>
     auto emplace_back(Args &&...args) -> T &
     {
         if constexpr (is_db2Chunk<T>::value) // sub-chunk

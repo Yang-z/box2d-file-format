@@ -27,11 +27,11 @@ public:
     T *data{nullptr};
 
 private:
-    int32_t length_men{0}; // length in bytes
+    int32_t length_mem{0}; // length in bytes
 
 public:
     const int32_t size() const { return this->length / sizeof(T); }
-    const int32_t capacity() const { return this->length_men / sizeof(T); }
+    const int32_t capacity() const { return this->length_mem / sizeof(T); }
 
 public:
     virtual ~db2DynArray()
@@ -182,24 +182,27 @@ public:
 public:
     auto reserve(const int32_t capacity, const bool expand = true) -> void
     {
-        auto length_men = capacity * sizeof(T);
-        this->reserve_men(length_men, expand);
+        auto length_mem = capacity * sizeof(T);
+        this->reserve_mem(length_mem, expand);
     }
 
-    TYPE_IRRELATIVE auto reserve_men(int32_t length_men, const bool expand = true) -> void
+    TYPE_IRRELATIVE auto reserve_mem(int32_t length_mem, const bool expand = true) -> void
     {
-        if (length_men <= this->length_men)
+        if (length_mem <= this->length_mem)
             return;
 
         if (expand)
         {
-            auto exp = int32_t(std::log2(length_men));
-            length_men = int32_t(std::pow(2, exp + 1));
+            auto exp = std::ceil(std::log2(length_mem));
+            auto length_mem_exp = std::ceil(std::pow(2, exp));
+
+            assert(length_mem_exp <= INT32_MAX); // 2GB
+            assert(length_mem_exp >= length_mem);
+
+            length_mem = length_mem_exp;
         }
 
-        assert(length_men <= INT32_MAX); // 2GB
-
-        *(void **)(&this->data) = std::realloc(this->data, length_men);
-        this->length_men = length_men;
+        *(void **)(&this->data) = std::realloc(this->data, length_mem);
+        this->length_mem = length_mem;
     }
 };

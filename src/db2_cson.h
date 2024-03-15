@@ -3,7 +3,7 @@
 #include "db2_chunk.h"
 
 /*
-CSON（C/C++ Structured Object Notation) is a JSON-like binary data format.
+CSON（C/C++ Structured Object Notation) is a JSON-like but binary data format.
 */
 
 DB2_PRAGMA_PACK_ON
@@ -13,7 +13,7 @@ struct db2DictElement
     int32_t key{0};
 
     // the type of value, could be used to identify which chunk the value links to.
-    char type0, type1, type2, type3;
+    char type0{0}, type1{0}, type2{0}, type3{0};
 
     int32_t value{-1};
 
@@ -254,7 +254,7 @@ struct db2String : public db2Chunk<char>
             --this->length;
 
         auto len_str = std::strlen(str);
-        auto len_new = this->length + len_str + 1;
+        auto len_new = this->length + len_str + 1; // +1 for '\0'
         this->reserve(len_new);
         std::memcpy(this->data + this->length, str, len_str + 1);
         // std::strcpy(this->data + this->length, str);

@@ -169,7 +169,7 @@ public:
         if (this->reflector->child == nullptr)
         {
             this->length = this->length_chunk;
-            this->reserve_men(this->length, false);
+            this->reserve_mem(this->length, false);
             db2Chunk::ReadBytes((char *)this->data, this->length, fs, reverseEndian, this->reflector, CRC);
         }
         else

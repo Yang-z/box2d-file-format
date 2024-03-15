@@ -137,8 +137,11 @@ public:
     {
         this->root = root;
         this->reflector = reflector;
-        if (this->reflector /* && *(int32_t *)&this->type == 0 */)
-            std::memcpy(this->type, this->reflector->type, 4);
+
+        if (this->reflector)
+            for (int i = 0; i < 4; ++i)
+                if (this->reflector->type[i] != '\0' && this->type[i] == '\0')
+                    this->type[i] = this->reflector->type[i];
     }
 
     TYPE_IRRELATIVE auto init() -> void {}
@@ -285,9 +288,30 @@ public:
     T &push_back(const T &t) = delete;
 };
 
-class db2Chunks : public db2DynArray<db2Chunk<char>>
+class db2Chunks : public db2DynArray<db2Chunk<char> *>
 {
 public:
+    ~db2Chunks()
+    {
+        for (auto i = 0; i < this->size(); ++i)
+            delete this->data[i];
+    }
+
+public:
+    auto operator[](const int32_t index) const -> db2Chunk<char> & { return *this->db2DynArray<db2Chunk<char> *>::operator[](index); }
+
+    template <typename CK_T>
+    auto at() const -> CK_T &
+    {
+        for (auto i = 0; i < this->size(); ++i)
+        {
+            auto p_chunk = this->data[i];
+            if (p_chunk->reflector->id == typeid(CK_T).hash_code())
+                return *(CK_T *)p_chunk;
+        }
+        return *(CK_T *)nullptr;
+    }
+
     template <typename CK_T>
     auto get() -> CK_T &
     {
@@ -295,25 +319,13 @@ public:
         return &chunk ? chunk : this->emplace<CK_T>();
     }
 
-    template <typename CK_T>
-    auto at() const -> CK_T &
-    {
-        for (auto i = 0; i < this->size(); ++i)
-        {
-            auto p_chunk = this->data + i;
-            if (p_chunk->reflector->id == typeid(CK_T).hash_code())
-                return *(CK_T *)p_chunk;
-        }
-        return *(CK_T *)nullptr;
-    }
-
     template <typename CK_T = void, typename default_type = typename std::conditional<std::is_same<CK_T, void>::value, db2Chunk<char>, CK_T>::type>
     auto emplace() -> default_type &
     {
-        auto &chunk = this->db2DynArray<db2Chunk<char>>::emplace_back<default_type>();
-        chunk.pre_init(db2Reflector::GetReflector<CK_T>(), this);
-        return chunk;
+        auto p_chunk = this->db2DynArray<db2Chunk<char> *>::emplace_back<default_type *>(new default_type());
+        p_chunk->pre_init(db2Reflector::GetReflector<CK_T>(), this);
+        return *p_chunk;
     }
 
-    db2Chunk<char> &push_back(const db2Chunk<char> &t) = delete;
+    db2Chunk<char> *&push_back(const db2Chunk<char> *&t) = delete;
 };

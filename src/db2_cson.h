@@ -15,7 +15,7 @@ struct db2DictElement
     // the type of value, could be used to identify which chunk the value links to.
     char type0{0}, type1{0}, type2{0}, type3{0};
 
-    int32_t value{-1};
+    int32_t value{INT32_MIN};
 
 } DB2_NOTE(sizeof(db2DictElement) == 12);
 
@@ -38,10 +38,11 @@ struct db2Dict : public db2Chunk<db2DictElement>
     //     return match;
     // }
 
+public:
     template <typename CK_T>
     auto find(const int32_t &key) -> db2DictElement &
     {
-        auto *reflector = db2Reflector::GetReflector<CK_T>();
+        static auto *reflector = db2Reflector::GetReflector<CK_T>();
         const char *type = reflector ? reflector->type : nullptr;
         return this->find(key, type);
     }
@@ -53,7 +54,7 @@ struct db2Dict : public db2Chunk<db2DictElement>
             auto &element = this->data[i];
 
             bool match_key = &key == nullptr || element.key == key;
-            bool match_type = type == nullptr || std::equal(&(element.type0), &(element.type0) + 4, type);
+            bool match_type = type == nullptr || std::equal(&element.type0, &element.type0 + 4, type);
 
             if (match_key && match_type)
                 return element;
@@ -61,56 +62,76 @@ struct db2Dict : public db2Chunk<db2DictElement>
         return *(db2DictElement *)nullptr;
     }
 
+public: // Element access
     template <typename CK_T = int32_t>
-    auto ref(const int32_t &key, const int32_t &v_index = *(int32_t *)nullptr) -> int32_t &
+    auto ref(const int32_t &key) -> int32_t & // If no such element exists, null is returned
+    {
+        auto &element = this->find<CK_T>(key); // could be null
+        return &element ? element.value : *(int32_t *)nullptr;
+    }
+
+    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
+    auto at(const int32_t &key) -> vv_type & // If no such element exists, null is returned
+    {
+        auto &element = this->find<CK_T>(key);   // could be null
+        return this->dereference<CK_T>(element); // could be null
+    }
+
+    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
+    auto dereference(db2DictElement &element) -> vv_type & // could be null
+    {
+        // element could be null
+
+        if (&element == nullptr)
+            return *(vv_type *)nullptr;
+
+        this->handle_type<CK_T>(element);
+
+        if constexpr (has_value_type<CK_T>::value)
+            return this->root->get<CK_T>().at(element.value); // could be null
+        else
+            return reinterpret_cast<vv_type &>(element.value); // not null
+    }
+
+public: // Modifiers
+    template <typename CK_T>
+    auto handle_type(db2DictElement &element, bool set = false) -> void
+    {
+        static auto *reflector = db2Reflector::GetReflector<CK_T>();
+        if (reflector)
+            if (set)
+                std::memcpy(&element.type0, reflector->type, 4);
+            else
+                assert(std::equal(&element.type0, &element.type0 + 4, reflector->type));
+
+        if constexpr (!has_value_type<CK_T>::value)
+            static_assert(sizeof(CK_T) == sizeof(int32_t));
+    }
+
+    template <typename CK_T = int32_t>
+    auto link(const int32_t &key, const int32_t &v_index = *(int32_t *)nullptr) -> int32_t & // performing an insertion if such key does not already exist
     {
         auto &element = this->emplace_ref<CK_T>(key, v_index);
         return element.value;
     }
 
     template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
-    auto at(const int32_t &key) -> vv_type & // If no such element exists, null is returned
-    {
-        auto &element = this->find<CK_T>(key);
-        return this->dereference<CK_T>(element);
-    }
-
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
     auto get(const int32_t &key) -> vv_type & // performing an insertion if such key does not already exist
     {
-        auto &element = this->emplace_ref<CK_T>(key);
-        auto &vv_value = this->dereference<CK_T>(element);
-        if (&vv_value) // or ???
-            return vv_value;
-        return this->emplace_val<CK_T>(element.value);
-    }
-
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
-    auto dereference(db2DictElement &element) -> vv_type &
-    {
-        if (&element == nullptr)
-            return *(vv_type *)nullptr;
-
-        static auto *reflector = db2Reflector::GetReflector<CK_T>();
-        assert(std::equal(&(element.type0), &(element.type0) + 4, reflector->type));
-
-        if constexpr (!has_value_type<CK_T>::value)
-            return reinterpret_cast<vv_type &>(element.value);
-        else
-            return this->root->get<CK_T>().at(element.value);
+        auto &element = this->emplace_ref<CK_T>(key);      // not null
+        auto &vv_value = this->dereference<CK_T>(element); // could be null
+        return &vv_value ? vv_value : this->emplace_val<CK_T>(element);
     }
 
     template <typename CK_T = int32_t>
-    auto emplace_ref(const int32_t &key, const int32_t &v_index = *(int32_t *)nullptr) -> db2DictElement &
+    auto emplace_ref(const int32_t &key, const int32_t &v_index = *(int32_t *)nullptr) -> db2DictElement & // or get_ref
     {
         auto p_element = &this->find<CK_T>(key);
         if (p_element == nullptr)
         {
             p_element = &this->db2Chunk<db2DictElement>::emplace_back();
             p_element->key = key;
-            static auto *reflector = db2Reflector::GetReflector<CK_T>();
-            if (reflector)
-                std::memcpy(&p_element->type0, reflector->type, 4);
+            this->handle_type<CK_T>(*p_element, true);
         }
         if (&v_index)
             p_element->value = v_index;
@@ -118,36 +139,37 @@ struct db2Dict : public db2Chunk<db2DictElement>
     }
 
     template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type, typename... Args>
-    auto emplace_val(int32_t &value, Args &&...args) -> vv_type &
+    auto emplace_val(db2DictElement &element, Args &&...args) -> vv_type &
     {
-        assert(&value);
+        assert(&element);
+        auto &v_index = element.value;
 
-        if constexpr (!has_value_type<CK_T>::value)
-        {
-            static_assert(sizeof(vv_type) == sizeof(value));
-            ::new (&value) vv_type(std::forward<Args>(args)...);
-            return reinterpret_cast<vv_type &>(value);
-        }
-        else
+        if constexpr (has_value_type<CK_T>::value)
         {
             auto &chunk = this->root->get<CK_T>();
-            if (0 <= value && value < chunk.size())
+            if (0 <= v_index && v_index < chunk.size())
             {
-                return chunk.emplace(value, std::forward<Args>(args)...);
+                return chunk.emplace(v_index, std::forward<Args>(args)...);
             }
             else
             {
-                value = chunk.size();
+                v_index = chunk.size();
                 return chunk.emplace_back(std::forward<Args>(args)...);
             }
+        }
+        else
+        {
+            // static_assert(sizeof(vv_type) == sizeof(int32_t));
+            ::new (&v_index) vv_type(std::forward<Args>(args)...);
+            return reinterpret_cast<vv_type &>(v_index);
         }
     }
 
     template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type, typename... Args>
     auto emplace(const int32_t &key, Args &&...args) -> vv_type &
     {
-        auto &value = this->emplace_ref<CK_T>(key).value;
-        return this->emplace_val<CK_T>(value, std::forward<Args>(args)...);
+        auto &element = this->emplace_ref<CK_T>(key);
+        return this->emplace_val<CK_T>(element, std::forward<Args>(args)...);
     }
 };
 
@@ -158,73 +180,75 @@ struct db2List : public db2Chunk<int32_t>
     // template <typename... Args>
     // auto init(Args &&...args) -> void { this->append(std::forward<Args>(args)...); }
 
+public: // Element access
     template <typename CK_T = int32_t>
-    auto ref(const int32_t &index) -> int32_t &
+    auto ref(const int32_t &index) -> int32_t & // could be null
     {
-        static auto *reflector = db2Reflector::GetReflector<CK_T>();
-        assert(std::equal(&this->type, &this->type + 4, reflector->type));
-
-        return this->db2Chunk<int32_t>::at(index);
+        this->handle_type<CK_T>();
+        return this->db2Chunk<int32_t>::at(index); // could be null
     }
 
     template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
-    auto at(const int32_t &index) -> vv_type & // If no such element exists, null is returned
+    auto at(const int32_t &index) -> vv_type & // if no such element exists, null is returned
     {
-        auto &v_index = this->db2Chunk<int32_t>::at(index);
+        auto &v_index = this->db2Chunk<int32_t>::at(index); // could be null
         return this->dereference<CK_T>(v_index);
     }
 
     template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
-    auto dereference(const int32_t &v_index) -> vv_type &
+    auto dereference(const int32_t &v_index) -> vv_type & // could be null
     {
-        static auto *reflector = db2Reflector::GetReflector<CK_T>();
-        assert(std::equal(&this->type, &this->type + 4, reflector->type));
+        // v_index could be null
 
-        if constexpr (!has_value_type<CK_T>::value)
-            return reinterpret_cast<vv_type &>(v_index);
+        this->handle_type<CK_T>();
+        if constexpr (has_value_type<CK_T>::value)
+            return this->root->get<CK_T>().at(v_index); // could be null
         else
-            return this->root->get<CK_T>().at(v_index);
+            return reinterpret_cast<vv_type &>(v_index); // could be null
     }
 
+public: // Modifiers
     template <typename CK_T>
-    auto set_type() -> void
+    auto handle_type(bool set = false) -> void
     {
         static auto *reflector = db2Reflector::GetReflector<CK_T>();
-        if (reflector)
-            if (this->size() == 0)
-                // Type field is used to store the type of element, and it is settled when the first element is added.
-                std::memcpy(this->type, reflector->type, 4);
-            else
-                assert(std::equal(this->type, this->type + 4, reflector->type));
+        if (!reflector)
+            return;
+
+        if (this->size() != 0)
+        {
+            assert(std::equal(this->type, this->type + 4, reflector->type));
+            return;
+        }
+
+        if (set)
+            // Type field is used to store the type of element, and it is settled when the first element is added.
+            std::memcpy(this->type, reflector->type, 4);
+
+        if constexpr (!has_value_type<CK_T>::value)
+            static_assert(sizeof(CK_T) == sizeof(int32_t));
     }
 
     template <typename CK_T = int32_t>
-    auto emplace_back_ref(const int32_t &v_index = *(int32_t *)nullptr) -> int32_t &
+    auto emplace_back_ref(const int32_t &v_index = INT32_MIN) -> int32_t &
     {
-        this->set_type<CK_T>();
-
-        auto &value = this->db2Chunk<int32_t>::emplace_back();
-        if (&v_index)
-            value = v_index;
-        return value;
+        this->handle_type<CK_T>(true);
+        return this->db2DynArray<int32_t>::emplace_back(v_index);
     }
 
     template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type, typename... Args>
     auto emplace_back(Args &&...args) -> vv_type &
     {
-        auto &index = this->emplace_back_ref<CK_T>();
-
-        if constexpr (!has_value_type<CK_T>::value)
+        this->handle_type<CK_T>(true);
+        if constexpr (has_value_type<CK_T>::value)
         {
-            static_assert(sizeof(vv_type) == sizeof(index));
-            ::new (&index) vv_type(std::forward<Args>(args)...);
-            return reinterpret_cast<vv_type &>(index);
+            auto &chunk = this->root->get<CK_T>();
+            this->db2DynArray<int32_t>::emplace_back(chunk.size());
+            return chunk.emplace_back(std::forward<Args>(args)...);
         }
         else
         {
-            auto &chunk = this->root->get<CK_T>();
-            index = chunk.size();
-            return chunk.emplace_back(std::forward<Args>(args)...);
+            return this->db2DynArray<int32_t>::emplace_back<vv_type>(std::forward<Args>(args)...);
         }
     }
 

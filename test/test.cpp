@@ -503,8 +503,8 @@ auto test_data_structure_write() -> void
     auto &d = dict.find(*(int32_t *)nullptr, nullptr);
     auto &d2 = dict.find(2);
 
-    dict.ref<db2Chunk<db2Shape>>(100) = 2;
-    dict.ref<db2Chunk<db2Body>>(101, 1);
+    dict.link<db2Chunk<db2Shape>>(100) = 2;
+    dict.link<db2Chunk<db2Body>>(101, 1);
 
     // list
     auto &list = db2->chunks.get<db2Chunk<db2List>>().emplace_back();

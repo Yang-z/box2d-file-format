@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstring> // std::memcpy
 #include <fstream>
 
 #include <boost/crc.hpp> // crc
@@ -111,8 +110,12 @@ public:
 
     db2DynArray<void *> userData;
 
-public:
-    TYPE_IRRELATIVE db2Chunk() {} // leave default constructor empty
+public: // Constructors
+    TYPE_IRRELATIVE db2Chunk() = default;
+    TYPE_IRRELATIVE db2Chunk(const db2Chunk<T> &other) = delete;
+    TYPE_IRRELATIVE db2Chunk<T> &operator=(const db2Chunk<T> &other) = delete;
+    TYPE_IRRELATIVE db2Chunk(db2Chunk<T> &&other) { *this = std::move(other); };
+    TYPE_IRRELATIVE db2Chunk<T> &operator=(db2Chunk<T> &&other) { return std::memcpy(this, &other, sizeof(db2Chunk<T>)), std::memset(&other, 0, sizeof(db2Chunk<T>)), *this; };
 
     // only clear up reflected types with the innermost value-types of flat data structures
     // further work is required?
@@ -133,6 +136,7 @@ public:
         this->data = nullptr;
     }
 
+public: // initializer
     TYPE_IRRELATIVE auto pre_init(db2Reflector *reflector, db2Chunks *root) -> void
     {
         this->root = root;

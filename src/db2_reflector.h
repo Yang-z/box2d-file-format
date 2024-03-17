@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cstring> // std::memcpy
-#include <cctype>
-
+#include <cctype>             //std::toupper std::tolower
 #include <algorithm>          // std::equal
 #include <type_traits>        // std::is_same ...
 #include <typeinfo>           // std::typeinfo

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring> // std::memcpy std::memset
 #include <cassert> // assert static_assert
 #include <cstdlib> // std::malloc std::free std::realloc
 #include <cmath>   // std::log2 std::pow
@@ -33,7 +34,13 @@ public:
     const int32_t size() const { return this->length / sizeof(T); }
     const int32_t capacity() const { return this->length_mem / sizeof(T); }
 
-public:
+public: // Constructors
+    db2DynArray() = default;
+    db2DynArray(const db2DynArray<T> &other) = delete;
+    db2DynArray<T> &operator=(const db2DynArray<T> &other) = delete;
+    db2DynArray(db2DynArray<T> &&other) { *this = std::move(other); };
+    db2DynArray<T> &operator=(db2DynArray<T> &&other) { return std::memcpy(this, &other, sizeof(db2DynArray<T>)), std::memset(&other, 0, sizeof(db2DynArray<T>)), *this; };
+
     virtual ~db2DynArray()
     {
         if (!this->data)
@@ -131,7 +138,7 @@ public: // Modifiers
 
         auto ptr = this->data + size_old;
         for (const auto &arg : arg_list)
-            ::new (ptr++) U(std::move(arg));
+            ::new (ptr++) U(std::move(arg)); // forced move?
 
         this->length += sizeof(U) * size_append;
     }

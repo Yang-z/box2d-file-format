@@ -110,9 +110,8 @@ auto hardwareDifference::IEEE754() -> bool
 
 auto hardwareDifference::Check() -> bool
 {
-    assert(sizeof(char) == 1);
-
     static const bool result =
+        nullptr == 0 &&
         (sizeof(bool) == 1) && (sizeof(char) == 1) &&
         (hardwareDifference::IsLittleEndian() || hardwareDifference::IsBigEndian()) &&
         hardwareDifference::IEEE754();

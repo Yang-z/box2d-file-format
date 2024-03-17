@@ -5,7 +5,7 @@
 class hardwareDifference
 {
 public:
-    static auto GetDataStructureAlignment(const bool packed = false) -> uint8_t;
+    static auto GetDataStructureAlignment(const bool packed = false) -> const uint8_t;
 
     static constexpr auto IsLittleEndian() -> const bool { return std::endian::native == std::endian::little; };
     static constexpr auto IsBigEndian() -> const bool { return std::endian::native == std::endian::big; };

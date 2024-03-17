@@ -3,7 +3,7 @@
 #include <cassert>
 #include <limits> // std::numeric_limits<float>::is_iec559
 
-auto hardwareDifference::GetDataStructureAlignment(const bool packed) -> uint8_t
+auto hardwareDifference::GetDataStructureAlignment(const bool packed) -> const uint8_t
 {
     DB2_PRAGMA_PACK_ON
 
@@ -23,13 +23,16 @@ auto hardwareDifference::GetDataStructureAlignment(const bool packed) -> uint8_t
 
     if (!packed)
     {
-        static const uint8_t offset = (uintptr_t) & (((tester *)0)->n);
-        return offset;
+        // static const uint8_t offset = (uintptr_t) & ((tester *)0)->n;
+        // return offset;
+
+        // const int128_t tester::*offset = &tester::n; // no
+
+        return offsetof(tester, n); // constexpr
     }
     else
     {
-        static const uint8_t offset_packed = (uintptr_t) & (((tester_p *)0)->n);
-        return offset_packed;
+        return offsetof(tester_p, n); // constexpr
     }
 }
 

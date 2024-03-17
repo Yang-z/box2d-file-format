@@ -97,15 +97,17 @@ public: // Modifiers
     template <typename CK_T>
     auto handle_type(db2DictElement &element, bool set = false) -> void
     {
-        static auto *reflector = db2Reflector::GetReflector<CK_T>();
-        if (reflector)
-            if (set)
-                std::memcpy(&element.type0, reflector->type, 4);
-            else
-                assert(std::equal(&element.type0, &element.type0 + 4, reflector->type));
-
         if constexpr (!has_value_type<CK_T>::value)
             static_assert(sizeof(CK_T) == sizeof(int32_t));
+
+        static auto *reflector = db2Reflector::GetReflector<CK_T>();
+        if (!reflector)
+            return;
+
+        if (set)
+            std::memcpy(&element.type0, reflector->type, 4);
+        else
+            assert(std::equal(&element.type0, &element.type0 + 4, reflector->type));
     }
 
     template <typename CK_T = int32_t>
@@ -129,8 +131,7 @@ public: // Modifiers
         auto p_element = &this->find<CK_T>(key);
         if (p_element == nullptr)
         {
-            p_element = &this->db2Chunk<db2DictElement>::emplace_back();
-            p_element->key = key;
+            p_element = &this->db2Chunk<db2DictElement>::emplace_back(key);
             this->handle_type<CK_T>(*p_element, true);
         }
         if (&v_index)
@@ -148,14 +149,9 @@ public: // Modifiers
         {
             auto &chunk = this->root->get<CK_T>();
             if (0 <= v_index && v_index < chunk.size())
-            {
                 return chunk.emplace(v_index, std::forward<Args>(args)...);
-            }
             else
-            {
-                v_index = chunk.size();
-                return chunk.emplace_back(std::forward<Args>(args)...);
-            }
+                return v_index = chunk.size(), chunk.emplace_back(std::forward<Args>(args)...);
         }
         else
         {
@@ -211,22 +207,19 @@ public: // Modifiers
     template <typename CK_T>
     auto handle_type(bool set = false) -> void
     {
+        if constexpr (!has_value_type<CK_T>::value)
+            static_assert(sizeof(CK_T) == sizeof(int32_t));
+
         static auto *reflector = db2Reflector::GetReflector<CK_T>();
         if (!reflector)
             return;
 
         if (this->size() != 0)
-        {
-            assert(std::equal(this->type, this->type + 4, reflector->type));
-            return;
-        }
+            return assert(std::equal(this->type, this->type + 4, reflector->type));
 
         if (set)
             // Type field is used to store the type of element, and it is settled when the first element is added.
             std::memcpy(this->type, reflector->type, 4);
-
-        if constexpr (!has_value_type<CK_T>::value)
-            static_assert(sizeof(CK_T) == sizeof(int32_t));
     }
 
     template <typename CK_T = int32_t>

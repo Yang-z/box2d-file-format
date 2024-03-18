@@ -447,18 +447,18 @@ auto test_CRC() -> void
 auto test_hardware_difference() -> void
 {
 
-    // std::cout << "Is little endian: " << (hardwareDifference::IsLittleEndian() ? "true" : "false") << std::endl;
-    // std::cout << "Is little endian (bit endianness): " << (hardwareDifference::IsLittleEndian_Bit() ? "true" : "false") << std::endl;
-    // std::cout << "Date Structure Alignment offset: " << +hardwareDifference::GetDataStructureAlignment() << std::endl;
-    // std::cout << "Date Structure Alignment offset (packed): " << +hardwareDifference::GetDataStructureAlignment(true) << std::endl;
+    // std::cout << "Is little endian: " << (HardwareDifference::IsLittleEndian() ? "true" : "false") << std::endl;
+    // std::cout << "Is little endian (bit endianness): " << (HardwareDifference::IsLittleEndian_Bit() ? "true" : "false") << std::endl;
+    // std::cout << "Date Structure Alignment offset: " << +HardwareDifference::GetDataStructureAlignment() << std::endl;
+    // std::cout << "Date Structure Alignment offset (packed): " << +HardwareDifference::GetDataStructureAlignment(true) << std::endl;
 
-    printf("Is little endian: %s\n", hardwareDifference::IsLittleEndian() ? "true" : "false");
-    printf("Is little endian (bit endianness): %s\n", hardwareDifference::IsLittleEndian_Bit() ? "true" : "false");
-    printf("Date Structure Alignment offset: %d\n", hardwareDifference::GetDataStructureAlignment());
-    printf("Date Structure Alignment offset (packed): %d\n", hardwareDifference::GetDataStructureAlignment(true));
+    printf("Is little endian: %s\n", HardwareDifference::IsLittleEndian() ? "true" : "false");
+    printf("Is little endian (bit endianness): %s\n", HardwareDifference::IsLittleEndian_Bit() ? "true" : "false");
+    printf("Date Structure Alignment offset: %d\n", HardwareDifference::GetDataStructureAlignment());              // 8
+    printf("Date Structure Alignment offset (packed): %d\n", HardwareDifference::GetDataStructureAlignment(true)); // 1
 
     int32_t i4r = 8;
-    hardwareDifference::ReverseEndian((char *)&i4r, sizeof(i4r));
+    HardwareDifference::ReverseEndian((char *)&i4r, sizeof(i4r));
     printf("int32_t i32 = 8; //reversed = %d\n", i4r);
 }
 
@@ -633,9 +633,9 @@ auto main() -> int
 
     // test_CRC();
 
-    // test_hardware_difference();
+    test_hardware_difference();
 
-    test_data_structure_write();
+    // test_data_structure_write();
     // test_data_structure_read();
 
     // test_encoding();

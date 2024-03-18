@@ -3,7 +3,7 @@
 #include <cassert>
 #include <limits> // std::numeric_limits<float>::is_iec559
 
-auto hardwareDifference::GetDataStructureAlignment(const bool packed) -> const uint8_t
+auto HardwareDifference::GetDataStructureAlignment(const bool packed) -> const uint8_t
 {
     DB2_PRAGMA_PACK_ON
 
@@ -37,7 +37,7 @@ auto hardwareDifference::GetDataStructureAlignment(const bool packed) -> const u
 }
 
 /*
-auto hardwareDifference::IsLittleEndian() -> bool
+auto HardwareDifference::IsLittleEndian() -> bool
 {
     // static const unsigned long x = 1;
     // static const bool isLittleEndian = (*((char *)&x) == 1);
@@ -49,14 +49,14 @@ auto hardwareDifference::IsLittleEndian() -> bool
 */
 
 /*
-auto hardwareDifference::IsBigEndian() -> bool
+auto HardwareDifference::IsBigEndian() -> bool
 {
     static const bool isBigEndian = std::endian::native == std::endian::big;
     return isBigEndian;
 }
 */
 
-auto hardwareDifference::ReverseEndian(char *source, const uint8_t length) -> void
+auto HardwareDifference::ReverseEndian(char *source, const uint8_t length) -> void
 {
     int begin = 0;
     int end = length - 1;
@@ -71,7 +71,7 @@ auto hardwareDifference::ReverseEndian(char *source, const uint8_t length) -> vo
     }
 }
 
-auto hardwareDifference::IsLittleEndian_Bit() -> const bool
+auto HardwareDifference::IsLittleEndian_Bit() -> const bool
 {
     struct bit_order
     {
@@ -98,7 +98,7 @@ auto hardwareDifference::IsLittleEndian_Bit() -> const bool
     return ptr->a;
 }
 
-constexpr auto hardwareDifference::IEEE754() -> const bool
+constexpr auto HardwareDifference::IsIEEE754() -> const bool
 {
     constexpr const bool ieee754_f = std::numeric_limits<float>::is_iec559; // IEEE 754
     constexpr const bool digits24_f = (std::numeric_limits<float>::digits == 24);
@@ -113,13 +113,13 @@ constexpr auto hardwareDifference::IEEE754() -> const bool
     return result;
 }
 
-constexpr auto hardwareDifference::Check() -> const bool
+constexpr auto HardwareDifference::Check() -> const bool
 {
     constexpr const bool result =
         nullptr == 0 &&
         (sizeof(bool) == 1) && (sizeof(char) == 1) &&
-        (hardwareDifference::IsLittleEndian() || hardwareDifference::IsBigEndian()) &&
-        hardwareDifference::IEEE754();
+        (HardwareDifference::IsLittleEndian() || HardwareDifference::IsBigEndian()) &&
+        HardwareDifference::IsIEEE754();
 
     static_assert(result, "hardware compatibility check failed");
 

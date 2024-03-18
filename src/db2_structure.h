@@ -62,7 +62,7 @@ ENDIAN_SENSITIVE struct db2Joint : public db2Chunk<float32_t>
 
     int32_t &bodyA() { return reinterpret_cast<int32_t &>((*this)[0]); } // index
     int32_t &bodyB() { return reinterpret_cast<int32_t &>((*this)[1]); } // index
-    bool &collideConnected() { return ((bool *)&((*this)[2]))[hardwareDifference::IsBigEndian() ? 0 : 3]; }
+    bool &collideConnected() { return ((bool *)&((*this)[2]))[HardwareDifference::IsBigEndian() ? 0 : 3]; }
 
     int32_t constexpr extend() { return 3; } // ... extend data
 };
@@ -83,7 +83,7 @@ ENDIAN_SENSITIVE struct db2Wrold
 struct db2Info
 {
     const uint8_t packSize{DB2_PACK_SIZE};
-    const uint8_t notUsed{0}; // bool isLittleEndian{hardwareDifference::IsLittleEndian()};
+    const uint8_t notUsed{0}; // bool isLittleEndian{HardwareDifference::IsLittleEndian()};
 
     uint8_t ver_dotBox2d_0{0};
     uint8_t ver_dotBox2d_1{0};
@@ -117,7 +117,7 @@ public:
     // uint8_t head[8]{0xB2, 0x42, 0x32, 0x64, 0x0D, 0x0A, 0x1A, 0x0A};
     uint8_t head[8]{
         0xB2,
-        'B', '2', uint8_t(hardwareDifference::IsBigEndian() ? 'D' : 'd'),
+        'B', '2', uint8_t(HardwareDifference::IsBigEndian() ? 'D' : 'd'),
         0x0D, 0x0A, 0x1A, 0x0A};
 
     db2Chunks chunks;

@@ -37,7 +37,7 @@ auto dotBox2d::load(const char *filePath) -> void
     const bool isFileLittleEndian = (this->head[3] == 'd');
 
     // change to local endian
-    this->head[3] = hardwareDifference::IsLittleEndian() ? 'd' : 'D';
+    this->head[3] = HardwareDifference::IsLittleEndian() ? 'd' : 'D';
 
     // read chunk
     while (fs.peek() != EOF)
@@ -57,7 +57,7 @@ auto dotBox2d::save(const char *filePath, bool asLittleEndian) -> void
 
     this->head[3] = asLittleEndian ? 'd' : 'D';
     fs.write((char *)&(this->head), sizeof(this->head));
-    this->head[3] = hardwareDifference::IsLittleEndian() ? 'd' : 'D';
+    this->head[3] = HardwareDifference::IsLittleEndian() ? 'd' : 'D';
 
     for (auto i = 0; i < this->chunks.size(); ++i)
         this->chunks[i].write(fs, asLittleEndian);

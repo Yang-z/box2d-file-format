@@ -84,13 +84,13 @@ public:
 
         if (reflector == nullptr)
         {
-            hardwareDifference::ReverseEndian(data, length);
+            HardwareDifference::ReverseEndian(data, length);
             return;
         }
 
         for (int i = 0; i < length / reflector->length; ++i)
             for (int j = 0; j < reflector->offsets.size(); ++j)
-                hardwareDifference::ReverseEndian(
+                HardwareDifference::ReverseEndian(
                     data + reflector->length * i + reflector->offsets[j],
                     reflector->lengths[j]);
     }
@@ -103,7 +103,7 @@ public:
 
     ENDIAN_SENSITIVE int32_t length_chunk{0};
 
-    // const bool isLittleEndian{hardwareDifference::IsLittleEndian()};
+    // const bool isLittleEndian{HardwareDifference::IsLittleEndian()};
     db2Reflector *reflector{nullptr};
 
     db2Chunks *root{nullptr};
@@ -155,7 +155,7 @@ public:
     {
         assert(this->length == 0);
 
-        const bool reverseEndian = hardwareDifference::IsLittleEndian() != isLittleEndian;
+        const bool reverseEndian = HardwareDifference::IsLittleEndian() != isLittleEndian;
 
         // length
         db2Chunk::ReadBytes((char *)&this->length_chunk, sizeof(this->length_chunk), fs, reverseEndian, nullptr, CRC);
@@ -200,7 +200,7 @@ public:
 
     TYPE_IRRELATIVE auto write(std::ofstream &fs, const bool asLittleEndian, boost::crc_32_type *CRC = nullptr) -> void
     {
-        const bool reverseEndian = hardwareDifference::IsLittleEndian() != asLittleEndian;
+        const bool reverseEndian = HardwareDifference::IsLittleEndian() != asLittleEndian;
 
         if (this->reflector == nullptr || this->reflector->parent == nullptr)
             this->refreshLengthChunk();

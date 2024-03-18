@@ -2,7 +2,7 @@
 
 #include "db2_settings.h"
 
-class hardwareDifference
+class HardwareDifference
 {
 public:
     static auto GetDataStructureAlignment(const bool packed = false) -> const uint8_t;
@@ -13,7 +13,7 @@ public:
 
     static auto IsLittleEndian_Bit() -> const bool;
 
-    static constexpr auto IEEE754() -> const bool;
+    static constexpr auto IsIEEE754() -> const bool;
 
     static constexpr auto Check() -> const bool;
 };

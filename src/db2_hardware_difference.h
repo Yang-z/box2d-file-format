@@ -1,5 +1,7 @@
 #pragma once
 
+#include <bit> // std::endian (c++20)
+
 #include "db2_settings.h"
 
 class HardwareDifference

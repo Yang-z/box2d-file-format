@@ -19,7 +19,7 @@ to make it still functioning even when it's downgraded to db2Chunk<char>.
 
 #define DEF_IN_BASE(def) /* defined in base */
 
-template <typename T>
+template <typename T, typename T_pfx = void>
 class db2Chunk;
 
 class db2Chunks;
@@ -28,19 +28,19 @@ template <typename T, typename = void>
 struct is_db2Chunk : std::false_type
 {
 };
-
 template <typename T>
-struct is_db2Chunk<T, std::enable_if_t<has_value_type<T>::value>>
+struct is_db2Chunk<T, std::void_t<typename T::flag_db2Chunk>> : std::true_type
 {
-    static constexpr bool value = std::is_base_of<db2Chunk<typename T::value_type>, T>::value;
 };
 
-template <typename T>
-class db2Chunk : public db2DynArray<T>
+template <typename T, typename T_pfx>
+class db2Chunk : public db2DynArrayWithPrefix<T, T_pfx>
 {
+public:
+    using flag_db2Chunk = void;
 
 public:
-    TYPE_IRRELATIVE static auto ReadBytes(char *data, const int32_t length, std::ifstream &fs, const bool reverseEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReadBytes(char *data, const int32_t length, std::ifstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -51,10 +51,10 @@ public:
             CRC->process_bytes(data, length);
 
         if (reverseEndian)
-            db2Chunk::ReverseEndian(data, length, reflector);
+            db2Chunk::ReverseEndian(data, length, pack);
     }
 
-    TYPE_IRRELATIVE static auto WriteBytes(char *data, const int32_t length, std::ofstream &fs, const bool reverseEndian, db2Reflector *reflector = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto WriteBytes(char *data, const int32_t length, std::ofstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -64,7 +64,7 @@ public:
             auto data_r = (char *)std::malloc(length);
             std::memcpy(data_r, data, length);
             data = data_r;
-            db2Chunk::ReverseEndian(data, length, reflector);
+            db2Chunk::ReverseEndian(data, length, pack);
         }
 
         if (CRC)
@@ -77,22 +77,22 @@ public:
     }
 
     // type-irrelative, since reflector is adopted
-    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const int32_t length, db2Reflector *reflector = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const int32_t length, db2Reflector::pack_info *pack = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
 
-        if (reflector == nullptr)
+        if (pack == nullptr)
         {
             HardwareDifference::ReverseEndian(data, length);
             return;
         }
 
-        for (int i = 0; i < length / reflector->length; ++i)
-            for (int j = 0; j < reflector->offsets.size(); ++j)
+        for (int i = 0; i < length / pack->length; ++i)
+            for (int j = 0; j < pack->offsets.size(); ++j)
                 HardwareDifference::ReverseEndian(
-                    data + reflector->length * i + reflector->offsets[j],
-                    reflector->lengths[j]);
+                    data + pack->length * i + pack->offsets[j],
+                    pack->lengths[j]);
     }
 
 public:
@@ -111,29 +111,31 @@ public:
     db2DynArray<void *> userData;
 
 public: // Constructors
-    TYPE_IRRELATIVE db2Chunk() = default;
-    TYPE_IRRELATIVE db2Chunk(const db2Chunk<T> &other) = delete;
-    TYPE_IRRELATIVE db2Chunk<T> &operator=(const db2Chunk<T> &other) = delete;
-    TYPE_IRRELATIVE db2Chunk(db2Chunk<T> &&other) { *this = std::move(other); };
-    TYPE_IRRELATIVE db2Chunk<T> &operator=(db2Chunk<T> &&other) { return std::memcpy(this, &other, sizeof(db2Chunk<T>)), std::memset(&other, 0, sizeof(db2Chunk<T>)), *this; };
+    TYPE_IRRELATIVE DB2_CONSTRUCTORS(db2Chunk, T, T_pfx)
 
-    // only clear up reflected types with the innermost value-types of flat data structures
-    // further work is required?
-    TYPE_IRRELATIVE ~db2Chunk() override
+        // only clear up reflected types with the innermost value-types of flat data structures
+        // further work is required?
+        TYPE_IRRELATIVE ~db2Chunk() override
     {
-        if (!this->data)
-            return;
-
-        if (this->reflector->child)
+        if (this->data)
         {
-            auto &self = *(db2Chunk<db2Chunk<char>> *)this;
-            for (auto i = 0; i < self.size(); ++i)
-                self[i].~db2Chunk();
+            if (this->reflector->child)
+            {
+                auto &self = *(db2Chunk<db2Chunk<char>> *)this;
+                for (auto i = 0; i < self.size(); ++i)
+                    self[i].~db2Chunk();
+            }
+
+            // free data, or leave it to base destructor?
+            std::free(this->data);
+            this->data = nullptr;
         }
 
-        // free data, or leave it to base destructor?
-        std::free(this->data);
-        this->data = nullptr;
+        if (this->prefix)
+        {
+            std::free(this->prefix);
+            this->prefix = nullptr;
+        }
     }
 
 public: // initializer
@@ -169,24 +171,32 @@ public:
         if (this->reflector == nullptr)
             this->reflector = db2Reflector::GetReflector(this->type);
 
+        // prefix
+        if (this->reflector->prefix)
+        {
+            this->length_pfx = this->reflector->prefix->length;
+            this->reserve_pfx_mem(this->length_pfx);
+            db2Chunk::ReadBytes((char *)this->prefix, this->length_pfx, fs, reverseEndian, this->reflector->prefix, CRC);
+        }
+
         // data
         if (this->reflector->child == nullptr)
         {
-            this->length = this->length_chunk;
+            this->length = this->length_chunk - this->length_pfx;
             this->reserve_mem(this->length, false);
-            db2Chunk::ReadBytes((char *)this->data, this->length, fs, reverseEndian, this->reflector, CRC);
+            db2Chunk::ReadBytes((char *)this->data, this->length, fs, reverseEndian, this->reflector->value, CRC);
         }
         else
         {
             auto p0 = fs.tellg();
             auto pn = p0;
-            while (pn - p0 < this->length_chunk)
+            while (pn - p0 < this->length_chunk - this->length_pfx)
             {
                 auto &child = ((db2Chunk<db2Chunk<char>> *)this)->emplace_back();
                 child.read(fs, isLittleEndian, CRC); // recursion
                 pn = fs.tellg();
             }
-            assert(pn - p0 == this->length_chunk);
+            assert(pn - p0 == this->length_chunk - this->length_pfx);
         }
 
         // CRC
@@ -215,9 +225,13 @@ public:
         // type
         db2Chunk::WriteBytes(this->type, sizeof(this->type), fs, false, nullptr, CRC);
 
+        // prefix
+        if (this->reflector->prefix)
+            db2Chunk::WriteBytes((char *)this->prefix, this->length_pfx, fs, reverseEndian, this->reflector->prefix, CRC);
+
         // data
         if (this->reflector->child == nullptr)
-            db2Chunk::WriteBytes(this->data, this->length, fs, reverseEndian, this->reflector, CRC);
+            db2Chunk::WriteBytes(this->data, this->length, fs, reverseEndian, this->reflector->value, CRC);
         else
         {
             auto &self = *(db2Chunk<db2Chunk<char>> *)this;
@@ -241,18 +255,18 @@ public:
     {
         if (!this->reflector || !this->reflector->child)
         {
-            this->length_chunk = this->length;
+            this->length_chunk = this->length + this->length_pfx;
             return;
         }
 
-        this->length_chunk = 0;
+        this->length_chunk = this->length_pfx;
 
         auto this_ = (db2Chunk<db2Chunk<char>> *)this;
         for (auto i = 0; i < this_->size(); ++i)
         {
             auto child = this_->data + i;
             child->refreshLengthChunk();
-            this->length_chunk += child->length_chunk + 4 * 2;
+            this->length_chunk += child->length_chunk + 4 * 2; // length and type
         }
     }
 

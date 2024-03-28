@@ -171,6 +171,10 @@ auto test_derived_init() -> void
 
 auto test_derived_func() -> void
 {
+    class empty_class
+    {
+    };
+
     class Base
     {
     public:
@@ -192,10 +196,18 @@ auto test_derived_func() -> void
         {
             std::cout << "Base func3() called." << std::endl;
         }
+
+        void sizeof_()
+        {
+            std::cout << "sizeof(*this) = " << sizeof(*this) << std::endl;
+        }
     };
 
     class Derived : public Base
     {
+    public:
+        int32_t i = 0;
+
     public:
         void func2()
         {
@@ -222,6 +234,12 @@ auto test_derived_func() -> void
     Base func2() called.
     Derived func3() called.
     */
+
+    sizeof(empty_class); // 1 ,not 0
+    sizeof(Base);        // 8, not 1, virtual funtion takes 8
+    sizeof(Derived);     // 16, not 12, due to data structure alignment
+    b.sizeof_();         // 8
+    d.sizeof_();         // 8 // not 16
 }
 
 struct test_l_r_value_t
@@ -465,7 +483,9 @@ auto test_hardware_difference() -> void
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
-    db2->chunks.get<db2Chunk<db2Info>>().emplace_back();
+    auto &infos = db2->chunks.get<db2Chunk<db2Info>>();
+    infos.emplace_back();
+    infos.emplace_pfx();
 
     db2->chunks.get<db2Chunk<db2Wrold>>().emplace_back();
     db2->chunks.get<db2Chunk<db2Joint>>().emplace_back();

@@ -104,12 +104,12 @@ public: // instance
     auto reflect(const char *type) -> void
     {
         std::memcpy(this->type, type, 4);
-        this->type[2] = !has_value_type<CK_T>::value ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
+        this->type[2] = !has_value_type_v<CK_T> ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
         this->type[3] = this->parent ? 0 : this->type[3];
 
         this->id = typeid(CK_T).hash_code();
 
-        if constexpr (!has_value_type<CK_T>::value)
+        if constexpr (!has_value_type_v<CK_T>)
             Reflect_POD<CK_T>((this->value = new pack_info(), this->value));
 
         else
@@ -118,7 +118,7 @@ public: // instance
             if constexpr (!std::is_void_v<typename CK_T::prefix_type>)
                 Reflect_POD<CK_T::prefix_type>((this->prefix = new pack_info(), this->prefix));
 
-            if constexpr (!has_value_type<typename CK_T::value_type>::value)
+            if constexpr (!has_value_type_v<typename CK_T::value_type>)
                 Reflect_POD<typename CK_T::value_type>((this->value = new pack_info(), this->value));
             else
             {

@@ -6,12 +6,12 @@ bool db2ChunkType::IsRegistered = db2ChunkType::RegisterType();
 
 auto db2ChunkType::RegisterType() -> bool
 {
-    db2Reflector::Reflect<db2Chunk<db2Info>>(db2ChunkType::INFO);
-    db2Reflector::Reflect<db2Chunk<db2Wrold>>(db2ChunkType::WRLD);
-    db2Reflector::Reflect<db2Chunk<db2Joint>>(db2ChunkType::JInT);
-    db2Reflector::Reflect<db2Chunk<db2Body>>(db2ChunkType::BODY);
-    db2Reflector::Reflect<db2Chunk<db2Fixture>>(db2ChunkType::FXTR);
-    db2Reflector::Reflect<db2Chunk<db2Shape>>(db2ChunkType::SHpE);
+    db2Reflector::Reflect<CKInfo>(db2ChunkType::INFO);
+    db2Reflector::Reflect<CKWorld>(db2ChunkType::WRLD);
+    db2Reflector::Reflect<CKJoint>(db2ChunkType::JInT);
+    db2Reflector::Reflect<CKBody>(db2ChunkType::BODY);
+    db2Reflector::Reflect<CKFixture>(db2ChunkType::FXTR);
+    db2Reflector::Reflect<CKShape>(db2ChunkType::SHpE);
 
     return true;
 }

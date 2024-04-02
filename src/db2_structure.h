@@ -67,7 +67,7 @@ ENDIAN_SENSITIVE struct db2Joint : public db2Chunk<float32_t>
     int32_t constexpr extend() { return 3; } // ... extend data
 };
 
-ENDIAN_SENSITIVE struct db2Wrold
+ENDIAN_SENSITIVE struct db2World
 {
     float32_t gravity_x{0.0f};
     float32_t gravity_y{0.0f};
@@ -78,7 +78,7 @@ ENDIAN_SENSITIVE struct db2Wrold
     int32_t jointList{0};
     int32_t jointCount{0};
 
-} DB2_NOTE(sizeof(db2Wrold) == 24);
+} DB2_NOTE(sizeof(db2World) == 24);
 
 struct db2Info
 {
@@ -96,6 +96,13 @@ struct db2Info
 } DB2_NOTE(sizeof(db2Info) == 8);
 
 DB2_PRAGMA_PACK_OFF
+
+using CKInfo = db2Chunk<db2Info>;
+using CKWorld = db2Chunk<db2World>;
+using CKJoint = db2Chunk<db2Joint>;
+using CKBody = db2Chunk<db2Body>;
+using CKFixture = db2Chunk<db2Fixture>;
+using CKShape = db2Chunk<db2Shape>;
 
 struct db2ChunkType
 {

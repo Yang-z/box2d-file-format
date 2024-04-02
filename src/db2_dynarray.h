@@ -241,7 +241,7 @@ public:
 
 public:
     template <typename... Args>
-    auto emplace_pfx(Args &&...args) -> default_ref_type<T_pfx>::type
+    auto emplace_pfx(Args &&...args) -> default_ref_t<T_pfx>
     {
         if constexpr (!std::is_void_v<T_pfx>)
         {

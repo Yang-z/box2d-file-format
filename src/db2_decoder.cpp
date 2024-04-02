@@ -13,7 +13,7 @@ auto db2Decoder::decode() -> void
     if (!this->db2)
         return;
 
-    auto &db2ws = this->db2->chunks.get<db2Chunk<db2Wrold>>();
+    auto &db2ws = this->db2->chunks.get<db2Chunk<db2World>>();
     auto &db2js = this->db2->chunks.get<db2Chunk<db2Joint>>();
     auto &db2bs = this->db2->chunks.get<db2Chunk<db2Body>>();
     auto &db2fs = this->db2->chunks.get<db2Chunk<db2Fixture>>();
@@ -403,7 +403,7 @@ auto db2Decoder::encode() -> void
 
     auto &db2is = _db2->chunks.get<db2Chunk<db2Info>>();
 
-    auto &db2ws = _db2->chunks.get<db2Chunk<db2Wrold>>();
+    auto &db2ws = _db2->chunks.get<db2Chunk<db2World>>();
     auto &db2js = _db2->chunks.get<db2Chunk<db2Joint>>();
     auto &db2bs = _db2->chunks.get<db2Chunk<db2Body>>();
     auto &db2fs = _db2->chunks.get<db2Chunk<db2Fixture>>();

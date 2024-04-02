@@ -487,7 +487,7 @@ auto test_data_structure_write() -> void
     infos.emplace_back();
     infos.emplace_pfx();
 
-    db2->chunks.get<db2Chunk<db2Wrold>>().emplace_back();
+    db2->chunks.get<db2Chunk<db2World>>().emplace_back();
     db2->chunks.get<db2Chunk<db2Joint>>().emplace_back();
     for (int i = 0; i < 2; i++)
         db2->chunks.get<db2Chunk<db2Body>>().emplace_back();
@@ -653,13 +653,13 @@ auto main() -> int
 
     // test_CRC();
 
-    test_hardware_difference();
+    // test_hardware_difference();
 
     // test_data_structure_write();
     // test_data_structure_read();
 
-    // test_encoding();
-    // test_decoding();
+    test_encoding();
+    test_decoding();
 
     return 0;
 }

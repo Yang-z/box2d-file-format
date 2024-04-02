@@ -29,25 +29,31 @@ template <typename CK_T>
 struct has_value_type<CK_T, std::void_t<typename CK_T::value_type>> : std::true_type
 {
 };
+template <typename CK_T>
+inline constexpr bool has_value_type_v = has_value_type<CK_T>::value;
 
 template <typename T, typename = void>
-struct default_value_type
+struct default_value
 {
     using type = T;
 };
 template <typename T>
-struct default_value_type<T, std::void_t<typename T::value_type>>
+struct default_value<T, std::void_t<typename T::value_type>>
 {
     using type = typename T::value_type;
 };
+template <typename T>
+using default_value_t = typename default_value<T>::type;
 
 template <typename T, typename = void>
-struct default_ref_type
+struct default_ref
 {
     using type = void;
 };
 template <typename T>
-struct default_ref_type<T, std::enable_if_t<!std::is_void_v<T>>>
+struct default_ref<T, std::enable_if_t<!std::is_void_v<T>>>
 {
     using type = T &;
 };
+template <typename T>
+using default_ref_t = typename default_ref<T>::type;

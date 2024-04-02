@@ -70,14 +70,14 @@ public: // Element access
         return &element ? element.value : *(int32_t *)nullptr;
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type>
     auto at(const int32_t &key) -> vv_type & // If no such element exists, null is returned
     {
         auto &element = this->find<CK_T>(key);   // could be null
         return this->dereference<CK_T>(element); // could be null
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type>
     auto dereference(db2DictElement &element) -> vv_type & // could be null
     {
         // element could be null
@@ -87,7 +87,7 @@ public: // Element access
 
         this->handle_type<CK_T>(element);
 
-        if constexpr (has_value_type<CK_T>::value)
+        if constexpr (has_value_type_v<CK_T>)
             return this->root->get<CK_T>().at(element.value); // could be null
         else
             return reinterpret_cast<vv_type &>(element.value); // not null
@@ -97,7 +97,7 @@ public: // Modifiers
     template <typename CK_T>
     auto handle_type(db2DictElement &element, bool set = false) -> void
     {
-        if constexpr (!has_value_type<CK_T>::value)
+        if constexpr (!has_value_type_v<CK_T>)
             static_assert(sizeof(CK_T) == sizeof(int32_t));
 
         static auto *reflector = db2Reflector::GetReflector<CK_T>();
@@ -117,7 +117,7 @@ public: // Modifiers
         return element.value;
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type>
     auto get(const int32_t &key) -> vv_type & // performing an insertion if such key does not already exist
     {
         auto &element = this->emplace_ref<CK_T>(key);      // not null
@@ -139,13 +139,13 @@ public: // Modifiers
         return *p_element;
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type, typename... Args>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type, typename... Args>
     auto emplace_val(db2DictElement &element, Args &&...args) -> vv_type &
     {
         assert(&element);
         auto &v_index = element.value;
 
-        if constexpr (has_value_type<CK_T>::value)
+        if constexpr (has_value_type_v<CK_T>)
         {
             auto &chunk = this->root->get<CK_T>();
             if (0 <= v_index && v_index < chunk.size())
@@ -161,7 +161,7 @@ public: // Modifiers
         }
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type, typename... Args>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type, typename... Args>
     auto emplace(const int32_t &key, Args &&...args) -> vv_type &
     {
         auto &element = this->emplace_ref<CK_T>(key);
@@ -184,20 +184,20 @@ public: // Element access
         return this->db2Chunk<int32_t>::at(index); // could be null
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type>
     auto at(const int32_t &index) -> vv_type & // if no such element exists, null is returned
     {
         auto &v_index = this->db2Chunk<int32_t>::at(index); // could be null
         return this->dereference<CK_T>(v_index);
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type>
     auto dereference(const int32_t &v_index) -> vv_type & // could be null
     {
         // v_index could be null
 
         this->handle_type<CK_T>();
-        if constexpr (has_value_type<CK_T>::value)
+        if constexpr (has_value_type_v<CK_T>)
             return this->root->get<CK_T>().at(v_index); // could be null
         else
             return reinterpret_cast<vv_type &>(v_index); // could be null
@@ -207,7 +207,7 @@ public: // Modifiers
     template <typename CK_T>
     auto handle_type(bool set = false) -> void
     {
-        if constexpr (!has_value_type<CK_T>::value)
+        if constexpr (!has_value_type_v<CK_T>)
             static_assert(sizeof(CK_T) == sizeof(int32_t));
 
         static auto *reflector = db2Reflector::GetReflector<CK_T>();
@@ -229,11 +229,11 @@ public: // Modifiers
         return this->db2DynArray<int32_t>::emplace_back(v_index);
     }
 
-    template <typename CK_T = int32_t, typename vv_type = typename default_value_type<CK_T>::type, typename... Args>
+    template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type, typename... Args>
     auto emplace_back(Args &&...args) -> vv_type &
     {
         this->handle_type<CK_T>(true);
-        if constexpr (has_value_type<CK_T>::value)
+        if constexpr (has_value_type_v<CK_T>)
         {
             auto &chunk = this->root->get<CK_T>();
             this->db2DynArray<int32_t>::emplace_back(chunk.size());

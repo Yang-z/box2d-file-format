@@ -4,12 +4,8 @@
 
 DB2_PRAGMA_PACK_ON
 
-ENDIAN_SENSITIVE struct db2Shape : public db2Chunk<float32_t>
+ENDIAN_SENSITIVE struct db2Shape : public db2ChunkStruct<float32_t>
 {
-    int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
-    float32_t &shape_radius() { return (*this)[0]; }
-
-    int32_t constexpr shape_extend() { return 1; } // ... extend data
 };
 
 ENDIAN_SENSITIVE struct db2Fixture
@@ -23,12 +19,7 @@ ENDIAN_SENSITIVE struct db2Fixture
     uint16_t filter_categoryBits{0x0001};
     uint16_t filter_maskBits{0xFFFF};
     int16_t filter_groupIndex{0};
-
-    int32_t shape{-1}; // one shape per fixture
-
-    // int32_t extra{-1};
-
-} DB2_NOTE(sizeof(db2Fixture) == 28);
+} DB2_ASSERT(sizeof(db2Fixture) == 24);
 
 ENDIAN_SENSITIVE struct db2Body
 {
@@ -49,22 +40,10 @@ ENDIAN_SENSITIVE struct db2Body
     /* 3 bytes gape*/
     float32_t gravityScale{1.0f};
 
-    int32_t fixtureList{-1}; // one body could have multiple fixtures
-    int32_t fixtureCount{0};
+} DB2_ASSERT(sizeof(db2Body) == 48);
 
-    // int32_t extra{-1};
-
-} DB2_NOTE(sizeof(db2Body) == 56);
-
-ENDIAN_SENSITIVE struct db2Joint : public db2Chunk<float32_t>
+ENDIAN_SENSITIVE struct db2Joint : public db2ChunkStruct<float32_t>
 {
-    int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
-
-    int32_t &bodyA() { return reinterpret_cast<int32_t &>((*this)[0]); } // index
-    int32_t &bodyB() { return reinterpret_cast<int32_t &>((*this)[1]); } // index
-    bool &collideConnected() { return ((bool *)&((*this)[2]))[HardwareDifference::IsBigEndian() ? 0 : 3]; }
-
-    int32_t constexpr extend() { return 3; } // ... extend data
 };
 
 ENDIAN_SENSITIVE struct db2World
@@ -72,13 +51,7 @@ ENDIAN_SENSITIVE struct db2World
     float32_t gravity_x{0.0f};
     float32_t gravity_y{0.0f};
 
-    int32_t bodyList{0};
-    int32_t bodyCount{0};
-
-    int32_t jointList{0};
-    int32_t jointCount{0};
-
-} DB2_NOTE(sizeof(db2World) == 24);
+} DB2_ASSERT(sizeof(db2World) == 8);
 
 struct db2Info
 {
@@ -93,7 +66,7 @@ struct db2Info
     uint8_t ver_box2d_1{4};
     uint8_t ver_box2d_2{1};
 
-} DB2_NOTE(sizeof(db2Info) == 8);
+} DB2_ASSERT(sizeof(db2Info) == 8);
 
 DB2_PRAGMA_PACK_OFF
 
@@ -125,7 +98,8 @@ public:
     uint8_t head[8]{
         0xB2,
         'B', '2', uint8_t(HardwareDifference::IsBigEndian() ? 'D' : 'd'),
-        0x0D, 0x0A, 0x1A, 0x0A};
+        0x0D, 0x0A, 0x1A, 0x0A //
+    };
 
     db2Chunks chunks;
 

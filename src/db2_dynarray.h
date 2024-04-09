@@ -14,6 +14,10 @@
 It's a std::vector-like container.
 Vector is a concept in maths or physics, and it's not a suitable name for the STL.
 In order to avoid conceptual confusion, this container is not namaned as 'vector'.
+
+Know issue: when capacity increases, memory addresses of existing data could be changed.
+So, any referencing to the original data could become invalid. Only index accessasing is
+guaranteed to be safe.
 */
 
 #define DB2_CONSTRUCTORS(CLS, ...)                                       \
@@ -40,7 +44,7 @@ public:
     const int32_t capacity() const { return this->length_mem / sizeof(T); }
 
 public: // Constructors
-    DB2_CONSTRUCTORS(db2DynArray, T)
+    DB2_CONSTRUCTORS(db2DynArray, T);
 
     virtual ~db2DynArray()
     {
@@ -180,6 +184,14 @@ public: // Modifiers
     */
 
 public:
+    auto find(std::function<bool(T &)> func) -> T &
+    {
+        for (int32_t i = 0; i < this->size(); ++i)
+            if (func(this->data[i]))
+                return this->data[i];
+        return *(T *)nullptr;
+    }
+
     auto for_each(std::function<bool(T &)> func) -> void
     {
         for (int32_t i = 0; i < this->size(); ++i)

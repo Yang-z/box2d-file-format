@@ -79,6 +79,8 @@ public: // static
 
 public: // instance
     char type[4]{0, 0, 0, 0};
+    char type_link[4]{0, 0, 0, 0};
+
     size_t id;
     // std::type_info info;
 
@@ -104,9 +106,7 @@ public: // instance
     auto reflect(const char *type) -> void
     {
         std::memcpy(this->type, type, 4);
-        this->type[2] = !has_value_type_v<CK_T> ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
-        this->type[3] = this->parent ? 0 : this->type[3];
-
+        std::memcpy(this->type_link, type, 4);
         this->id = typeid(CK_T).hash_code();
 
         if constexpr (!has_value_type_v<CK_T>)
@@ -118,13 +118,19 @@ public: // instance
             if constexpr (!std::is_void_v<typename CK_T::prefix_type>)
                 Reflect_POD<CK_T::prefix_type>((this->prefix = new pack_info(), this->prefix));
 
-            if constexpr (!has_value_type_v<typename CK_T::value_type>)
-                Reflect_POD<typename CK_T::value_type>((this->value = new pack_info(), this->value));
+            using value_type = typename CK_T::value_type;
+            this->type[2] = !has_value_type_v<value_type> ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
+            this->type[3] = this->parent ? 0 : this->type[3];
+
+            this->type_link[0] = std::tolower(this->type_link[0]);
+
+            if constexpr (!has_value_type_v<value_type>)
+                Reflect_POD<value_type>((this->value = new pack_info(), this->value));
             else
             {
                 this->child = new db2Reflector();
                 child->parent = this;
-                child->reflect<typename CK_T::value_type>(type);
+                child->reflect<value_type>(type);
             }
         }
     }

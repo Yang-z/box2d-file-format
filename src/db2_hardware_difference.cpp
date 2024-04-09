@@ -117,7 +117,8 @@ constexpr auto HardwareDifference::Check() -> const bool
 {
     constexpr const bool result =
         nullptr == 0 &&
-        (sizeof(bool) == 1) && (sizeof(char) == 1) &&
+        (float32_t) false == 0.0f && (float32_t) true == 1.0f &&
+        sizeof(bool) == 1 && sizeof(char) == 1 &&
         (HardwareDifference::IsLittleEndian() || HardwareDifference::IsBigEndian()) &&
         HardwareDifference::IsIEEE754();
 

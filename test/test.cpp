@@ -575,43 +575,45 @@ auto test_step(b2World *b2w) -> void
 auto test_encoding() -> void
 {
     db2Decoder der{};
-    der.b2w = new b2World{{0.0f, -9.8f}};
+    {
+        der.b2w = new b2World{{0.0f, -9.8f}};
 
-    /*body*/
-    b2BodyDef dynamicBodyDef{};
-    dynamicBodyDef.type = b2_dynamicBody;
-    dynamicBodyDef.position.Set(8.0f, 8.0f);
+        /*body*/
+        b2BodyDef dynamicBodyDef{};
+        dynamicBodyDef.type = b2_dynamicBody;
+        dynamicBodyDef.position.Set(8.0f, 8.0f);
 
-    auto dynamicBody = der.b2w->CreateBody(&dynamicBodyDef);
+        auto dynamicBody = der.b2w->CreateBody(&dynamicBodyDef);
 
-    /*fixture*/
-    b2CircleShape circle{};
-    circle.m_radius = 0.5f;
+        /*fixture*/
+        b2CircleShape circle{};
+        circle.m_radius = 0.5f;
 
-    b2FixtureDef fixturedef{};
-    fixturedef.shape = &circle;
-    fixturedef.density = 1.0f;
-    fixturedef.restitution = 0.8f;
+        b2FixtureDef fixturedef{};
+        fixturedef.shape = &circle;
+        fixturedef.density = 1.0f;
+        fixturedef.restitution = 0.8f;
 
-    dynamicBody->CreateFixture(&fixturedef);
+        dynamicBody->CreateFixture(&fixturedef);
 
-    /*body2*/
-    b2BodyDef staticBodyDef{};
-    staticBodyDef.type = b2_staticBody;
-    staticBodyDef.position.Set(0.0f, 0.0f);
+        /*body2*/
+        b2BodyDef staticBodyDef{};
+        staticBodyDef.type = b2_staticBody;
+        staticBodyDef.position.Set(0.0f, 0.0f);
 
-    auto staticBody = der.b2w->CreateBody(&staticBodyDef);
+        auto staticBody = der.b2w->CreateBody(&staticBodyDef);
 
-    /*fixture2*/
-    b2ChainShape chain{};
-    // b2Vec2 vs[4]{{0.0f, 0.0f}, {16.0f, 0.0f}, {16.0f, 9.0f}, {0.0f, 9.0f}}; // anti-clockw, ouside
-    b2Vec2 vs[4]{{0.0f, 0.0f}, {0.0f, 9.0f}, {16.0f, 9.0f}, {16.0f, 0.0f}}; // inside
-    chain.CreateLoop(vs, 4);
+        /*fixture2*/
+        b2ChainShape chain{};
+        // b2Vec2 vs[4]{{0.0f, 0.0f}, {16.0f, 0.0f}, {16.0f, 9.0f}, {0.0f, 9.0f}}; // anti-clockw, ouside
+        b2Vec2 vs[4]{{0.0f, 0.0f}, {0.0f, 9.0f}, {16.0f, 9.0f}, {16.0f, 0.0f}}; // inside
+        chain.CreateLoop(vs, 4);
 
-    b2FixtureDef fixturedef2{};
-    fixturedef2.shape = &chain;
+        b2FixtureDef fixturedef2{};
+        fixturedef2.shape = &chain;
 
-    staticBody->CreateFixture(&fixturedef2);
+        staticBody->CreateFixture(&fixturedef2);
+    }
 
     der.encode();
     der.db2->save("./test_encode.B2d", true);

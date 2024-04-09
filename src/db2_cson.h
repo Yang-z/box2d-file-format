@@ -4,6 +4,11 @@
 
 /*
 CSON（C/C++ Structured Object Notation) is a JSON-like but binary data format.
+
+Know issue: Due to the memory shifting issue brought by the base db2DynArray, referencing
+of chunk data could become invalid after new data is added to the same chunk. When editting
+CSON, referencing to the chunk data should be cautious. Use index or key to access the data
+when nessary.
 */
 
 DB2_PRAGMA_PACK_ON
@@ -21,29 +26,14 @@ struct db2DictElement
 
 struct db2Dict : public db2Chunk<db2DictElement>
 {
-    // auto find(const int32_t key) -> db2DictElement *
-    // {
-    //     db2DictElement *match = nullptr;
-    //     this->for_each(
-    //         [&](auto &element)
-    //         {
-    //             if (element.key == key)
-    //             {
-    //                 match = &element;
-    //                 return false; // continue?
-    //             }
-    //             return true;
-    //         } //
-    //     );
-    //     return match;
-    // }
 
 public:
     template <typename CK_T>
     auto find(const int32_t &key) -> db2DictElement &
     {
         static auto *reflector = db2Reflector::GetReflector<CK_T>();
-        const char *type = reflector ? reflector->type : nullptr;
+        static char *type = reflector ? reflector->type_link : nullptr;
+
         return this->find(key, type);
     }
 
@@ -97,17 +87,16 @@ public: // Modifiers
     template <typename CK_T>
     auto handle_type(db2DictElement &element, bool set = false) -> void
     {
-        if constexpr (!has_value_type_v<CK_T>)
-            static_assert(sizeof(CK_T) == sizeof(int32_t));
+        static_assert(has_value_type_v<CK_T> || sizeof(CK_T) == sizeof(int32_t));
 
         static auto *reflector = db2Reflector::GetReflector<CK_T>();
         if (!reflector)
             return;
 
         if (set)
-            std::memcpy(&element.type0, reflector->type, 4);
+            std::memcpy(&element.type0, reflector->type_link, 4);
         else
-            assert(std::equal(&element.type0, &element.type0 + 4, reflector->type));
+            assert(std::equal(&element.type0, &element.type0 + 4, reflector->type_link));
     }
 
     template <typename CK_T = int32_t>
@@ -215,11 +204,11 @@ public: // Modifiers
             return;
 
         if (this->size() != 0)
-            return assert(std::equal(this->type, this->type + 4, reflector->type));
+            return assert(std::equal(this->type, this->type + 4, reflector->type_link));
 
         if (set)
             // Type field is used to store the type of element, and it is settled when the first element is added.
-            std::memcpy(this->type, reflector->type, 4);
+            std::memcpy(this->type, reflector->type_link, 4);
     }
 
     template <typename CK_T = int32_t>
@@ -280,6 +269,10 @@ struct db2String : public db2Chunk<char>
 };
 
 DB2_PRAGMA_PACK_OFF
+
+using CKDict = db2Chunk<db2Dict>;
+using CKList = db2Chunk<db2List>;
+using CKString = db2Chunk<db2String>;
 
 struct db2ChunkType_CSON
 {

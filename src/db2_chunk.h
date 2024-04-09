@@ -22,6 +22,9 @@ to make it still functioning even when it's downgraded to db2Chunk<char>.
 template <typename T, typename T_pfx = void>
 class db2Chunk;
 
+template <typename T, typename T_pfx = void>
+class db2ChunkStruct;
+
 class db2Chunks;
 
 template <typename T, typename = void>
@@ -108,14 +111,14 @@ public:
 
     db2Chunks *root{nullptr};
 
-    db2DynArray<void *> userData;
+    void *runtimeData = nullptr;
 
 public: // Constructors
-    TYPE_IRRELATIVE DB2_CONSTRUCTORS(db2Chunk, T, T_pfx)
+    TYPE_IRRELATIVE DB2_CONSTRUCTORS(db2Chunk, T, T_pfx);
 
-        // only clear up reflected types with the innermost value-types of flat data structures
-        // further work is required?
-        TYPE_IRRELATIVE ~db2Chunk() override
+    // only clear up reflected types with the innermost value-types of flat data structures
+    // further work is required?
+    TYPE_IRRELATIVE ~db2Chunk() override
     {
         if (this->data)
         {
@@ -304,6 +307,14 @@ public:
     }
 
     T &push_back(const T &t) = delete;
+};
+
+template <typename T, typename T_pfx>
+class db2ChunkStruct : public db2Chunk<T, T_pfx>
+{
+public:
+    TYPE_IRRELATIVE DB2_CONSTRUCTORS(db2ChunkStruct, T, T_pfx);
+    int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
 };
 
 class db2Chunks : public db2DynArray<db2Chunk<char> *>

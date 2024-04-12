@@ -15,6 +15,8 @@
 
 #include "db2_structure.h"
 
+#include "dotBox2d.h"
+
 #include "db2_decoder.h"
 
 auto test_c_array() -> void
@@ -574,16 +576,18 @@ auto test_step(b2World *b2w) -> void
 
 auto test_encoding() -> void
 {
+
+    b2World *p_b2w;
     db2Decoder der{};
     {
-        der.b2w = new b2World{{0.0f, -9.8f}};
+        p_b2w = new b2World{{0.0f, -9.8f}};
 
         /*body*/
         b2BodyDef dynamicBodyDef{};
         dynamicBodyDef.type = b2_dynamicBody;
         dynamicBodyDef.position.Set(8.0f, 8.0f);
 
-        auto dynamicBody = der.b2w->CreateBody(&dynamicBodyDef);
+        auto dynamicBody = p_b2w->CreateBody(&dynamicBodyDef);
 
         /*fixture*/
         b2CircleShape circle{};
@@ -601,7 +605,7 @@ auto test_encoding() -> void
         staticBodyDef.type = b2_staticBody;
         staticBodyDef.position.Set(0.0f, 0.0f);
 
-        auto staticBody = der.b2w->CreateBody(&staticBodyDef);
+        auto staticBody = p_b2w->CreateBody(&staticBodyDef);
 
         /*fixture2*/
         b2ChainShape chain{};
@@ -615,21 +619,23 @@ auto test_encoding() -> void
         staticBody->CreateFixture(&fixturedef2);
     }
 
-    der.encode();
-    der.db2->save("./test_encode.B2d", true);
-    der.db2->save("./test_encode_BE.B2D", false);
+    dotBox2d db2{};
+    db2.p_b2w = p_b2w;
+    db2.encode();
 
-    test_step(der.b2w);
+    // db2.save("./test_encode.B2d", true);
+    db2.save("./test_encode_BE.B2D", false);
+
+    test_step(db2.p_b2w);
 }
 
 auto test_decoding() -> void
 {
-    db2Decoder der{};
-    // der.db2 = new dotBox2d{"./test_encode.B2d"};
-    der.db2 = new dotBox2d{"./test_encode_BE.B2d"};
-    der.decode();
+    // dotBox2d db2{"./test_encode.B2d"};
+    dotBox2d db2{"./test_encode_BE.B2d"};
+    db2.decode();
 
-    test_step(der.b2w);
+    test_step(db2.p_b2w);
 }
 
 auto main() -> int

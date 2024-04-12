@@ -1,19 +1,11 @@
 #include "db2_decoder.h"
 
-// #include <assert.h>
-
-db2Decoder::~db2Decoder()
+auto db2Decoder::Decode(dotBox2d &db2) -> void
 {
-    delete this->db2;
-    delete this->b2w;
-}
-
-auto db2Decoder::decode() -> void
-{
-    if (!this->db2)
+    if (db2.p_b2w)
         return;
 
-    auto &dicts = this->db2->chunks.get<CKDict>();
+    auto &dicts = db2.chunks.get<CKDict>();
 
     /*world*/
     auto world_dict_i = INT32_MIN;
@@ -31,7 +23,7 @@ auto db2Decoder::decode() -> void
     b2Vec2 gravity;
     db2Decoder::Decode_World(db2w, gravity);
 
-    this->b2w = new b2World{gravity};
+    db2.p_b2w = new b2World{gravity};
 
     /*body*/
     auto &world_body_list = world_dict.at<CKList>(db2Key::Body);
@@ -44,7 +36,7 @@ auto db2Decoder::decode() -> void
         db2Decoder::Decode_Body(db2b, b2bdef);
 
         /*userData*/ b2bdef.userData.pointer = (uintptr_t)world_body_list.ref<CKDict>(b);
-        auto p_b2b = this->b2w->CreateBody(&b2bdef);
+        auto p_b2b = db2.p_b2w->CreateBody(&b2bdef);
         /*.userData*/ body_dict.runtimeData = p_b2b;
 
         /*fixture*/
@@ -101,7 +93,7 @@ auto db2Decoder::decode() -> void
             }
 
             /*userData*/ p_b2jdef->userData.pointer = (uintptr_t)world_joint_list.ref<CKDict>(j);
-            /*.userData*/ joint_dict.runtimeData = b2w->CreateJoint(p_b2jdef);
+            /*.userData*/ joint_dict.runtimeData = db2.p_b2w->CreateJoint(p_b2jdef);
             if (p_b2jdef)
                 delete p_b2jdef;
         }
@@ -433,14 +425,12 @@ auto db2Decoder::Decode_Joint(db2Joint &db2j, b2JointDef *&p_b2jdef) -> void
     }
 }
 
-auto db2Decoder::encode() -> void
+auto db2Decoder::Encode(dotBox2d &db2) -> void
 {
-    if (!this->b2w)
+    if (!db2.p_b2w)
         return;
 
-    auto _db2 = new dotBox2d();
-
-    auto &dicts = _db2->chunks.get<CKDict>();
+    auto &dicts = db2.chunks.get<CKDict>();
 
     // info
     {
@@ -454,13 +444,13 @@ auto db2Decoder::encode() -> void
     {
         auto &world_dict = dicts.emplace_back();
         auto &db2w = world_dict.emplace<CKWorld>(db2Key::Target);
-        db2Decoder::Encode_World(*this->b2w, db2w);
+        db2Decoder::Encode_World(*db2.p_b2w, db2w);
     }
 
     /*body*/
     db2DynArray<b2Body *> bodies{};
-    bodies.reserve(this->b2w->GetBodyCount(), false);
-    for (auto p_b2b = this->b2w->GetBodyList(); p_b2b; p_b2b = p_b2b->GetNext())
+    bodies.reserve(db2.p_b2w->GetBodyCount(), false);
+    for (auto p_b2b = db2.p_b2w->GetBodyList(); p_b2b; p_b2b = p_b2b->GetNext())
         bodies.push_back(p_b2b);
 
     for (int b = bodies.size() - 1; b >= 0; --b) // reverse order
@@ -511,8 +501,8 @@ auto db2Decoder::encode() -> void
 
     /*joint*/
     db2DynArray<b2Joint *> joints{};
-    joints.reserve(this->b2w->GetJointCount(), false);
-    for (auto p_b2j = this->b2w->GetJointList(); p_b2j; p_b2j = p_b2j->GetNext())
+    joints.reserve(db2.p_b2w->GetJointCount(), false);
+    for (auto p_b2j = db2.p_b2w->GetJointList(); p_b2j; p_b2j = p_b2j->GetNext())
         joints.push_back(p_b2j);
 
     for (int j = joints.size() - 1; j >= 0; --j) // reverse order
@@ -543,9 +533,6 @@ auto db2Decoder::encode() -> void
             /*joint2*/ joint_joint_list.emplace_back_ref<CKJoint>(((b2GearJoint *)p_b2j)->GetJoint2()->GetUserData().pointer);
         }
     }
-
-    delete this->db2;
-    this->db2 = _db2;
 }
 
 auto db2Decoder::Encode_World(b2World &b2w, db2World &db2w) -> void

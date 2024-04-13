@@ -4,8 +4,8 @@
 
 #include <boost/crc.hpp> // crc
 
-#include "db2_hardware_difference.h"
-#include "db2_reflector.h"
+#include "common/db2_hardware_difference.h"
+#include "common/db2_reflector.h"
 #include "db2_dynarray.h"
 
 /*

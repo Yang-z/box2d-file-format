@@ -1,6 +1,6 @@
 #include "dotBox2d.h"
 
-#include "db2_decoder.h"
+#include "decoders/db2_decoder.h"
 
 dotBox2d::dotBox2d(const char *file)
 {

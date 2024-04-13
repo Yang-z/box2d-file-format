@@ -2,9 +2,9 @@
 
 #include "box2d/box2d.h"
 
-#include "db2_cson.h"
-#include "db2_key.h"
-#include "db2_structure.h"
+#include "containers/db2_cson.h"
+#include "data/db2_key.h"
+#include "data/db2_structure.h"
 
 class dotBox2d
 {

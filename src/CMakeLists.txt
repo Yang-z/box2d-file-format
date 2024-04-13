@@ -1,6 +1,10 @@
 find_package(Boost 1.75 REQUIRED)
 
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} DOT_BOX2D_SOURCE_FILES)
+# aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} DOT_BOX2D_SOURCE_FILES)
+file(GLOB DOT_BOX2D_SOURCE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/*/*.cpp
+)
 
 add_library(dot-box2d ${DOT_BOX2D_SOURCE_FILES})
 

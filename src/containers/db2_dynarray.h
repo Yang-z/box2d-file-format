@@ -8,7 +8,7 @@
 #include <type_traits> // std::enable_if
 #include <functional>
 
-#include "db2_settings.h"
+#include "common/db2_settings.h"
 
 /*
 It's a std::vector-like container.

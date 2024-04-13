@@ -1,6 +1,6 @@
 #pragma once
 
-#include "db2_settings.h"
+#include "common/db2_settings.h"
 
 struct db2Key
 {

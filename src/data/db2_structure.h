@@ -1,6 +1,6 @@
 #pragma once
 
-#include "db2_chunk.h"
+#include "containers/db2_chunk.h"
 
 DB2_PRAGMA_PACK_ON
 

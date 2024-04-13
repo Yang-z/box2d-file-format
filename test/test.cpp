@@ -6,18 +6,18 @@
 // #include <boost/pfr/core.hpp>
 // #include <boost/pfr/core_name.hpp>
 
-#include "db2_settings.h"
-#include "db2_hardware_difference.h"
+#include "common/db2_settings.h"
+#include "common/db2_hardware_difference.h"
 
-#include "db2_dynarray.h"
-#include "db2_chunk.h"
-#include "db2_cson.h"
+#include "containers/db2_dynarray.h"
+#include "containers/db2_chunk.h"
+#include "containers/db2_cson.h"
 
-#include "db2_structure.h"
+#include "data/db2_structure.h"
+
+#include "decoders/db2_decoder.h"
 
 #include "dotBox2d.h"
-
-#include "db2_decoder.h"
 
 auto test_c_array() -> void
 {

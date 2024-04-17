@@ -20,7 +20,7 @@ public:
     };
 
 public: // static
-    static db2DynArray<db2Reflector *> reflectors;
+    static inline db2DynArray<db2Reflector *> reflectors{};
 
     template <typename CK_T>
     static auto Reflect(const char *type) -> void

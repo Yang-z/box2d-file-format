@@ -558,14 +558,14 @@ auto test_data_structure_read() -> void
     return;
 }
 
-auto test_step(b2World *b2w) -> void
+auto test_step(dotBox2d& db2) -> void
 {
-    auto dynamicBody = b2w->GetBodyList()->GetNext();
+    auto dynamicBody = db2.p_b2w->GetBodyList()->GetNext();
 
     int t = 0;
     while (true)
     {
-        b2w->Step(1.0f / 60.0f, 6, 2);
+        db2.step();
         printf("Py = %f; Vy = %f\n", dynamicBody->GetPosition().y, dynamicBody->GetLinearVelocity().y);
         if (t > 200)
             break;
@@ -622,11 +622,13 @@ auto test_encoding() -> void
     dotBox2d db2{};
     db2.p_b2w = p_b2w;
     db2.encode();
+    db2.p_db2ContactListener = new db2ContactListener{};
+    db2.p_db2OffstepListener = new db2OffstepListener{};
 
     // db2.save("./test_encode.B2d", true);
     db2.save("./test_encode_BE.B2D", false);
 
-    test_step(db2.p_b2w);
+    test_step(db2);
 }
 
 auto test_decoding() -> void
@@ -635,7 +637,7 @@ auto test_decoding() -> void
     dotBox2d db2{"./test_encode_BE.B2d"};
     db2.decode();
 
-    test_step(db2.p_b2w);
+    test_step(db2);
 }
 
 auto main() -> int

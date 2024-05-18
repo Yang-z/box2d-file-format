@@ -24,6 +24,10 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
     db2Decoder::Decode_World(db2w, gravity);
 
     db2.p_b2w = new b2World{gravity};
+    db2.dt = 1.0f/db2w.inv_dt;
+    db2.inv_dt = db2w.inv_dt;
+    db2.velocityIterations = db2w.velocityIterations;
+    db2.positionIterations = db2w.positionIterations;
 
     /*body*/
     auto &world_body_list = world_dict.at<CKList>(db2Key::Body);

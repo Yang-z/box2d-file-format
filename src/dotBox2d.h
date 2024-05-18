@@ -6,6 +6,18 @@
 #include "data/db2_key.h"
 #include "data/db2_structure.h"
 
+#include "events/db2_contact_listener.h"
+#include "events/db2_offstep_listener.h"
+
+// struct b2World_e
+// {
+//     b2World *world{nullptr};
+//     float32_t dt{1.0f / 60.0f};
+//     float32_t inv_dt{60.0f};
+//     int32_t velocityIterations{6};
+//     int32_t positionIterations{2};
+// };
+
 class dotBox2d
 {
 public:
@@ -17,7 +29,17 @@ public:
     };
 
     db2Chunks chunks;
+
+    // runtimedata
     b2World *p_b2w{nullptr};
+    float32_t dt{1.0f / 60.0f};
+    float32_t inv_dt{60.0f};
+    int32_t velocityIterations{6};
+    int32_t positionIterations{2};
+
+    // listeners
+    db2ContactListener *p_db2ContactListener{nullptr};
+    db2OffstepListener *p_db2OffstepListener{nullptr};
 
 public:
     dotBox2d(const char *file = nullptr);
@@ -29,4 +51,6 @@ public:
 
     auto decode() -> void;
     auto encode() -> void;
+
+    auto step() -> void;
 };

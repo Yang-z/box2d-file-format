@@ -22,10 +22,36 @@ public:
 public: // static
     static inline db2DynArray<db2Reflector *> reflectors{};
 
+    template <typename T>
+    static auto Reflect_POD(pack_info *pack) -> void
+    {
+        pack->length = sizeof(T);
+
+        // T shoud be of a POD (plain old data) type
+
+        static const T *const pt{nullptr};
+        static const T &vaule{*pt};
+
+        boost::pfr::for_each_field(
+            vaule,
+            [&](auto &field)
+            {
+                pack->offsets.push_back((char *)&field - (char *)&vaule);
+                pack->lengths.push_back(sizeof(field));
+            } //
+        );
+    }
+
     template <typename CK_T>
     static auto Reflect(const char *type) -> void
     {
         db2Reflector::reflectors.push_back(new db2Reflector())->reflect<CK_T>(type);
+    }
+
+    static auto ClearReflectors() -> void
+    {
+        for (int i = 0; i < db2Reflector::reflectors.size(); ++i)
+            delete db2Reflector::reflectors[i];
     }
 
     static auto GetReflector(const char *type) -> db2Reflector *
@@ -51,35 +77,23 @@ public: // static
         return nullptr;
     }
 
-    static auto ClearReflectors() -> void
+    template <typename CK_T>
+    static auto is(const char *type) -> bool
     {
-        for (int i = 0; i < db2Reflector::reflectors.size(); ++i)
-            delete db2Reflector::reflectors[i];
+        static auto reflector = db2Reflector::GetReflector<CK_T>();
+        return std::equal(type, type + 4, reflector->type);
     }
 
-    template <typename T>
-    static auto Reflect_POD(pack_info *pack) -> void
+    template <typename CK_T>
+    static auto is_ref_of(const char *type) -> bool
     {
-        pack->length = sizeof(T);
-
-        // T shoud be of a POD (plain old data) type
-
-        static const T *const pt{nullptr};
-        static const T &vaule{*pt};
-
-        boost::pfr::for_each_field(
-            vaule,
-            [&](auto &field)
-            {
-                pack->offsets.push_back((char *)&field - (char *)&vaule);
-                pack->lengths.push_back(sizeof(field));
-            } //
-        );
+        static auto reflector = db2Reflector::GetReflector<CK_T>();
+        return std::equal(type, type + 4, reflector->type_ref);
     }
 
 public: // instance
     char type[4]{0, 0, 0, 0};
-    char type_link[4]{0, 0, 0, 0};
+    char type_ref[4]{0, 0, 0, 0};
 
     size_t id;
     // std::type_info info;
@@ -106,7 +120,7 @@ public: // instance
     auto reflect(const char *type) -> void
     {
         std::memcpy(this->type, type, 4);
-        std::memcpy(this->type_link, type, 4);
+        std::memcpy(this->type_ref, type, 4);
         this->id = typeid(CK_T).hash_code();
 
         if constexpr (!has_value_type_v<CK_T>)
@@ -122,7 +136,7 @@ public: // instance
             this->type[2] = !has_value_type_v<value_type> ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
             this->type[3] = this->parent ? 0 : this->type[3];
 
-            this->type_link[0] = std::tolower(this->type_link[0]);
+            this->type_ref[0] = std::tolower(this->type_ref[0]);
 
             if constexpr (!has_value_type_v<value_type>)
                 Reflect_POD<value_type>((this->value = new pack_info(), this->value));

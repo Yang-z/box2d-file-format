@@ -51,7 +51,11 @@ ENDIAN_SENSITIVE struct db2World
     float32_t gravity_x{0.0f};
     float32_t gravity_y{0.0f};
 
-} DB2_ASSERT(sizeof(db2World) == 8);
+    float32_t inv_dt{60.0f};
+    int32_t velocityIterations{6}; 
+    int32_t positionIterations{2};
+
+} DB2_ASSERT(sizeof(db2World) == 20);
 
 struct db2Info
 {

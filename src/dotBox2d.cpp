@@ -1,6 +1,7 @@
 #include "dotBox2d.h"
 
 #include "decoders/db2_decoder.h"
+#include "decoders/db2_transcoder.h"
 
 dotBox2d::dotBox2d(const char *file)
 {
@@ -14,6 +15,12 @@ dotBox2d::~dotBox2d()
 {
     if (this->p_b2w)
         delete this->p_b2w;
+
+    if (this->p_db2ContactListener)
+        delete this->p_db2ContactListener;
+
+    if (this->p_db2OffstepListener)
+        delete this->p_db2OffstepListener;
 }
 
 auto dotBox2d::load(const char *filePath) -> void
@@ -62,9 +69,19 @@ auto dotBox2d::save(const char *filePath, bool asLittleEndian) -> void
 auto dotBox2d::decode() -> void
 {
     db2Decoder::Decode(*this);
+    db2Transcoder::Transcode(*this);
+
+    this->p_b2w->SetContactListener(this->p_db2ContactListener);
 }
 
 auto dotBox2d::encode() -> void
 {
     db2Decoder::Encode(*this);
+}
+
+auto dotBox2d::step() -> void
+{
+    this->p_db2OffstepListener->PreStep();
+    this->p_b2w->Step(this->dt, this->velocityIterations, this->positionIterations);
+    this->p_db2OffstepListener->PostStep();
 }

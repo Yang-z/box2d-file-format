@@ -32,7 +32,7 @@ public:
     auto find(const int32_t &key) -> db2DictElement &
     {
         static auto *reflector = db2Reflector::GetReflector<CK_T>();
-        static char *type = reflector ? reflector->type_link : nullptr;
+        static char *type = reflector ? reflector->type_ref : nullptr;
 
         return this->find(key, type);
     }
@@ -94,9 +94,9 @@ public: // Modifiers
             return;
 
         if (set)
-            std::memcpy(&element.type0, reflector->type_link, 4);
+            std::memcpy(&element.type0, reflector->type_ref, 4);
         else
-            assert(std::equal(&element.type0, &element.type0 + 4, reflector->type_link));
+            assert(std::equal(&element.type0, &element.type0 + 4, reflector->type_ref));
     }
 
     template <typename CK_T = int32_t>
@@ -204,11 +204,11 @@ public: // Modifiers
             return;
 
         if (this->size() != 0)
-            return assert(std::equal(this->type, this->type + 4, reflector->type_link));
+            return assert(std::equal(this->type, this->type + 4, reflector->type_ref));
 
         if (set)
             // Type field is used to store the type of element, and it is settled when the first element is added.
-            std::memcpy(this->type, reflector->type_link, 4);
+            std::memcpy(this->type, reflector->type_ref, 4);
     }
 
     template <typename CK_T = int32_t>

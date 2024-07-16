@@ -120,24 +120,11 @@ public: // Constructors
     // further work is required?
     TYPE_IRRELATIVE ~db2Chunk() override
     {
-        if (this->data)
+        if (this->data && this->reflector && this->reflector->child)
         {
-            if (this->reflector->child)
-            {
-                auto &self = *(db2Chunk<db2Chunk<char>> *)this;
-                for (auto i = 0; i < self.size(); ++i)
-                    self[i].~db2Chunk();
-            }
-
-            // free data, or leave it to base destructor?
-            std::free(this->data);
-            this->data = nullptr;
-        }
-
-        if (this->prefix)
-        {
-            std::free(this->prefix);
-            this->prefix = nullptr;
+            auto &self = *(db2Chunk<db2Chunk<char>> *)this;
+            for (auto i = 0; i < self.size(); ++i)
+                self[i].~db2Chunk();
         }
     }
 
@@ -216,7 +203,7 @@ public:
         const bool reverseEndian = HardwareDifference::IsLittleEndian() != asLittleEndian;
 
         if (this->reflector == nullptr || this->reflector->parent == nullptr)
-            this->refreshLengthChunk();
+            this->refresh_length_chunk();
 
         // length
         db2Chunk::WriteBytes((char *)&this->length_chunk, sizeof(this->length_chunk), fs, reverseEndian, nullptr, CRC);
@@ -254,7 +241,7 @@ public:
         }
     }
 
-    TYPE_IRRELATIVE auto refreshLengthChunk() -> void
+    TYPE_IRRELATIVE auto refresh_length_chunk() -> void
     {
         if (!this->reflector || !this->reflector->child)
         {
@@ -268,7 +255,7 @@ public:
         for (auto i = 0; i < this_->size(); ++i)
         {
             auto child = this_->data + i;
-            child->refreshLengthChunk();
+            child->refresh_length_chunk();
             this->length_chunk += child->length_chunk + 4 * 2; // length and type
         }
     }

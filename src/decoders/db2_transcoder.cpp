@@ -27,9 +27,9 @@ auto db2Transcoder::Transcode(dotBox2d &db2) -> void
 
             case db2Key::BreakForce:
             {
-                if (db2Reflector::is_ref_of<CKBody>(target_type))
+                if (db2Reflector::IsRefOf<CKBody>(target_type))
                     db2Transcoder::Transcode_BreakForce_Body(db2, reinterpret_cast<b2Body *&>(dict.runtimeData), reinterpret_cast<float32_t &>(elem.value));
-                else if (db2Reflector::is_ref_of<CKJoint>(target_type))
+                else if (db2Reflector::IsRefOf<CKJoint>(target_type))
                     db2Transcoder::Transcode_BreakForce_Joint(db2, reinterpret_cast<b2Joint *&>(dict.runtimeData), reinterpret_cast<float32_t &>(elem.value));
             }
             break;

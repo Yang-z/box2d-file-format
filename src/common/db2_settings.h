@@ -23,6 +23,8 @@ using float64_t = double;
 #define DB2_ASSERT(assert) DB2_SEMICOLON static_assert(assert, #assert)
 
 //
+#include <type_traits> // std::void_t
+
 template <typename CK_T, typename = void>
 struct has_value_type : std::false_type
 {

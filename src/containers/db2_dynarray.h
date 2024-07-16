@@ -45,18 +45,7 @@ public:
 
 public: // Constructors
     DB2_CONSTRUCTORS(db2DynArray, T);
-
-    virtual ~db2DynArray()
-    {
-        if (!this->data)
-            return;
-
-        for (int32_t i = 0; i < this->size(); ++i)
-            (this->data + i)->~T();
-
-        std::free(this->data);
-        this->data = nullptr;
-    }
+    virtual ~db2DynArray() { this->clear(); }
 
 public: // Element access
     auto operator[](const int32_t index) const -> T &
@@ -126,9 +115,9 @@ public: // Modifiers
 
         auto ptr = this->data + size_old;
         // (::new(ptr++) U(std::forward<Args>(args)), ...); // one arg for one U
-        // ::new (ptr) U[size_append](std::forward<Args>(args)...); // all args for every U?
+        // ::new (ptr) U[size_append](std::forward<Args>(args)...); // one arg for one U, but error "could not convert ... 'int' to 'db2DictElement'..."
         // ::new (ptr) U[]{std::forward<Args>(args)...}; // new U until all args is used
-        new (ptr) U[size_append]{std::forward<Args>(args)...}; // new U by [size_append] even when all args is used
+        ::new (ptr) U[size_append]{std::forward<Args>(args)...}; // new U by [size_append] even when all args is used
         this->length += sizeof(U) * size_append;
     }
 
@@ -183,13 +172,33 @@ public: // Modifiers
     }
     */
 
+    auto clear() -> void
+    {
+        if (!this->data)
+            return;
+
+        for (int32_t i = 0; i < this->size(); ++i)
+            (this->data + i)->~T();
+
+        std::free(this->data);
+        this->data = nullptr;
+        this->length = 0;
+        this->length_mem = 0;
+    }
+
 public:
-    auto find(std::function<bool(T &)> func) -> T &
+    auto find_index(const std::function<bool(T &)> &func) -> int32_t
     {
         for (int32_t i = 0; i < this->size(); ++i)
             if (func(this->data[i]))
-                return this->data[i];
-        return *(T *)nullptr;
+                return i;
+        return INT32_MIN;
+    }
+
+    auto find(const std::function<bool(T &)> &func) -> T &
+    {
+        int32_t index = this->find_index(func);
+        return index == INT32_MIN ? *(T *)nullptr : this->data[index];
     }
 
     auto for_each(std::function<bool(T &)> func) -> void
@@ -236,8 +245,10 @@ public:
 
 public:
     DB2_CONSTRUCTORS(db2DynArrayWithPrefix, T, T_pfx)
+    virtual ~db2DynArrayWithPrefix() { this->clear_pfx(); }
 
-    virtual ~db2DynArrayWithPrefix()
+public:
+    auto clear_pfx() -> void
     {
         if constexpr (!std::is_void_v<T_pfx>)
         {

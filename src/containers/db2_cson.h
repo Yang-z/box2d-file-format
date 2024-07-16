@@ -39,17 +39,26 @@ public:
 
     auto find(const int32_t &key, const char *type = nullptr) -> db2DictElement &
     {
-        for (int32_t i = 0; i < this->size(); ++i)
-        {
-            auto &element = this->data[i];
+        // for (int32_t i = 0; i < this->size(); ++i)
+        // {
+        //     auto &element = this->data[i];
 
-            bool match_key = &key == nullptr || element.key == key;
-            bool match_type = type == nullptr || std::equal(&element.type0, &element.type0 + 4, type);
+        //     bool match_key = &key == nullptr || element.key == key;
+        //     bool match_type = type == nullptr || std::equal(&element.type0, &element.type0 + 4, type);
 
-            if (match_key && match_type)
-                return element;
-        }
-        return *(db2DictElement *)nullptr;
+        //     if (match_key && match_type)
+        //         return element;
+        // }
+        // return *(db2DictElement *)nullptr;
+
+        return this->db2Chunk<db2DictElement>::find(
+            [&](db2DictElement &element) -> bool
+            {
+                bool match_key = &key == nullptr || element.key == key;
+                bool match_type = type == nullptr || std::equal(&element.type0, &element.type0 + 4, type);
+
+                return match_key && match_type;
+            });
     }
 
 public: // Element access
@@ -71,11 +80,10 @@ public: // Element access
     auto dereference(db2DictElement &element) -> vv_type & // could be null
     {
         // element could be null
-
         if (&element == nullptr)
             return *(vv_type *)nullptr;
 
-        this->handle_type<CK_T>(element);
+        this->handle_type<CK_T>(element); // necessary?
 
         if constexpr (has_value_type_v<CK_T>)
             return this->root->get<CK_T>().at(element.value); // could be null
@@ -249,6 +257,7 @@ struct db2String : public db2Chunk<char>
 
     auto c_str() -> char * { return this->data; }
 
+    auto operator=(const char *str) -> void { this->clear(), this->append_range(str); }
     auto operator+=(const char *str) -> void { this->append_range(str); }
 
     auto append_range(const char *str) -> void

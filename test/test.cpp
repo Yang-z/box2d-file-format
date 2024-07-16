@@ -482,6 +482,16 @@ auto test_hardware_difference() -> void
     printf("int32_t i32 = 8; //reversed = %d\n", i4r);
 }
 
+auto test_inline_static() -> void
+{
+    printf("db2Reflector::reflectors.size(): %d\n", db2Reflector::reflectors.size());
+    // if db2Reflector::reflectors is inline static, the size is zero;
+    // else if db2Reflector::reflectors is not inline, the size is not zero.
+
+    // db2Reflector::LocalStaticTester();
+    // // output 1 rather than 2
+}
+
 auto test_data_structure_write() -> void
 {
     auto db2 = new dotBox2d();
@@ -558,7 +568,7 @@ auto test_data_structure_read() -> void
     return;
 }
 
-auto test_step(dotBox2d& db2) -> void
+auto test_step(dotBox2d &db2) -> void
 {
     auto dynamicBody = db2.p_b2w->GetBodyList()->GetNext();
 
@@ -576,7 +586,6 @@ auto test_step(dotBox2d& db2) -> void
 
 auto test_encoding() -> void
 {
-
     b2World *p_b2w;
     db2Decoder der{};
     {
@@ -634,7 +643,8 @@ auto test_encoding() -> void
 auto test_decoding() -> void
 {
     // dotBox2d db2{"./test_encode.B2d"};
-    dotBox2d db2{"./test_encode_BE.B2d"};
+    dotBox2d db2{"./test_encode_BE.B2D"};
+    db2.load();
     db2.decode();
 
     test_step(db2);
@@ -664,6 +674,8 @@ auto main() -> int
     // test_CRC();
 
     // test_hardware_difference();
+
+    // test_inline_static();
 
     // test_data_structure_write();
     // test_data_structure_read();

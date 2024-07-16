@@ -6,6 +6,8 @@ DB2_PRAGMA_PACK_ON
 
 ENDIAN_SENSITIVE struct db2Shape : public db2ChunkStruct<float32_t>
 {
+    // 0: m_radius
+    // 1-n: points
 };
 
 ENDIAN_SENSITIVE struct db2Fixture
@@ -52,8 +54,10 @@ ENDIAN_SENSITIVE struct db2World
     float32_t gravity_y{0.0f};
 
     float32_t inv_dt{60.0f};
-    int32_t velocityIterations{6}; 
+    int32_t velocityIterations{6};
     int32_t positionIterations{2};
+
+    // aabb here?
 
 } DB2_ASSERT(sizeof(db2World) == 20);
 

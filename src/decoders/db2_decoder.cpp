@@ -5,77 +5,74 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
     if (db2.p_b2w)
         return;
 
-    auto &dicts = db2.chunks.get<CKDict>();
-
     /*world*/
-    auto world_dict_i = INT32_MIN;
-    for (auto i = 0; i < dicts.size(); i++)
-    {
-        if (&dicts[i].find<CKWorld>(db2Key::Target) != nullptr)
-        {
-            world_dict_i = i;
-            break;
-        }
-    }
-    auto &world_dict = dicts[world_dict_i];
+    auto &world_dict = db2.world_dict();
+    if (!&world_dict)
+        return;
     auto &db2w = world_dict.at<CKWorld>(db2Key::Target);
 
     b2Vec2 gravity;
     db2Decoder::Decode_World(db2w, gravity);
 
     db2.p_b2w = new b2World{gravity};
-    db2.dt = 1.0f/db2w.inv_dt;
+    db2.dt = 1.0f / db2w.inv_dt;
     db2.inv_dt = db2w.inv_dt;
     db2.velocityIterations = db2w.velocityIterations;
     db2.positionIterations = db2w.positionIterations;
 
     /*body*/
     auto &world_body_list = world_dict.at<CKList>(db2Key::Body);
-    for (auto b = 0; b < world_body_list.size(); b++)
+
+    if (&world_body_list)
     {
-        auto &body_dict = world_body_list.at<CKDict>(b);
-        auto &db2b = body_dict.at<CKBody>(db2Key::Target);
-
-        b2BodyDef b2bdef{};
-        db2Decoder::Decode_Body(db2b, b2bdef);
-
-        /*userData*/ b2bdef.userData.pointer = (uintptr_t)world_body_list.ref<CKDict>(b);
-        auto p_b2b = db2.p_b2w->CreateBody(&b2bdef);
-        /*.userData*/ body_dict.runtimeData = p_b2b;
-
-        /*fixture*/
-        auto &body_fixture_list = body_dict.at<CKList>(db2Key::Fixture);
-        for (auto f = 0; f < body_fixture_list.size(); f++)
+        for (auto b = 0; b < world_body_list.size(); ++b)
         {
-            auto &fixture_dict = body_fixture_list.at<CKDict>(f);
-            auto &db2f = fixture_dict.at<CKFixture>(db2Key::Target);
+            auto &body_dict = world_body_list.at<CKDict>(b);
+            auto &db2b = body_dict.at<CKBody>(db2Key::Target);
 
-            b2FixtureDef b2fdef{};
-            db2Decoder::Decode_Fixture(db2f, b2fdef);
+            b2BodyDef b2bdef{};
+            db2Decoder::Decode_Body(db2b, b2bdef);
 
-            /*shape*/
-            b2Shape *p_b2s = nullptr;
+            /*userData*/ b2bdef.userData.pointer = (uintptr_t)world_body_list.ref<CKDict>(b);
+            auto p_b2b = db2.p_b2w->CreateBody(&b2bdef);
+            /*.userData*/ body_dict.runtimeData = p_b2b;
+
+            /*fixture*/
+            auto &body_fixture_list = body_dict.at<CKList>(db2Key::Fixture);
+            for (auto f = 0; f < body_fixture_list.size(); ++f)
             {
-                auto &db2s = fixture_dict.at<CKShape>(db2Key::Shape);
-                db2Decoder::Decode_Shpae(db2s, p_b2s);
+                auto &fixture_dict = body_fixture_list.at<CKDict>(f);
+                auto &db2f = fixture_dict.at<CKFixture>(db2Key::Target);
+
+                b2FixtureDef b2fdef{};
+                db2Decoder::Decode_Fixture(db2f, b2fdef);
+
+                /*shape*/
+                b2Shape *p_b2s = nullptr;
+                {
+                    auto &db2s = fixture_dict.at<CKShape>(db2Key::Shape);
+                    db2Decoder::Decode_Shpae(db2s, p_b2s);
+                }
+
+                b2fdef.shape = p_b2s; // The shape will be cloned
+
+                /*userData*/ b2fdef.userData.pointer = (uintptr_t)body_fixture_list.ref<CKDict>(f);
+                auto p_b2f = p_b2b->CreateFixture(&b2fdef);
+                /*.userData*/ fixture_dict.runtimeData = p_b2f;
+
+                if (p_b2s)
+                    delete p_b2s; // virtual ~b2Shape()
             }
-
-            b2fdef.shape = p_b2s; // The shape will be cloned
-
-            /*userData*/ b2fdef.userData.pointer = (uintptr_t)body_fixture_list.ref<CKDict>(f);
-            auto p_b2f = p_b2b->CreateFixture(&b2fdef);
-            /*.userData*/ fixture_dict.runtimeData = p_b2f;
-
-            if (p_b2s)
-                delete p_b2s; // virtual ~b2Shape()
         }
     }
+
+    // /*test return*/ return;
 
     /*joint*/
     auto &world_joint_list = world_dict.at<CKList>(db2Key::Joint);
     if (&world_joint_list)
     {
-        for (auto j = 0; j < world_joint_list.size(); j++)
+        for (auto j = 0; j < world_joint_list.size(); ++j)
         {
             auto &joint_dict = world_joint_list.at<CKDict>(j);
             auto &db2j = joint_dict.at<CKJoint>(db2Key::Target);
@@ -622,7 +619,7 @@ auto db2Decoder::Encode_Shpae(b2Shape &b2s, db2Shape &db2s) -> void
 
         db2s.reserve(1 + b2s_p.m_count * 2);
 
-        for (int i = 0; i < b2s_p.m_count; i++)
+        for (int i = 0; i < b2s_p.m_count; ++i)
         {
             db2s.emplace_back(b2s_p.m_vertices[i].x);
             db2s.emplace_back(b2s_p.m_vertices[i].y);
@@ -636,7 +633,7 @@ auto db2Decoder::Encode_Shpae(b2Shape &b2s, db2Shape &db2s) -> void
 
         db2s.reserve(1 + b2s_chain.m_count * 2 + 2 * 2);
 
-        for (int i = 0; i < b2s_chain.m_count; i++)
+        for (int i = 0; i < b2s_chain.m_count; ++i)
         {
             db2s.emplace_back(b2s_chain.m_vertices[i].x);
             db2s.emplace_back(b2s_chain.m_vertices[i].y);

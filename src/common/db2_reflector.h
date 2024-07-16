@@ -9,6 +9,8 @@
 #include "db2_settings.h"
 #include "containers/db2_dynarray.h"
 
+// #include "stdio.h"
+
 class db2Reflector
 {
 public:
@@ -20,7 +22,20 @@ public:
     };
 
 public: // static
-    static inline db2DynArray<db2Reflector *> reflectors{};
+    // A single linked library or executable file keeps only one copy of an inline static data menber,
+    // but it can still cause multiple instances across different libraries.
+    // So, don't use inline static data menbers and forget about "header-only".
+    static db2DynArray<db2Reflector *> reflectors;
+
+    // // function-local static object in an inline function is also duplicated accross different libraries.
+    // static int caller;
+    // inline static auto LocalStaticTester() -> int
+    // {
+    //     static int i{0};
+    //     ++i;
+    //     printf("i = %d\n", i);
+    //     return i;
+    // }
 
     template <typename T>
     static auto Reflect_POD(pack_info *pack) -> void
@@ -78,14 +93,14 @@ public: // static
     }
 
     template <typename CK_T>
-    static auto is(const char *type) -> bool
+    static auto Is(const char *type) -> bool
     {
         static auto reflector = db2Reflector::GetReflector<CK_T>();
         return std::equal(type, type + 4, reflector->type);
     }
 
     template <typename CK_T>
-    static auto is_ref_of(const char *type) -> bool
+    static auto IsRefOf(const char *type) -> bool
     {
         static auto reflector = db2Reflector::GetReflector<CK_T>();
         return std::equal(type, type + 4, reflector->type_ref);

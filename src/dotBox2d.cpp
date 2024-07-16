@@ -3,12 +3,9 @@
 #include "decoders/db2_decoder.h"
 #include "decoders/db2_transcoder.h"
 
-dotBox2d::dotBox2d(const char *file)
+dotBox2d::dotBox2d(const char *filePath)
 {
-    if (!file)
-        return;
-
-    dotBox2d::load(file);
+    this->set_file_path(filePath);
 }
 
 dotBox2d::~dotBox2d()
@@ -23,8 +20,18 @@ dotBox2d::~dotBox2d()
         delete this->p_db2OffstepListener;
 }
 
+auto dotBox2d::set_file_path(const char *&filePath) -> void
+{
+    if (filePath)
+        this->filePath = filePath;
+    else
+        filePath = this->filePath.c_str();
+}
+
 auto dotBox2d::load(const char *filePath) -> void
 {
+    this->set_file_path(filePath);
+
     std::ifstream fs{filePath, std::ios::binary};
     if (!fs)
         return;
@@ -50,6 +57,8 @@ auto dotBox2d::load(const char *filePath) -> void
 
 auto dotBox2d::save(const char *filePath, bool asLittleEndian) -> void
 {
+    this->set_file_path(filePath);
+
     std::ofstream fs{filePath, std::ios::binary | std::ios::out};
     if (!fs)
         return;
@@ -81,7 +90,27 @@ auto dotBox2d::encode() -> void
 
 auto dotBox2d::step() -> void
 {
-    this->p_db2OffstepListener->PreStep();
+    if (!this->p_b2w)
+        return;
+    if (this->p_db2OffstepListener)
+        this->p_db2OffstepListener->PreStep();
     this->p_b2w->Step(this->dt, this->velocityIterations, this->positionIterations);
-    this->p_db2OffstepListener->PostStep();
+    if (this->p_db2OffstepListener)
+        this->p_db2OffstepListener->PostStep();
+}
+
+auto dotBox2d::world_dict_i() -> int32_t
+{
+    return chunks.get<CKDict>().find_index(
+        [](db2Dict &dict)
+        { return &dict.find<CKWorld>(db2Key::Target); } //
+    );
+}
+
+auto dotBox2d::world_dict() -> db2Dict &
+{
+    return chunks.get<CKDict>().find(
+        [](db2Dict &dict)
+        { return &dict.find<CKWorld>(db2Key::Target); } //
+    );
 }

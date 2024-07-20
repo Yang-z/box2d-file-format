@@ -103,7 +103,7 @@ auto dotBox2d::world_dict_i() -> int32_t
 {
     return chunks.get<CKDict>().find_index(
         [](db2Dict &dict)
-        { return &dict.find<CKWorld>(db2Key::Target); } //
+        { return dict.find<CKWorld>(db2Key::Target) != nullval; } //
     );
 }
 
@@ -111,6 +111,6 @@ auto dotBox2d::world_dict() -> db2Dict &
 {
     return chunks.get<CKDict>().find(
         [](db2Dict &dict)
-        { return &dict.find<CKWorld>(db2Key::Target); } //
+        { return dict.find<CKWorld>(db2Key::Target) != nullval; } //
     );
 }

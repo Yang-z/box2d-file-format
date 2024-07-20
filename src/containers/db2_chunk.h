@@ -262,7 +262,7 @@ public:
 
 public:
     template <typename... Args>
-    auto emplace(const int32_t &index, Args &&...args) -> T &
+    auto emplace(const int32_t index, Args &&...args) -> T &
     {
         if constexpr (is_db2Chunk<T>::value) // sub-chunk
         {
@@ -325,14 +325,14 @@ public:
             if (p_chunk->reflector->id == typeid(CK_T).hash_code())
                 return *(CK_T *)p_chunk;
         }
-        return *(CK_T *)nullptr;
+        return nullval;
     }
 
     template <typename CK_T>
     auto get() -> CK_T &
     {
         auto &chunk = this->at<CK_T>();
-        return &chunk ? chunk : this->emplace<CK_T>();
+        return chunk != nullval ? chunk : this->emplace<CK_T>();
     }
 
     template <typename CK_T = void, typename default_type = typename std::conditional<std::is_same<CK_T, void>::value, db2Chunk<char>, CK_T>::type>

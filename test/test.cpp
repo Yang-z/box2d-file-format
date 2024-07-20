@@ -8,6 +8,7 @@
 
 #include "common/db2_settings.h"
 #include "common/db2_hardware_difference.h"
+#include "common/db2_nullval.h"
 
 #include "containers/db2_dynarray.h"
 #include "containers/db2_chunk.h"
@@ -450,6 +451,16 @@ auto test_typeid() -> void
     printf("typeid(CK_int32>) : %s %zu\n", typeid(CK_int32).name(), typeid(CK_int32).hash_code()); // typeid(CK_int32>) : Z11test_typeidvE8CK_int32 221492753444786947
 }
 
+auto test_inline_static() -> void
+{
+    printf("db2Reflector::reflectors.size(): %d\n", db2Reflector::reflectors.size());
+    // if db2Reflector::reflectors is inline static, the size is zero;
+    // else if db2Reflector::reflectors is not inline, the size is not zero.
+
+    // db2Reflector::LocalStaticTester();
+    // // output 1 rather than 2
+}
+
 /* ================================ */
 
 auto test_CRC() -> void
@@ -482,14 +493,21 @@ auto test_hardware_difference() -> void
     printf("int32_t i32 = 8; //reversed = %d\n", i4r);
 }
 
-auto test_inline_static() -> void
+auto test_nullval() -> void
 {
-    printf("db2Reflector::reflectors.size(): %d\n", db2Reflector::reflectors.size());
-    // if db2Reflector::reflectors is inline static, the size is zero;
-    // else if db2Reflector::reflectors is not inline, the size is not zero.
+    printf("%d\n", &nullval);
+    printf("%d\n", &nullval);
+    // same address
 
-    // db2Reflector::LocalStaticTester();
-    // // output 1 rather than 2
+    int &i = nullval;
+    int i1 = 0;
+    // int i2 = nullval; // don't do this
+
+    printf("%d\n", i == nullval);  // true
+    printf("%d\n", i1 == nullval); // false
+
+    printf("%d\n", i != nullval);  // false
+    printf("%d\n", i1 != nullval); // true
 }
 
 auto test_data_structure_write() -> void
@@ -669,13 +687,15 @@ auto main() -> int
     // test_reflection();
     // test_typeid();
 
+    // test_inline_static();
+
     /* ================================ */
 
     // test_CRC();
 
     // test_hardware_difference();
 
-    // test_inline_static();
+    // test_nullval();
 
     // test_data_structure_write();
     // test_data_structure_read();

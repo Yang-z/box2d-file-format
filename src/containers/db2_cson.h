@@ -43,20 +43,19 @@ public:
         // {
         //     auto &element = this->data[i];
 
-        //     bool match_key = &key == nullptr || element.key == key;
+        //     bool match_key = key == nullval || element.key == key;
         //     bool match_type = type == nullptr || std::equal(&element.type0, &element.type0 + 4, type);
 
         //     if (match_key && match_type)
         //         return element;
         // }
-        // return *(db2DictElement *)nullptr;
+        // return nullval;
 
         return this->db2Chunk<db2DictElement>::find(
             [&](db2DictElement &element) -> bool
             {
-                bool match_key = &key == nullptr || element.key == key;
+                bool match_key = key == nullval || element.key == key;
                 bool match_type = type == nullptr || std::equal(&element.type0, &element.type0 + 4, type);
-
                 return match_key && match_type;
             });
     }
@@ -66,7 +65,7 @@ public: // Element access
     auto ref(const int32_t &key) -> int32_t & // If no such element exists, null is returned
     {
         auto &element = this->find<CK_T>(key); // could be null
-        return &element ? element.value : *(int32_t *)nullptr;
+        return element != nullval ? element.value : nullval;
     }
 
     template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type>
@@ -80,8 +79,8 @@ public: // Element access
     auto dereference(db2DictElement &element) -> vv_type & // could be null
     {
         // element could be null
-        if (&element == nullptr)
-            return *(vv_type *)nullptr;
+        if (element == nullval)
+            return nullval;
 
         this->handle_type<CK_T>(element); // necessary?
 
@@ -108,7 +107,7 @@ public: // Modifiers
     }
 
     template <typename CK_T = int32_t>
-    auto link(const int32_t &key, const int32_t &v_index = *(int32_t *)nullptr) -> int32_t & // performing an insertion if such key does not already exist
+    auto link(const int32_t &key, const int32_t &v_index = nullval) -> int32_t & // performing an insertion if such key does not already exist
     {
         auto &element = this->emplace_ref<CK_T>(key, v_index);
         return element.value;
@@ -119,19 +118,19 @@ public: // Modifiers
     {
         auto &element = this->emplace_ref<CK_T>(key);      // not null
         auto &vv_value = this->dereference<CK_T>(element); // could be null
-        return &vv_value ? vv_value : this->emplace_val<CK_T>(element);
+        return vv_value != nullval ? vv_value : this->emplace_val<CK_T>(element);
     }
 
     template <typename CK_T = int32_t>
-    auto emplace_ref(const int32_t &key, const int32_t &v_index = *(int32_t *)nullptr) -> db2DictElement & // or get_ref
+    auto emplace_ref(const int32_t &key, const int32_t &v_index = nullval) -> db2DictElement & // or get_ref
     {
         auto p_element = &this->find<CK_T>(key);
-        if (p_element == nullptr)
+        if (*p_element == nullval)
         {
             p_element = &this->db2Chunk<db2DictElement>::emplace_back(key);
             this->handle_type<CK_T>(*p_element, true);
         }
-        if (&v_index)
+        if (v_index != nullval)
             p_element->value = v_index;
         return *p_element;
     }
@@ -139,7 +138,7 @@ public: // Modifiers
     template <typename CK_T = int32_t, typename vv_type = typename default_value<CK_T>::type, typename... Args>
     auto emplace_val(db2DictElement &element, Args &&...args) -> vv_type &
     {
-        assert(&element);
+        assert(element != nullval);
         auto &v_index = element.value;
 
         if constexpr (has_value_type_v<CK_T>)

@@ -9,6 +9,7 @@
 #include <functional>
 
 #include "common/db2_settings.h"
+#include "common/db2_nullval.h"
 
 /*
 It's a std::vector-like container.
@@ -61,20 +62,19 @@ public: // Element access
     {
         static_assert(sizeof(U) == sizeof(T));
 
-        T *ptr = nullptr;
-        if (&index != nullptr)
+        if (index != nullval)
         {
             auto size = this->size();
             const auto i = index >= 0 ? index : index + size;
             if (0 <= i && i < size)
-                ptr = this->data + i;
+                return *(U*)(this->data + i);
         }
-        return *(U *)(ptr);
+        return nullval;
     }
 
 public: // Modifiers
     template <typename U = T, typename... Args>
-    auto emplace(const int32_t &index, Args &&...args) -> U &
+    auto emplace(const int32_t index, Args &&...args) -> U &
     {
         static_assert(sizeof(U) == sizeof(T));
         assert(0 <= index && index < this->size());
@@ -198,7 +198,7 @@ public:
     auto find(const std::function<bool(T &)> &func) -> T &
     {
         int32_t index = this->find_index(func);
-        return index == INT32_MIN ? *(T *)nullptr : this->data[index];
+        return index == INT32_MIN ? nullval : this->data[index];
     }
 
     auto for_each(std::function<bool(T &)> func) -> void

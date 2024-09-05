@@ -83,11 +83,15 @@ public: // static
     template <typename CK_T>
     static auto GetReflector() -> db2Reflector *
     {
+        static db2Reflector *Reflector = nullptr;
+        if (Reflector)
+            return Reflector;
+
         for (int i = 0; i < db2Reflector::reflectors.size(); ++i)
         {
             auto &reflector = db2Reflector::reflectors[i];
-            if (reflector->id == typeid(CK_T).hash_code())
-                return reflector;
+            if (reflector->info == &typeid(CK_T))
+                return Reflector = reflector, Reflector;
         }
         return nullptr;
     }
@@ -95,8 +99,7 @@ public: // static
     template <typename CK_T>
     static auto Is(const char *type) -> bool
     {
-        static auto reflector = db2Reflector::GetReflector<CK_T>();
-        return std::equal(type, type + 4, reflector->type);
+        return std::equal(type, type + 4, db2Reflector::GetReflector<CK_T>()->type);
     }
 
     template <typename CK_T>
@@ -110,8 +113,7 @@ public: // instance
     char type[4]{0, 0, 0, 0};
     char type_ref[4]{0, 0, 0, 0};
 
-    size_t id;
-    // std::type_info info;
+    const std::type_info *info;
 
     pack_info *prefix{nullptr};
     pack_info *value{nullptr};
@@ -136,7 +138,7 @@ public: // instance
     {
         std::memcpy(this->type, type, 4);
         std::memcpy(this->type_ref, type, 4);
-        this->id = typeid(CK_T).hash_code();
+        this->info = &typeid(CK_T);
 
         if constexpr (!has_value_type_v<CK_T>)
             Reflect_POD<CK_T>((this->value = new pack_info(), this->value));
@@ -151,7 +153,8 @@ public: // instance
             this->type[2] = !has_value_type_v<value_type> ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
             this->type[3] = this->parent ? 0 : this->type[3];
 
-            this->type_ref[0] = std::tolower(this->type_ref[0]);
+            // detemine the ref type latter
+            // this->type_ref[0] = std::tolower(this->type_ref[0]);
 
             if constexpr (!has_value_type_v<value_type>)
                 Reflect_POD<value_type>((this->value = new pack_info(), this->value));

@@ -9,7 +9,7 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
     auto &world_dict = db2.world_dict();
     if (world_dict == nullval)
         return;
-    auto &db2w = world_dict.at<CKWorld>(db2Key::Target);
+    auto &db2w = world_dict.at<CKWorld>(db2Key::Base);
 
     b2Vec2 gravity;
     db2Decoder::Decode_World(db2w, gravity);
@@ -21,14 +21,14 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
     db2.positionIterations = db2w.positionIterations;
 
     /*body*/
-    auto &world_body_list = world_dict.at<CKList>(db2Key::Body);
+    auto &world_body_list = world_dict.at<CKList>(db2Key::BODY);
 
     if (world_body_list != nullval)
     {
         for (auto b = 0; b < world_body_list.size(); ++b)
         {
             auto &body_dict = world_body_list.at<CKDict>(b);
-            auto &db2b = body_dict.at<CKBody>(db2Key::Target);
+            auto &db2b = body_dict.at<CKBody>(db2Key::Base);
 
             b2BodyDef b2bdef{};
             db2Decoder::Decode_Body(db2b, b2bdef);
@@ -38,12 +38,12 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
             /*.userData*/ body_dict.runtimeData = p_b2b;
 
             /*fixture*/
-            auto &body_fixture_list = body_dict.at<CKList>(db2Key::Fixture);
+            auto &body_fixture_list = body_dict.at<CKList>(db2Key::FIXTURE);
             if (body_fixture_list != nullval)
                 for (auto f = 0; f < body_fixture_list.size(); ++f)
                 {
                     auto &fixture_dict = body_fixture_list.at<CKDict>(f);
-                    auto &db2f = fixture_dict.at<CKFixture>(db2Key::Target);
+                    auto &db2f = fixture_dict.at<CKFixture>(db2Key::Base);
 
                     b2FixtureDef b2fdef{};
                     db2Decoder::Decode_Fixture(db2f, b2fdef);
@@ -51,7 +51,7 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
                     /*shape*/
                     b2Shape *p_b2s = nullptr;
                     {
-                        auto &db2s = fixture_dict.at<CKShape>(db2Key::Shape);
+                        auto &db2s = fixture_dict.at<CKShape>(db2Key::SHAPE);
                         db2Decoder::Decode_Shpae(db2s, p_b2s);
                     }
 
@@ -70,26 +70,26 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
     // /*test return*/ return;
 
     /*joint*/
-    auto &world_joint_list = world_dict.at<CKList>(db2Key::Joint);
+    auto &world_joint_list = world_dict.at<CKList>(db2Key::JOINT);
     if (world_joint_list != nullval)
     {
         for (auto j = 0; j < world_joint_list.size(); ++j)
         {
             auto &joint_dict = world_joint_list.at<CKDict>(j);
-            auto &db2j = joint_dict.at<CKJoint>(db2Key::Target);
+            auto &db2j = joint_dict.at<CKJoint>(db2Key::Base);
 
             b2JointDef *p_b2jdef{nullptr};
             db2Decoder::Decode_Joint(db2j, p_b2jdef);
 
             if (db2j.type3() != b2JointType::e_gearJoint)
             {
-                auto &joint_body_list = joint_dict.at<CKList>(db2Key::Body);
+                auto &joint_body_list = joint_dict.at<CKList>(db2Key::BODY);
                 p_b2jdef->bodyA = (b2Body *)joint_body_list.at<CKDict>(0).runtimeData;
                 p_b2jdef->bodyB = (b2Body *)joint_body_list.at<CKDict>(1).runtimeData;
             }
             else
             {
-                auto &joint_joint_list = joint_dict.at<CKList>(db2Key::Joint);
+                auto &joint_joint_list = joint_dict.at<CKList>(db2Key::JOINT);
                 ((b2GearJointDef *)p_b2jdef)->joint1 = (b2Joint *)joint_joint_list.at<CKDict>(0).runtimeData;
                 ((b2GearJointDef *)p_b2jdef)->joint2 = (b2Joint *)joint_joint_list.at<CKDict>(1).runtimeData;
             }
@@ -438,14 +438,14 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
     {
         // constructs an element in-place at the end
         auto &info = dicts.emplace_back();
-        info.emplace<CKInfo>(db2Key::Target);
+        info.emplace<CKInfo>(db2Key::Base);
     }
 
     // world
     auto world_dict_i = dicts.size();
     {
         auto &world_dict = dicts.emplace_back();
-        auto &db2w = world_dict.emplace<CKWorld>(db2Key::Target);
+        auto &db2w = world_dict.emplace<CKWorld>(db2Key::Base);
         db2Decoder::Encode_World(*db2.p_b2w, db2w);
     }
 
@@ -461,9 +461,9 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
 
         auto body_dict_i = dicts.size();
         {
-            auto &world_body_list = dicts[world_dict_i].get<CKList>(db2Key::Body);
+            auto &world_body_list = dicts[world_dict_i].get<CKList>(db2Key::BODY);
             auto &body_dict = world_body_list.emplace_back<CKDict>();
-            auto &db2b = body_dict.emplace<CKBody>(db2Key::Target);
+            auto &db2b = body_dict.emplace<CKBody>(db2Key::Base);
             db2Decoder::Encode_Body(*p_b2b, db2b);
 
             /*.userData*/ body_dict.runtimeData = p_b2b;
@@ -482,9 +482,9 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
 
             auto fixture_dict_i = dicts.size();
             {
-                auto &body_fixture_list = dicts[body_dict_i].get<CKList>(db2Key::Fixture);
+                auto &body_fixture_list = dicts[body_dict_i].get<CKList>(db2Key::FIXTURE);
                 auto &fixture_dict = body_fixture_list.emplace_back<CKDict>();
-                auto &db2f = fixture_dict.emplace<CKFixture>(db2Key::Target);
+                auto &db2f = fixture_dict.emplace<CKFixture>(db2Key::Base);
 
                 db2Decoder::Encode_Fixture(*p_b2f, db2f);
 
@@ -495,7 +495,7 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
             /*shape*/
             {
                 auto p_b2s = p_b2f->GetShape();
-                auto &fixture_shape = dicts[fixture_dict_i].emplace<CKShape>(db2Key::Shape);
+                auto &fixture_shape = dicts[fixture_dict_i].emplace<CKShape>(db2Key::SHAPE);
                 db2Decoder::Encode_Shpae(*p_b2s, fixture_shape);
             }
         }
@@ -513,9 +513,9 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
 
         auto joint_dict_i = dicts.size();
         {
-            auto &world_joint_list = dicts[world_dict_i].get<CKList>(db2Key::Joint);
+            auto &world_joint_list = dicts[world_dict_i].get<CKList>(db2Key::JOINT);
             auto &joint_dict = world_joint_list.emplace_back<CKDict>();
-            auto &db2j = joint_dict.emplace<CKJoint>(db2Key::Target);
+            auto &db2j = joint_dict.emplace<CKJoint>(db2Key::Base);
             db2Decoder::Encode_Joint(*p_b2j, db2j);
 
             /*.userData*/ joint_dict.runtimeData = p_b2j;
@@ -524,13 +524,13 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
 
         if (p_b2j->GetType() != b2JointType::e_gearJoint)
         {
-            auto &joint_body_list = dicts[joint_dict_i].get<CKList>(db2Key::Body);
+            auto &joint_body_list = dicts[joint_dict_i].get<CKList>(db2Key::BODY);
             /*bodyA*/ joint_body_list.emplace_back_ref<CKBody>(p_b2j->GetBodyA()->GetUserData().pointer);
             /*bodyB*/ joint_body_list.emplace_back_ref<CKBody>(p_b2j->GetBodyB()->GetUserData().pointer);
         }
         else
         {
-            auto &joint_joint_list = dicts[joint_dict_i].get<CKList>(db2Key::Joint);
+            auto &joint_joint_list = dicts[joint_dict_i].get<CKList>(db2Key::JOINT);
             /*joint1*/ joint_joint_list.emplace_back_ref<CKJoint>(((b2GearJoint *)p_b2j)->GetJoint1()->GetUserData().pointer);
             /*joint2*/ joint_joint_list.emplace_back_ref<CKJoint>(((b2GearJoint *)p_b2j)->GetJoint2()->GetUserData().pointer);
         }

@@ -21,12 +21,17 @@ So, any referencing to the original data could become invalid. Only index access
 guaranteed to be safe.
 */
 
-#define DB2_CONSTRUCTORS(CLS, ...)                                       \
-    CLS() = default;                                                     \
-    CLS(const CLS<__VA_ARGS__> &other) = delete;                         \
-    CLS<__VA_ARGS__> &operator=(const CLS<__VA_ARGS__> &other) = delete; \
-    CLS(CLS<__VA_ARGS__> &&other) { *this = std::move(other); };         \
-    CLS<__VA_ARGS__> &operator=(CLS<__VA_ARGS__> &&other) { return std::memcpy(this, &other, sizeof(*this)), std::memset(&other, 0, sizeof(*this)), *this; };
+#define DB2_DYNARRAY_CONSTRUCTORS(CLS, ...)                                                                 \
+    CLS() = default;                                                                                        \
+    CLS(uint32_t size, bool initialize = true) { this->expand(size, initialize); };                         \
+    CLS(const std::initializer_list<typename CLS::value_type> &arg_list) { this->append_range(arg_list); }; \
+    CLS(const CLS<__VA_ARGS__> &other) { *this = other; };                                                  \
+    CLS(CLS<__VA_ARGS__> &&other) { this->move(std::move(other)); };                                        \
+    virtual ~CLS() { this->clear(); }                                                                       \
+    CLS<__VA_ARGS__> &operator=(const CLS<__VA_ARGS__> &other) { return this->copy(other), *this; };        \
+    CLS<__VA_ARGS__> &operator=(CLS<__VA_ARGS__> &&other) { return this->move(std::move(other)), *this; };  \
+    bool operator==(const CLS<__VA_ARGS__> &other) const { return this->equal(other); };                    \
+    bool operator!=(const CLS<__VA_ARGS__> &other) const { return !this->equal(other); };
 
 template <typename T>
 class db2DynArray
@@ -36,41 +41,76 @@ public:
 
 public:
     T *data{nullptr};
-    int32_t length{0}; // length in bytes
-private:
-    int32_t length_mem{0}; // length in bytes
+    uint32_t length{0}; // length in bytes
+protected:
+    uint32_t length_mem{0}; // length in bytes
 
 public:
-    const int32_t size() const { return this->length / sizeof(T); }
-    const int32_t capacity() const { return this->length_mem / sizeof(T); }
+    const uint32_t size() const { return this->length / sizeof(T); }
+    const uint32_t capacity() const { return this->length_mem / sizeof(T); }
 
 public: // Constructors
-    DB2_CONSTRUCTORS(db2DynArray, T);
-    virtual ~db2DynArray() { this->clear(); }
+    DB2_DYNARRAY_CONSTRUCTORS(db2DynArray, T);
+
+    auto virtual copy(const db2DynArray<T> &other) -> void
+    {
+        this->clear();
+        this->reserve_mem(other.length_mem, false);
+        std::memcpy(this->data, other.data, other.length_mem);
+
+        std::memcpy(this, &other, sizeof(*this));
+    }
+
+    auto virtual move(db2DynArray<T> &&other) -> void
+    {
+        this->clear();
+        std::memcpy(this, &other, sizeof(*this));
+        std::memset(&other, 0, sizeof(*this));
+    }
+
+    auto virtual equal(const db2DynArray<T> &other) const -> bool
+    {
+        return this->length == other.length &&
+               std::memcmp(this->data, other.data, this->length) == 0;
+    }
 
 public: // Element access
-    auto operator[](const int32_t index) const -> T &
+    auto operator[](const uint32_t index) const -> T &
     {
-        const auto i = index >= 0 ? index : index + this->size();
-        auto ptr = this->data + i;
-        return *(T *)(ptr);
-        // return *reinterpret_cast<U *>(ptr);
+        return *(T *)(this->data + index);
+        // return *reinterpret_cast<U *>(this->data + index);
     }
 
     template <typename U = T>
-    auto at(const int32_t &index) const -> U & // If no such element exists, null is returned
+    auto at(const uint32_t &index, const T &default_ = nullval) const -> U & // If no such element exists, null is returned
     {
         static_assert(sizeof(U) == sizeof(T));
 
         if (index != nullval)
         {
-            auto size = this->size();
-            const auto i = index >= 0 ? index : index + size;
-            if (0 <= i && i < size)
-                return *(U*)(this->data + i);
+            if (0 <= index && index < this->size())
+                return *(U *)(this->data + index);
+        }
+        return *(U *)(&default_);
+        // Temporaries live until the end of the full-expression in which they were created.
+        // If you pass a temporary to default_, you should copy the return value rather than take a reference.
+        // If you bind it to a const reference, lifetime of temporary passed to default_ will be extended??
+    }
+
+    template <typename U = T>
+    auto get(const uint32_t &index) -> U &
+    {
+        static_assert(sizeof(U) == sizeof(T));
+
+        if (index != nullval)
+        {
+            this->expand(index + 1);
+            return *(U *)(this->data + index);
         }
         return nullval;
     }
+
+    auto back() const -> T & { return *(T *)(this->data + this->size() - 1); }
 
 public: // Modifiers
     template <typename U = T, typename... Args>
@@ -95,13 +135,44 @@ public: // Modifiers
         this->reserve(size + 1);
 
         auto ptr = this->data + size;
-        // ::new (ptr) U(args...);
         ::new (ptr) U(std::forward<Args>(args)...);
         this->length += sizeof(U);
 
         return *(U *)ptr;
     }
 
+    template <typename U = T, typename... Args>
+    auto insert(const int32_t index, Args &&...args) -> U &
+    {
+        static_assert(sizeof(U) == sizeof(T));
+
+        auto size = this->size(); // old size
+        this->reserve(size + 1);
+
+        auto ptr = this->data + size;
+        ::memmove(ptr + 1, ptr, (size - index) * sizeof(U));
+        ::new (ptr) U(std::forward<Args>(args)...);
+        this->length += sizeof(U);
+
+        return *(U *)ptr;
+    }
+
+    template <typename U = T, typename... Args>
+    auto erase(const int32_t index) -> U &
+    {
+        static_assert(sizeof(U) == sizeof(T));
+
+        auto size = this->size(); // old size
+
+        auto ptr = this->data + index;
+        ptr->~U();
+        ::memmove(ptr, ptr + 1, (size - index - 1) * sizeof(U));
+        this->length -= sizeof(U);
+
+        return *(U *)ptr;
+    }
+
+    /*
     template <typename U = T, typename... Args>
     auto append(Args &&...args) -> void
     {
@@ -120,6 +191,7 @@ public: // Modifiers
         ::new (ptr) U[size_append]{std::forward<Args>(args)...}; // new U by [size_append] even when all args is used
         this->length += sizeof(U) * size_append;
     }
+    */
 
     template <typename U = T>
     auto append_range(const std::initializer_list<U> &arg_list) -> void
@@ -149,30 +221,37 @@ public: // Modifiers
         this->length -= sizeof(T);
     }
 
-    /*
-    auto resize(const int32_t size) -> void
+    auto expand(const uint32_t size, bool initialize = true) -> void
     {
         auto old_size = this->size();
-
-        if (size == old_size)
-            return;
-        else if (size < old_size)
-        {
-            for (int32_t i = size; i < old_size; ++i)
-                (this->data + i)->~T();
-        }
-        else if (size > old_size)
+        if (size > old_size)
         {
             this->reserve(size);
-            for (int32_t i = old_size; i < size; ++i)
-                new (this->data + i) T();
+            if (initialize)
+                for (uint32_t i = old_size; i < size; ++i)
+                    ::new (this->data + i) T();
+            this->length = size * sizeof(T);
         }
-
-        this->length = size * sizeof(T);
     }
-    */
 
-    auto clear() -> void
+    auto shrink(const uint32_t size) -> void
+    {
+        auto old_size = this->size();
+        if (size < old_size)
+        {
+            for (uint32_t i = size; i < old_size; ++i)
+                (this->data + i)->~T();
+            this->length = size * sizeof(T);
+        }
+    }
+
+    auto resize(const uint32_t size) -> void
+    {
+        this->expand(size);
+        this->shrink(size);
+    }
+
+    auto virtual clear() -> void
     {
         if (!this->data)
             return;
@@ -187,41 +266,41 @@ public: // Modifiers
     }
 
 public:
-    auto find_index(const std::function<bool(T &)> &func) -> int32_t
+    auto find_index(const std::function<bool(T &)> &func) -> uint32_t
     {
-        for (int32_t i = 0; i < this->size(); ++i)
+        for (uint32_t i = 0; i < this->size(); ++i)
             if (func(this->data[i]))
                 return i;
-        return INT32_MIN;
+        return UINT32_MAX;
     }
 
     auto find(const std::function<bool(T &)> &func) -> T &
     {
-        int32_t index = this->find_index(func);
-        return index == INT32_MIN ? nullval : this->data[index];
+        uint32_t index = this->find_index(func);
+        return index == UINT32_MAX ? nullval : this->data[index];
     }
 
     auto for_each(std::function<bool(T &)> func) -> void
     {
-        for (int32_t i = 0; i < this->size(); ++i)
+        for (uint32_t i = 0; i < this->size(); ++i)
             if (!func(this->data[i])) // continue?
                 break;
     }
 
 public:
-    auto reserve(const int32_t capacity, const bool expand = true) -> void { this->reserve_mem(capacity * sizeof(T), expand); }
+    auto reserve(const uint32_t capacity, const bool exp = true) -> void { this->reserve_mem(capacity * sizeof(T), exp); }
 
-    TYPE_IRRELATIVE auto reserve_mem(int32_t length_mem, const bool expand = true) -> void
+    TYPE_IRRELATIVE auto reserve_mem(uint32_t length_mem, const bool exp = true) -> void
     {
         if (length_mem <= this->length_mem)
             return;
 
-        if (expand)
+        if (exp)
         {
             auto exp = std::ceil(std::log2(length_mem));
             auto length_mem_exp = std::ceil(std::pow(2, exp));
 
-            assert(length_mem_exp <= INT32_MAX); // 2GB
+            assert(length_mem_exp <= UINT32_MAX); // 4GB
             assert(length_mem_exp >= length_mem);
 
             length_mem = length_mem_exp;
@@ -241,15 +320,40 @@ public:
 
 public:
     T_pfx *prefix{nullptr};
-    int32_t length_pfx{0};
+    uint32_t length_pfx{0};
 
 public:
-    DB2_CONSTRUCTORS(db2DynArrayWithPrefix, T, T_pfx)
-    virtual ~db2DynArrayWithPrefix() { this->clear_pfx(); }
+    DB2_DYNARRAY_CONSTRUCTORS(db2DynArrayWithPrefix, T, T_pfx)
 
-public:
-    auto clear_pfx() -> void
+    auto virtual copy(const db2DynArrayWithPrefix<T, T_pfx> &other) -> void
     {
+        this->clear();
+        this->reserve_mem(other.length_mem, false);
+        std::memcpy(this->data, other.data, other.length_mem);
+        this->reserve_pfx_mem(other.length_pfx);
+        std::memcpy(this->prefix, other.prefix, other.length_pfx);
+
+        std::memcpy(this, &other, sizeof(*this));
+    }
+
+    auto virtual move(db2DynArrayWithPrefix<T, T_pfx> &&other) -> void
+    {
+        this->clear();
+        std::memcpy(this, &other, sizeof(*this));
+        std::memset(&other, 0, sizeof(*this));
+    }
+
+    auto virtual equal(const db2DynArrayWithPrefix<T, T_pfx> &other) -> bool
+    {
+        return this->db2DynArray<T>::equal(other) &&
+               this->length_pfx == other.length_pfx &&
+               std::memcmp(this->prefix, other.prefix, this->length_pfx) == 0;
+    }
+
+public:
+    auto virtual clear() -> void
+    {
+        // clear pfx
         if constexpr (!std::is_void_v<T_pfx>)
         {
             if (this->prefix)
@@ -260,6 +364,9 @@ public:
                 this->length_pfx = 0;
             }
         }
+
+        // clear base
+        this->db2DynArray<T>::clear();
     }
 
 public:
@@ -276,7 +383,7 @@ public:
         }
     }
 
-    TYPE_IRRELATIVE auto reserve_pfx_mem(int32_t length_pfx) -> void
+    TYPE_IRRELATIVE auto reserve_pfx_mem(uint32_t length_pfx) -> void
     {
         if (this->prefix)
             return;

@@ -99,11 +99,11 @@ auto dotBox2d::step() -> void
         this->p_db2OffstepListener->PostStep();
 }
 
-auto dotBox2d::world_dict_i() -> int32_t
+auto dotBox2d::world_dict_i() -> uint32_t
 {
     return chunks.get<CKDict>().find_index(
         [](db2Dict &dict)
-        { return dict.find<CKWorld>(db2Key::Target) != nullval; } //
+        { return dict.find<CKWorld>(db2Key::Base) != nullval; } //
     );
 }
 
@@ -111,6 +111,6 @@ auto dotBox2d::world_dict() -> db2Dict &
 {
     return chunks.get<CKDict>().find(
         [](db2Dict &dict)
-        { return dict.find<CKWorld>(db2Key::Target) != nullval; } //
+        { return dict.find<CKWorld>(db2Key::Base) != nullval; } //
     );
 }

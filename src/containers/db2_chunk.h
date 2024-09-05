@@ -35,6 +35,16 @@ template <typename T>
 struct is_db2Chunk<T, std::void_t<typename T::flag_db2Chunk>> : std::true_type
 {
 };
+template <typename T>
+inline constexpr bool is_db2Chunk_v = is_db2Chunk<T>::value;
+
+#define DB2_CHUNK_CONSTRUCTORS(CLS, ...)                                           \
+    CLS() = default;                                                               \
+    CLS(const std::initializer_list<typename CLS::value_type> &arg_list) = delete; \
+    CLS(const CLS<__VA_ARGS__> &other) = delete;                                   \
+    CLS(CLS<__VA_ARGS__> &&other) = delete;                                        \
+    CLS<__VA_ARGS__> &operator=(const CLS<__VA_ARGS__> &other) = delete;           \
+    CLS<__VA_ARGS__> &operator=(CLS<__VA_ARGS__> &&other) = delete;
 
 template <typename T, typename T_pfx>
 class db2Chunk : public db2DynArrayWithPrefix<T, T_pfx>
@@ -43,7 +53,7 @@ public:
     using flag_db2Chunk = void;
 
 public:
-    TYPE_IRRELATIVE static auto ReadBytes(char *data, const int32_t length, std::ifstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReadBytes(char *data, const uint32_t length, std::ifstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -57,7 +67,7 @@ public:
             db2Chunk::ReverseEndian(data, length, pack);
     }
 
-    TYPE_IRRELATIVE static auto WriteBytes(char *data, const int32_t length, std::ofstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto WriteBytes(char *data, const uint32_t length, std::ofstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -80,7 +90,7 @@ public:
     }
 
     // type-irrelative, since reflector is adopted
-    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const int32_t length, db2Reflector::pack_info *pack = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const uint32_t length, db2Reflector::pack_info *pack = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -99,12 +109,12 @@ public:
     }
 
 public:
-    ENDIAN_SENSITIVE DEF_IN_BASE(int32_t length{0});
+    ENDIAN_SENSITIVE DEF_IN_BASE(uint32_t length{0});
     char type[4]{0, 0, 0, 0};
     ENDIAN_SENSITIVE DEF_IN_BASE(T *data{nullptr});
     ENDIAN_SENSITIVE uint32_t crc{};
 
-    ENDIAN_SENSITIVE int32_t length_chunk{0};
+    ENDIAN_SENSITIVE uint32_t length_chunk{0};
 
     // const bool isLittleEndian{HardwareDifference::IsLittleEndian()};
     db2Reflector *reflector{nullptr};
@@ -114,7 +124,7 @@ public:
     void *runtimeData = nullptr;
 
 public: // Constructors
-    TYPE_IRRELATIVE DB2_CONSTRUCTORS(db2Chunk, T, T_pfx);
+    TYPE_IRRELATIVE DB2_CHUNK_CONSTRUCTORS(db2Chunk, T, T_pfx);
 
     // only clear up reflected types with the innermost value-types of flat data structures
     // further work is required?
@@ -262,9 +272,9 @@ public:
 
 public:
     template <typename... Args>
-    auto emplace(const int32_t index, Args &&...args) -> T &
+    auto emplace(const uint32_t index, Args &&...args) -> T &
     {
-        if constexpr (is_db2Chunk<T>::value) // sub-chunk
+        if constexpr (is_db2Chunk_v<T>) // sub-chunk
         {
             auto &element = this->db2DynArray<T>::emplace(index);
             element.pre_init(this->reflector->child, this->root);
@@ -280,7 +290,7 @@ public:
     template <typename... Args>
     auto emplace_back(Args &&...args) -> T &
     {
-        if constexpr (is_db2Chunk<T>::value) // sub-chunk
+        if constexpr (is_db2Chunk_v<T>) // sub-chunk
         {
             auto &element = this->db2DynArray<T>::emplace_back();
             element.pre_init(this->reflector->child, this->root);
@@ -300,7 +310,7 @@ template <typename T, typename T_pfx>
 class db2ChunkStruct : public db2Chunk<T, T_pfx>
 {
 public:
-    TYPE_IRRELATIVE DB2_CONSTRUCTORS(db2ChunkStruct, T, T_pfx);
+    TYPE_IRRELATIVE DB2_CHUNK_CONSTRUCTORS(db2ChunkStruct, T, T_pfx);
     int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
 };
 
@@ -314,7 +324,7 @@ public:
     }
 
 public:
-    auto operator[](const int32_t index) const -> db2Chunk<char> & { return *this->db2DynArray<db2Chunk<char> *>::operator[](index); }
+    auto operator[](const uint32_t index) const -> db2Chunk<char> & { return *this->db2DynArray<db2Chunk<char> *>::operator[](index); }
 
     template <typename CK_T>
     auto at() const -> CK_T &
@@ -322,7 +332,7 @@ public:
         for (auto i = 0; i < this->size(); ++i)
         {
             auto p_chunk = this->data[i];
-            if (p_chunk->reflector->id == typeid(CK_T).hash_code())
+            if (p_chunk->reflector->info == &typeid(CK_T))
                 return *(CK_T *)p_chunk;
         }
         return nullval;
@@ -335,7 +345,7 @@ public:
         return chunk != nullval ? chunk : this->emplace<CK_T>();
     }
 
-    template <typename CK_T = void, typename default_type = typename std::conditional<std::is_same<CK_T, void>::value, db2Chunk<char>, CK_T>::type>
+    template <typename CK_T = void, typename default_type = std::conditional_t<std::is_same_v<CK_T, void>, db2Chunk<char>, CK_T>>
     auto emplace() -> default_type &
     {
         auto p_chunk = this->db2DynArray<db2Chunk<char> *>::emplace_back<default_type *>(new default_type());

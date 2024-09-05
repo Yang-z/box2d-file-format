@@ -61,6 +61,6 @@ public: // lifecycle
     auto step() -> void;
 
 public: // getters
-    int32_t world_dict_i();
+    uint32_t world_dict_i();
     db2Dict &world_dict();
 };

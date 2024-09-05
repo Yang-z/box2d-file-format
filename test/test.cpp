@@ -14,6 +14,8 @@
 #include "containers/db2_chunk.h"
 #include "containers/db2_cson.h"
 
+// #include "script/db2_function.h"
+
 #include "data/db2_structure.h"
 
 #include "decoders/db2_decoder.h"
@@ -339,6 +341,11 @@ auto test_func_return_type() -> void
             static int x = 1;
             return std::move(x);
         }
+
+        auto get_arg(const int &arg) -> int &
+        {
+            return const_cast<int &>(arg);
+        }
     };
 
     test t;
@@ -346,9 +353,14 @@ auto test_func_return_type() -> void
     // t.get() = 2; // no
     t.get_lr() = 2;
     // t.get_rr() = 2; // no
-    t.get_xr() = 2;
+    // t.get_xr() = 2; // no(runtime error)
     // t.get_rr_as_lr() = 2; // no, because of const
     // t.get_lr_as_rr() = 2; // no
+
+    auto arg = t.get_arg(0); // Temporaries live until the end of the full-expression in which they were created.
+    auto arg1 = t.get_arg(1);
+    auto arg2 = t.get_arg(2);
+    auto arg3 = t.get_arg(3);
 
     test_l_r_value_t t_lr;
 
@@ -461,6 +473,39 @@ auto test_inline_static() -> void
     // // output 1 rather than 2
 }
 
+auto test_lambda() -> void
+{
+    auto lambda = [](int a, int b) -> int
+    { return a + b; };
+    sizeof(lambda); // 1
+
+    int8_t i = 0;
+    sizeof(i);
+    auto lambda1 = [&](int a, int b) -> int
+    { return i + a + b; };
+    sizeof(lambda1); // 8
+
+    int8_t j = 0;
+    sizeof(j);
+    auto lambda2 = [&](int a, int b) -> int
+    { return i + j + a + b; };
+    sizeof(lambda2); // 16
+
+    int16_t k = 0;
+    sizeof(k);
+    auto lambda3 = [=](int a, int b) -> int
+    { return k + a + b; };
+    sizeof(lambda3); // 2
+
+    std::function fun = lambda;
+    sizeof(fun); // 32
+    std::function fun1 = lambda1;
+    sizeof(fun1); // 32
+    std::function fun2 = lambda2;
+    sizeof(fun2); // 32
+    std::function fun3 = lambda3;
+    sizeof(fun3); // 32
+}
 /* ================================ */
 
 auto test_CRC() -> void
@@ -501,13 +546,17 @@ auto test_nullval() -> void
 
     int &i = nullval;
     int i1 = 0;
-    // int i2 = nullval; // don't do this
+    // int i2 = nullval; // meaningless
 
     printf("%d\n", i == nullval);  // true
     printf("%d\n", i1 == nullval); // false
 
     printf("%d\n", i != nullval);  // false
     printf("%d\n", i1 != nullval); // true
+
+    auto null = nullval;
+    // null = 1;  // avoided 
+    // i = 1; // can't be avoided !!
 }
 
 auto test_data_structure_write() -> void
@@ -534,8 +583,8 @@ auto test_data_structure_write() -> void
         auto &da = reinterpret_cast<db2DynArray<db2DictElement> &>(dict);
         da.emplace_back(0, 'e', 'p', 'b', '0', 0); // good
 
-        // da.append(1, 'a', 'p', 'd', '1', 1, 2, 'a', 'p', 'd', '2', 2, 3); // compilable but ill
-        da.append(db2DictElement{1, 'a', 'p', 'd', '1', 1}, db2DictElement{2, 'a', 'p', 'd', '2', 2});
+        // // da.append(1, 'a', 'p', 'd', '1', 1, 2, 'a', 'p', 'd', '2', 2, 3); // compilable but ill
+        // da.append(db2DictElement{1, 'a', 'p', 'd', '1', 1}, db2DictElement{2, 'a', 'p', 'd', '2', 2});
 
         // da.append_range({1, 'a', 'p', 'r', '1', 1}, {2, 'a', 'p', 'r', '2', 2}, {3, 'a', 'p', 'r', '3', 3}); // not compilable
         // da.append_range({'1', 'a', 'p', 'r', '1', '1'}, {'2', 'a', 'p', 'r', '2', '2'}); // (std::initializer_list<Args>... args_lists) // all args within {} need to be of a same type.

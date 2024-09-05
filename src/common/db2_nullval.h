@@ -16,6 +16,10 @@ public:
         return reinterpret_cast<T &>(*this);
     }
 
+private:
+    template <typename T>
+    db2Nullval operator=(T t) { return *this; }
+    // if db2Nullval has been casted to other types, writting still could happen
 };
 
 template <typename T>

@@ -19,7 +19,7 @@ auto db2Transcoder::Transcode(dotBox2d &db2) -> void
             auto &elem = dict[e];
             switch (elem.key)
             {
-            case db2Key::Target:
+            case db2Key::Base:
             {
                 target_type = &elem.type0;
             }

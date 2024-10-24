@@ -25,16 +25,30 @@ using float64_t = double;
 //
 #include <type_traits> // std::void_t
 
-template <typename CK_T, typename = void>
-struct has_value_type : std::false_type
-{
-};
-template <typename CK_T>
-struct has_value_type<CK_T, std::void_t<typename CK_T::value_type>> : std::true_type
-{
-};
-template <typename CK_T>
-inline constexpr bool has_value_type_v = has_value_type<CK_T>::value;
+#define HAS_TYPE(FLAG_T)                                                           \
+    template <typename CK_T, typename = void>                                      \
+    struct has_##FLAG_T : std::false_type                                          \
+    {                                                                              \
+    };                                                                             \
+    template <typename CK_T>                                                       \
+    struct has_##FLAG_T<CK_T, std::void_t<typename CK_T::FLAG_T>> : std::true_type \
+    {                                                                              \
+    };                                                                             \
+    template <typename CK_T>                                                       \
+    inline constexpr bool has_##FLAG_T##_v = has_##FLAG_T<CK_T>::value;
+
+HAS_TYPE(value_type) // has_value_type
+
+// template <typename CK_T, typename = void>
+// struct has_value_type : std::false_type
+// {
+// };
+// template <typename CK_T>
+// struct has_value_type<CK_T, std::void_t<typename CK_T::value_type>> : std::true_type
+// {
+// };
+// template <typename CK_T>
+// inline constexpr bool has_value_type_v = has_value_type<CK_T>::value;
 
 template <typename T, typename = void>
 struct default_value

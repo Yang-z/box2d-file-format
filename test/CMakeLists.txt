@@ -1,3 +1,4 @@
+cmake_policy(SET CMP0167 NEW)
 find_package(Boost 1.75 REQUIRED)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} TEST_SOURCE_FILES)

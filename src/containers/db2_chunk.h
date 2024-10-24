@@ -38,13 +38,15 @@ struct is_db2Chunk<T, std::void_t<typename T::flag_db2Chunk>> : std::true_type
 template <typename T>
 inline constexpr bool is_db2Chunk_v = is_db2Chunk<T>::value;
 
-#define DB2_CHUNK_CONSTRUCTORS(CLS, ...)                                           \
+#define DB2_CHUNK_CONSTRUCTORS(CLS)                                                \
     CLS() = default;                                                               \
+    CLS(const CLS &other) = delete;                                                \
+    CLS(CLS &&other) = delete;                                                     \
     CLS(const std::initializer_list<typename CLS::value_type> &arg_list) = delete; \
-    CLS(const CLS<__VA_ARGS__> &other) = delete;                                   \
-    CLS(CLS<__VA_ARGS__> &&other) = delete;                                        \
-    CLS<__VA_ARGS__> &operator=(const CLS<__VA_ARGS__> &other) = delete;           \
-    CLS<__VA_ARGS__> &operator=(CLS<__VA_ARGS__> &&other) = delete;
+    CLS &operator=(const CLS &other) = delete;                                     \
+    CLS &operator=(CLS &&other) = delete;                                          \
+    bool operator==(const CLS &other) const = delete;                              \
+    bool operator!=(const CLS &other) const = delete;
 
 template <typename T, typename T_pfx>
 class db2Chunk : public db2DynArrayWithPrefix<T, T_pfx>
@@ -124,7 +126,7 @@ public:
     void *runtimeData = nullptr;
 
 public: // Constructors
-    TYPE_IRRELATIVE DB2_CHUNK_CONSTRUCTORS(db2Chunk, T, T_pfx);
+    TYPE_IRRELATIVE DB2_CHUNK_CONSTRUCTORS(db2Chunk);
 
     // only clear up reflected types with the innermost value-types of flat data structures
     // further work is required?
@@ -310,7 +312,7 @@ template <typename T, typename T_pfx>
 class db2ChunkStruct : public db2Chunk<T, T_pfx>
 {
 public:
-    TYPE_IRRELATIVE DB2_CHUNK_CONSTRUCTORS(db2ChunkStruct, T, T_pfx);
+    TYPE_IRRELATIVE DB2_CHUNK_CONSTRUCTORS(db2ChunkStruct);
     int8_t &type3() { return reinterpret_cast<int8_t &>(this->type[3]); }
 };
 

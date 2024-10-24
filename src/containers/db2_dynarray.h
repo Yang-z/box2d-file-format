@@ -21,17 +21,16 @@ So, any referencing to the original data could become invalid. Only index access
 guaranteed to be safe.
 */
 
-#define DB2_DYNARRAY_CONSTRUCTORS(CLS, ...)                                                                 \
-    CLS() = default;                                                                                        \
-    CLS(uint32_t size, bool initialize = true) { this->expand(size, initialize); };                         \
-    CLS(const std::initializer_list<typename CLS::value_type> &arg_list) { this->append_range(arg_list); }; \
-    CLS(const CLS<__VA_ARGS__> &other) { *this = other; };                                                  \
-    CLS(CLS<__VA_ARGS__> &&other) { this->move(std::move(other)); };                                        \
-    virtual ~CLS() { this->clear(); }                                                                       \
-    CLS<__VA_ARGS__> &operator=(const CLS<__VA_ARGS__> &other) { return this->copy(other), *this; };        \
-    CLS<__VA_ARGS__> &operator=(CLS<__VA_ARGS__> &&other) { return this->move(std::move(other)), *this; };  \
-    bool operator==(const CLS<__VA_ARGS__> &other) const { return this->equal(other); };                    \
-    bool operator!=(const CLS<__VA_ARGS__> &other) const { return !this->equal(other); };
+#define DB2_DYNARRAY_CONSTRUCTORS(CLS)                                                                     \
+    CLS() = default;                                                                                       \
+    CLS(const CLS &other) { this->copy(other); }                                                           \
+    CLS(CLS &&other) { this->move(std::move(other)); }                                                     \
+    CLS(const std::initializer_list<typename CLS::value_type> &arg_list) { this->append_range(arg_list); } \
+    virtual ~CLS() { this->clear(); }                                                                      \
+    CLS &operator=(const CLS &other) { return this->copy(other), *this; }                                  \
+    CLS &operator=(CLS &&other) { return this->move(std::move(other)), *this; }                            \
+    bool operator==(const CLS &other) const { return this->equal(other); }                                 \
+    bool operator!=(const CLS &other) const { return !this->equal(other); }
 
 template <typename T>
 class db2DynArray
@@ -49,30 +48,31 @@ public:
     const uint32_t size() const { return this->length / sizeof(T); }
     const uint32_t capacity() const { return this->length_mem / sizeof(T); }
 
-public: // Constructors
-    DB2_DYNARRAY_CONSTRUCTORS(db2DynArray, T);
+public: // constructors and initiators
+    DB2_DYNARRAY_CONSTRUCTORS(db2DynArray)
 
-    auto virtual copy(const db2DynArray<T> &other) -> void
+    virtual auto init(uint32_t size, bool initialize = true) -> void { this->expand(size, initialize); }
+
+    auto copy(const db2DynArray &other) -> void
     {
         this->clear();
-        this->reserve_mem(other.length_mem, false);
-        std::memcpy(this->data, other.data, other.length_mem);
+        this->reserve_mem(other.length, false);
+        std::memcpy(this->data, other.data, other.length);
+        this->length = other.length;
+    };
 
-        std::memcpy(this, &other, sizeof(*this));
-    }
-
-    auto virtual move(db2DynArray<T> &&other) -> void
+    auto move(db2DynArray &&other) -> void
     {
         this->clear();
         std::memcpy(this, &other, sizeof(*this));
         std::memset(&other, 0, sizeof(*this));
-    }
+    };
 
-    auto virtual equal(const db2DynArray<T> &other) const -> bool
+    auto equal(const db2DynArray &other) const -> bool
     {
         return this->length == other.length &&
                std::memcmp(this->data, other.data, this->length) == 0;
-    }
+    };
 
 public: // Element access
     auto operator[](const uint32_t index) const -> T &
@@ -254,7 +254,7 @@ public: // Modifiers
     auto virtual clear() -> void
     {
         if (!this->data)
-            return;
+            return; // assume length == 0
 
         for (int32_t i = 0; i < this->size(); ++i)
             (this->data + i)->~T();
@@ -322,38 +322,36 @@ public:
     T_pfx *prefix{nullptr};
     uint32_t length_pfx{0};
 
-public:
-    DB2_DYNARRAY_CONSTRUCTORS(db2DynArrayWithPrefix, T, T_pfx)
+public: // constructors and initiators
+    DB2_DYNARRAY_CONSTRUCTORS(db2DynArrayWithPrefix)
 
-    auto virtual copy(const db2DynArrayWithPrefix<T, T_pfx> &other) -> void
+    auto copy(const db2DynArrayWithPrefix &other) -> void
     {
-        this->clear();
-        this->reserve_mem(other.length_mem, false);
-        std::memcpy(this->data, other.data, other.length_mem);
+        this->db2DynArray<T>::copy(other);
+
+        this->clear_pfx();
         this->reserve_pfx_mem(other.length_pfx);
         std::memcpy(this->prefix, other.prefix, other.length_pfx);
-
-        std::memcpy(this, &other, sizeof(*this));
+        this->length_pfx = other.length_pfx;
     }
 
-    auto virtual move(db2DynArrayWithPrefix<T, T_pfx> &&other) -> void
+    auto move(db2DynArrayWithPrefix &&other) -> void
     {
         this->clear();
         std::memcpy(this, &other, sizeof(*this));
         std::memset(&other, 0, sizeof(*this));
     }
 
-    auto virtual equal(const db2DynArrayWithPrefix<T, T_pfx> &other) -> bool
+    auto equal(const db2DynArrayWithPrefix &other) const -> bool
     {
-        return this->db2DynArray<T>::equal(other) &&
+        return static_cast<db2DynArray<T> &>(*this) == static_cast<db2DynArray<T> &>(other) &&
                this->length_pfx == other.length_pfx &&
                std::memcmp(this->prefix, other.prefix, this->length_pfx) == 0;
     }
 
 public:
-    auto virtual clear() -> void
+    auto virtual clear_pfx() -> void
     {
-        // clear pfx
         if constexpr (!std::is_void_v<T_pfx>)
         {
             if (this->prefix)
@@ -364,8 +362,11 @@ public:
                 this->length_pfx = 0;
             }
         }
+    }
 
-        // clear base
+    auto virtual clear() -> void
+    {
+        this->clear_pfx();
         this->db2DynArray<T>::clear();
     }
 

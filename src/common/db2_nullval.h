@@ -6,15 +6,12 @@ public:
     static auto Instance() -> db2Nullval &;
 
 private:
-    char data[1]{};
+    char data[16]{};
     db2Nullval();
 
 public:
     template <typename T>
-    operator T &()
-    {
-        return reinterpret_cast<T &>(*this);
-    }
+    operator T &() { return reinterpret_cast<T &>(*this); }
 
 private:
     template <typename T>

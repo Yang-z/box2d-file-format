@@ -63,6 +63,11 @@ auto HardwareDifference::ReverseEndian(char *source, const uint8_t length) -> vo
         temp = source[begin];
         source[begin] = source[end];
         source[end] = temp;
+
+        // source[begin] = source[begin] ^ source[end];
+        // source[end] = source[begin] ^ source[end];
+        // source[begin] = source[begin] ^ source[end];
+
         ++begin;
         --end;
     }

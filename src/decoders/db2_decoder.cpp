@@ -35,7 +35,7 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
 
             /*userData*/ b2bdef.userData.pointer = (uintptr_t)world_body_list.ref<CKDict>(b);
             auto p_b2b = db2.p_b2w->CreateBody(&b2bdef);
-            /*.userData*/ body_dict.runtimeData = p_b2b;
+            /*.userData*/ body_dict.runtime = p_b2b;
 
             /*fixture*/
             auto &body_fixture_list = body_dict.at<CKList>(db2Key::FIXTURE);
@@ -59,7 +59,7 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
 
                     /*userData*/ b2fdef.userData.pointer = (uintptr_t)body_fixture_list.ref<CKDict>(f);
                     auto p_b2f = p_b2b->CreateFixture(&b2fdef);
-                    /*.userData*/ fixture_dict.runtimeData = p_b2f;
+                    /*.userData*/ fixture_dict.runtime = p_b2f;
 
                     if (p_b2s)
                         delete p_b2s; // virtual ~b2Shape()
@@ -84,18 +84,18 @@ auto db2Decoder::Decode(dotBox2d &db2) -> void
             if (db2j.type3() != b2JointType::e_gearJoint)
             {
                 auto &joint_body_list = joint_dict.at<CKList>(db2Key::BODY);
-                p_b2jdef->bodyA = (b2Body *)joint_body_list.at<CKDict>(0).runtimeData;
-                p_b2jdef->bodyB = (b2Body *)joint_body_list.at<CKDict>(1).runtimeData;
+                p_b2jdef->bodyA = (b2Body *)joint_body_list.at<CKDict>(0).runtime;
+                p_b2jdef->bodyB = (b2Body *)joint_body_list.at<CKDict>(1).runtime;
             }
             else
             {
                 auto &joint_joint_list = joint_dict.at<CKList>(db2Key::JOINT);
-                ((b2GearJointDef *)p_b2jdef)->joint1 = (b2Joint *)joint_joint_list.at<CKDict>(0).runtimeData;
-                ((b2GearJointDef *)p_b2jdef)->joint2 = (b2Joint *)joint_joint_list.at<CKDict>(1).runtimeData;
+                ((b2GearJointDef *)p_b2jdef)->joint1 = (b2Joint *)joint_joint_list.at<CKDict>(0).runtime;
+                ((b2GearJointDef *)p_b2jdef)->joint2 = (b2Joint *)joint_joint_list.at<CKDict>(1).runtime;
             }
 
             /*userData*/ p_b2jdef->userData.pointer = (uintptr_t)world_joint_list.ref<CKDict>(j);
-            /*.userData*/ joint_dict.runtimeData = db2.p_b2w->CreateJoint(p_b2jdef);
+            /*.userData*/ joint_dict.runtime = db2.p_b2w->CreateJoint(p_b2jdef);
             if (p_b2jdef)
                 delete p_b2jdef;
         }
@@ -466,7 +466,7 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
             auto &db2b = body_dict.emplace<CKBody>(db2Key::Base);
             db2Decoder::Encode_Body(*p_b2b, db2b);
 
-            /*.userData*/ body_dict.runtimeData = p_b2b;
+            /*.userData*/ body_dict.runtime = p_b2b;
             /*userData*/ p_b2b->GetUserData().pointer = (uintptr_t)body_dict_i;
         }
 
@@ -488,7 +488,7 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
 
                 db2Decoder::Encode_Fixture(*p_b2f, db2f);
 
-                /*.userData*/ fixture_dict.runtimeData = p_b2f;
+                /*.userData*/ fixture_dict.runtime = p_b2f;
                 /*userData*/ p_b2f->GetUserData().pointer = (uintptr_t)fixture_dict_i;
             }
 
@@ -518,7 +518,7 @@ auto db2Decoder::Encode(dotBox2d &db2) -> void
             auto &db2j = joint_dict.emplace<CKJoint>(db2Key::Base);
             db2Decoder::Encode_Joint(*p_b2j, db2j);
 
-            /*.userData*/ joint_dict.runtimeData = p_b2j;
+            /*.userData*/ joint_dict.runtime = p_b2j;
             /*userData*/ p_b2j->GetUserData().pointer = (uintptr_t)joint_dict_i;
         }
 

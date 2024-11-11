@@ -22,6 +22,8 @@ using float64_t = double;
 #define DB2_SEMICOLON ;
 #define DB2_ASSERT(assert) DB2_SEMICOLON static_assert(assert, #assert)
 
+#define DB2_DEPRECATED
+
 //
 #include <type_traits> // std::void_t
 
@@ -37,18 +39,11 @@ using float64_t = double;
     template <typename CK_T>                                                       \
     inline constexpr bool has_##FLAG_T##_v = has_##FLAG_T<CK_T>::value;
 
-HAS_TYPE(value_type) // has_value_type
-
-// template <typename CK_T, typename = void>
-// struct has_value_type : std::false_type
-// {
-// };
-// template <typename CK_T>
-// struct has_value_type<CK_T, std::void_t<typename CK_T::value_type>> : std::true_type
-// {
-// };
-// template <typename CK_T>
-// inline constexpr bool has_value_type_v = has_value_type<CK_T>::value;
+HAS_TYPE(value_type)    // has_value_type_v
+HAS_TYPE(prefix_type)   // has_prefix_type_v
+HAS_TYPE(type_type)     // has_type_type_v
+HAS_TYPE(flag_db2Chunk) // has_flag_db2Chunk_v
+HAS_TYPE(flag_dynamic_nesting)  // has_flag_dynamic_nesting_v
 
 template <typename T, typename = void>
 struct default_value

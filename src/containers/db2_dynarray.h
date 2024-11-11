@@ -86,7 +86,7 @@ public: // Element access
     {
         static_assert(sizeof(U) == sizeof(T));
 
-        if (index != nullval)
+        if (*this != nullval && index != nullval)
         {
             if (0 <= index && index < this->size())
                 return *(U *)(this->data + index);

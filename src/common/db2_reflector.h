@@ -111,7 +111,11 @@ public: // static
 
 public: // instance
     char type[4]{0, 0, 0, 0};
-    char type_ref[4]{0, 0, 0, 0};
+    DB2_DEPRECATED char type_ref[4]{0, 0, 0, 0};
+
+    bool is_type_int = false;        // int type is allowed for sub-chunks
+    bool is_dynamic_nesting = false; // dynamic nesting is allowed for sub-chunks
+    char type_nondynamic_nesting[4]{0, 0, 0, 0};
 
     const std::type_info *info;
 
@@ -119,8 +123,21 @@ public: // instance
     pack_info *value{nullptr};
 
     db2Reflector *parent{nullptr};
+
+private:
     db2Reflector *child{nullptr};
 
+public:
+    db2Reflector *get_child(char *type)
+    {
+        if (type && this->is_dynamic_nesting)
+            if (reinterpret_cast<int32_t &>(this->type_nondynamic_nesting) != *reinterpret_cast<int32_t *>(type))
+                return this;
+
+        return this->child;
+    }
+
+public:
     ~db2Reflector()
     {
         if (this->prefix)
@@ -137,27 +154,53 @@ public: // instance
     auto reflect(const char *type) -> void
     {
         std::memcpy(this->type, type, 4);
-        std::memcpy(this->type_ref, type, 4);
+        DB2_DEPRECATED std::memcpy(this->type_ref, type, 4);
         this->info = &typeid(CK_T);
 
-        if constexpr (!has_value_type_v<CK_T>)
-            Reflect_POD<CK_T>((this->value = new pack_info(), this->value));
+        // type_type
+        if constexpr (has_type_type_v<CK_T>)
+            if constexpr (std::is_same_v<typename CK_T::type_type, int32_t>)
+            {
+                assert(this->parent != nullptr);
+                this->is_type_int = true;
+            }
 
+        // dynamic nesting
+        if constexpr (has_flag_dynamic_nesting_v<CK_T>)
+        {
+            assert(this->parent != nullptr);
+            this->is_dynamic_nesting = true;
+            reinterpret_cast<int32_t &>(this->type_nondynamic_nesting) = reinterpret_cast<int32_t &>(CK_T::type_nondynamic_nesting);
+        }
+
+        // prefix
+        if constexpr (has_prefix_type_v<CK_T>)
+            if constexpr (!std::is_void_v<typename CK_T::prefix_type>)
+            {
+                this->prefix = new pack_info();
+                Reflect_POD<CK_T::prefix_type>(this->prefix);
+            }
+
+        // value
+        if constexpr (!has_value_type_v<CK_T>)
+        {
+            this->value = new pack_info();
+            Reflect_POD<CK_T>(this->value);
+        }
         else
         {
-            // asume CK_T has prefix_type if it has value_type
-            if constexpr (!std::is_void_v<typename CK_T::prefix_type>)
-                Reflect_POD<CK_T::prefix_type>((this->prefix = new pack_info(), this->prefix));
-
             using value_type = typename CK_T::value_type;
             this->type[2] = !has_value_type_v<value_type> ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
-            this->type[3] = this->parent ? 0 : this->type[3];
+            // this->type[3] = this->parent ? 0 : this->type[3];
 
-            // detemine the ref type latter
-            // this->type_ref[0] = std::tolower(this->type_ref[0]);
+            // ref type
+            DB2_DEPRECATED // this->type_ref[0] = this->type_ref[0] - 64;
 
             if constexpr (!has_value_type_v<value_type>)
-                Reflect_POD<value_type>((this->value = new pack_info(), this->value));
+            {
+                this->value = new pack_info();
+                Reflect_POD<value_type>(this->value);
+            }
             else
             {
                 this->child = new db2Reflector();

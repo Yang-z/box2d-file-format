@@ -7,8 +7,8 @@ struct db2Key
     /* whois */
     enum Id : int32_t
     {
-        Type = 0x0000, // the type of a dict, if base is specified, it is can be omitted.
-        Base = 0x0001, // the base stucture of a dict.
+        Type = 0x0001, // the type of a dict, if base is specified, it is can be omitted.
+        Base = 0x0002, // the base stucture of a dict.
     };
 
     /* file */
@@ -70,8 +70,22 @@ struct db2Key
     enum Script : int32_t
     {
         SCRIPT = 0x0900, // 2304
-        Literal,
+
+        PreStep,
+        PostStep,
+
+        LITERAL,
+        Scalar,
+        Vector,
+        Matrix,
+        Tensor, // dimension >= 3
+        String,
+
         Variable,
+
+        Object,
+        self,
+        null,
 
         Sequence,
         If,
@@ -86,6 +100,8 @@ struct db2Key
         // Float,
         // Int
     };
+
+
 
     enum Math : int32_t
     {
@@ -136,6 +152,7 @@ struct db2Key
         VNorm,
         VNormSquared,
 
+        MATH_END = VNormSquared,
     };
 
     /* texture */ // suggestions for renderer and shader

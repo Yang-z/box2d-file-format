@@ -75,34 +75,45 @@ public: // constructors and initiators
     };
 
 public: // Element access
-    auto operator[](const uint32_t index) const -> T &
+    /**/
+    auto operator[](const uint32_t index) const -> T & // no bounds checking
     {
         return *(T *)(this->data + index);
         // return *reinterpret_cast<U *>(this->data + index);
     }
 
     template <typename U = T>
-    auto at(const uint32_t &index, const T &default_ = nullval) const -> U & // If no such element exists, null is returned
+    auto at(const uint32_t index) const -> U & // If no such element exists, null is returned
     {
         static_assert(sizeof(U) == sizeof(T));
 
-        if (*this != nullval && index != nullval)
-        {
-            if (0 <= index && index < this->size())
-                return *(U *)(this->data + index);
-        }
-        return *(U *)(&default_);
+        // if this is nullval, the size should be 0
+        // UINT32_MAX is excluded naturally
+        if (0 <= index && index < this->size())
+            return *(U *)(this->data + index);
+        return nullval;
+    }
+
+    auto at_defalut(const uint32_t index, const T &default_ = nullval) const -> T &
+    {
+        auto &value = this->at(index);
+        return value == nullval ? default_ : value;
         // Temporaries live until the end of the full-expression in which they were created.
         // If you pass a temporary to default_, you should copy the return value rather than take a reference.
         // If you bind it to a const reference, lifetime of temporary passed to default_ will be extended??
     }
 
+    auto front() const -> T & { return this->at(0); }
+    auto back() const -> T & { return this->at(this->size() - 1); }
+
+public: // Modifiers
+    /**/
     template <typename U = T>
-    auto get(const uint32_t &index) -> U &
+    auto get(const uint32_t index) -> U & // performing an extension if index is out of bounds. nessary?
     {
         static_assert(sizeof(U) == sizeof(T));
 
-        if (index != nullval)
+        if (index != UINT32_MAX)
         {
             this->expand(index + 1);
             return *(U *)(this->data + index);
@@ -110,11 +121,8 @@ public: // Element access
         return nullval;
     }
 
-    auto back() const -> T & { return *(T *)(this->data + this->size() - 1); }
-
-public: // Modifiers
     template <typename U = T, typename... Args>
-    auto emplace(const int32_t index, Args &&...args) -> U &
+    auto emplace(const int32_t index, Args &&...args) -> U & // should be within bounds
     {
         static_assert(sizeof(U) == sizeof(T));
         assert(0 <= index && index < this->size());
@@ -266,18 +274,26 @@ public: // Modifiers
     }
 
 public:
-    auto find_index(const std::function<bool(T &)> &func) -> uint32_t
+    auto find_index(const std::function<bool(T &)> &func) const -> uint32_t
     {
+        // if this is nullval the size should be 0
         for (uint32_t i = 0; i < this->size(); ++i)
             if (func(this->data[i]))
                 return i;
         return UINT32_MAX;
     }
 
-    auto find(const std::function<bool(T &)> &func) -> T &
+    auto find(const std::function<bool(T &)> &func) const -> T &
     {
         uint32_t index = this->find_index(func);
         return index == UINT32_MAX ? nullval : this->data[index];
+    }
+
+    auto has(const T &t) const -> bool
+    {
+        uint32_t index = this->find_index([&t](T &t_)
+                                          { return t_ == t; });
+        return index != UINT32_MAX;
     }
 
     auto for_each(std::function<bool(T &)> func) -> void

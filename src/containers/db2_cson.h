@@ -39,19 +39,7 @@ public:
 
     auto find(const int32_t &key, const char *type = nullptr) -> db2DictElement &
     {
-        // for (int32_t i = 0; i < this->size(); ++i)
-        // {
-        //     auto &element = this->data[i];
-
-        //     bool match_key = key == nullval || element.key == key;
-        //     bool match_type = type == nullptr || std::equal(&element.type0, &element.type0 + 4, type);
-
-        //     if (match_key && match_type)
-        //         return element;
-        // }
-        // return nullval;
-
-        return this->db2Chunk<db2DictElement>::find(
+        return this->db2DynArray<db2DictElement>::find(
             [&](db2DictElement &element) -> bool
             {
                 bool match_key = key == nullval || element.key == key;
@@ -62,14 +50,15 @@ public:
 
 public: // Element access
     template <typename CK_T = uint32_t>
-    auto ref(const int32_t &key) -> uint32_t & // If no such element exists, null is returned
+    /* or at_ref */
+    auto ref(const int32_t &key) -> uint32_t & // if no such element exists, null is returned
     {
         auto &element = this->find<CK_T>(key); // could be null
         return element != nullval ? element.value : nullval;
     }
 
     template <typename CK_T = uint32_t, typename vv_type = default_value_t<CK_T>>
-    auto at(const int32_t &key) -> vv_type & // If no such element exists, null is returned
+    auto at(const int32_t &key) -> vv_type & // if no such element exists, null is returned
     {
         auto &element = this->find<CK_T>(key);                                  // could be null
         return element != nullval ? this->dereference<CK_T>(element) : nullval; // could be null
@@ -78,9 +67,7 @@ public: // Element access
     template <typename CK_T = uint32_t, typename vv_type = default_value_t<CK_T>>
     auto dereference(db2DictElement &element) -> vv_type & // could be null
     {
-        // // element could not be null now
-        // if (element == nullval)
-        //     return nullval;
+        // element could not be null now
 
         this->handle_type<CK_T>(element); // necessary?
 
@@ -107,6 +94,7 @@ public: // Modifiers
     }
 
     template <typename CK_T = uint32_t>
+    /* or get_ref (the dict element's value which stores the index of a linked value or stores a 32-bit POD) */
     auto link(const int32_t &key, const uint32_t &v_index = nullval) -> uint32_t & // performing an insertion if such key does not already exist
     {
         auto &element = this->emplace_ref<CK_T>(key, v_index);
@@ -114,6 +102,7 @@ public: // Modifiers
     }
 
     template <typename CK_T = uint32_t, typename vv_type = default_value_t<CK_T>>
+    /* or get_value (the linked value) */
     auto get(const int32_t &key) -> vv_type & // performing an insertion if such key does not already exist
     {
         auto &element = this->emplace_ref<CK_T>(key);      // not null
@@ -122,12 +111,13 @@ public: // Modifiers
     }
 
     template <typename CK_T = uint32_t>
-    auto emplace_ref(const int32_t &key, const uint32_t &v_index = nullval) -> db2DictElement & // or get_ref
+    /* or get_element */
+    auto emplace_ref(const int32_t &key, const uint32_t &v_index = nullval) -> db2DictElement &
     {
         auto p_element = &this->find<CK_T>(key);
         if (*p_element == nullval)
         {
-            p_element = &this->db2Chunk<db2DictElement>::emplace_back(key);
+            p_element = &this->db2DynArray<db2DictElement>::emplace_back(key); // Aggregate Initialization
             this->handle_type<CK_T>(*p_element, true);
         }
         if (v_index != nullval)
@@ -174,14 +164,15 @@ struct db2List : public db2Chunk<uint32_t>
 
 public: // Element access
     template <typename CK_T = value_type>
-    auto ref(const uint32_t &index) -> value_type & // could be null
+    /* or at_ref */
+    auto ref(const uint32_t index) -> value_type & // could be null
     {
         this->handle_type<CK_T>();
         return this->db2DynArray<value_type>::at(index); // could be null
     }
 
     template <typename CK_T = value_type, typename vv_type = default_value_t<CK_T>>
-    auto at(const uint32_t &index) -> vv_type & // if no such element exists, null is returned
+    auto at(const uint32_t index) -> vv_type & // if no such element exists, null is returned
     {
         auto &v_index = this->db2DynArray<value_type>::at(index); // could be null
         return v_index != nullval ? this->dereference<CK_T>(v_index) : nullval;

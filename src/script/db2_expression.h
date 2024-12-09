@@ -6,17 +6,26 @@
 #include "data/db2_key.h"
 #include "db2_tensor.h"
 
-class db2Function
+
+
+class db2Expression
 {
+public:
     using tensorf = db2Tensor<float32_t>;
 
 public:
-    int32_t type{db2Key::Literal};
-    db2DynArray<db2Function> args;
+    db2Expression *parent;
+
+public:
+    int32_t type{db2Key::LITERAL};
+    db2DynArray<db2Expression *> args;
     db2Tensor<float32_t> result;
 
 public:
-    std::function<void()> func = []() {};
+    virtual ~db2Expression();
+
+public:
+    std::function<void()> run = []() {};
 
     auto operator()() -> void;
 

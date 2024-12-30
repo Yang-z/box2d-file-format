@@ -25,7 +25,7 @@ using float64_t = double;
 #define DB2_DEPRECATED
 
 //
-#include <type_traits> // std::void_t
+#include <type_traits> // std::void_t std::enable_if ...
 
 #define HAS_TYPE(FLAG_T)                                                           \
     template <typename CK_T, typename = void>                                      \
@@ -39,11 +39,11 @@ using float64_t = double;
     template <typename CK_T>                                                       \
     inline constexpr bool has_##FLAG_T##_v = has_##FLAG_T<CK_T>::value;
 
-HAS_TYPE(value_type)    // has_value_type_v
-HAS_TYPE(prefix_type)   // has_prefix_type_v
-HAS_TYPE(type_type)     // has_type_type_v
-HAS_TYPE(flag_db2Chunk) // has_flag_db2Chunk_v
-HAS_TYPE(flag_dynamic_nesting)  // has_flag_dynamic_nesting_v
+HAS_TYPE(value_type)           // has_value_type_v
+HAS_TYPE(prefix_type)          // has_prefix_type_v
+HAS_TYPE(type_type)            // has_type_type_v
+HAS_TYPE(flag_db2Chunk)        // has_flag_db2Chunk_v
+HAS_TYPE(flag_dynamic_nesting) // has_flag_dynamic_nesting_v
 
 template <typename T, typename = void>
 struct default_value
@@ -70,3 +70,9 @@ struct default_ref<T, std::enable_if_t<!std::is_void_v<T>>>
 };
 template <typename T>
 using default_ref_t = typename default_ref<T>::type;
+
+template <typename T> // is_trivially_copyable_v implies std::is_trivially_destructible_v
+concept trivialC_or_void = std::is_trivially_copyable_v<T> || std::is_void_v<T>;
+
+template <typename T>
+concept trivialC_or_db2Chunk = std::is_trivially_copyable_v<T> || has_flag_db2Chunk_v<T>;

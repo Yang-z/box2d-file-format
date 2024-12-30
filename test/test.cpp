@@ -44,6 +44,23 @@ auto test_size() -> void
     printf("un.name + 1 = %d\n", un.name + 1);
 }
 
+auto test_sizeof_arr() -> void
+{
+    char arr[5];
+    auto s = sizeof(arr); // 5
+}
+auto test_sizeof_arr1(const char (&arr)[5]) -> void
+{
+    auto s = sizeof(arr); // 5
+}
+auto test_sizeof_arr2(char arr[5]) -> void
+{
+    auto s = sizeof(arr); // 8
+
+    test_sizeof_arr1({1, 2, 3, 4, 5});
+    test_sizeof_arr1("1234");
+}
+
 auto test_cast_reference() -> void
 {
     int i = 0;
@@ -555,7 +572,7 @@ auto test_nullval() -> void
     printf("%d\n", i1 != nullval); // true
 
     auto null = nullval;
-    // null = 1;  // avoided 
+    // null = 1;  // avoided
     // i = 1; // can't be avoided !!
 }
 

@@ -110,12 +110,12 @@ public: // static
     }
 
 public: // instance
-    char type[4]{0, 0, 0, 0};
+    alignas(4) char type[4]{0, 0, 0, 0};
     DB2_DEPRECATED char type_ref[4]{0, 0, 0, 0};
 
     bool is_type_int = false;        // int type is allowed for sub-chunks
     bool is_dynamic_nesting = false; // dynamic nesting is allowed for sub-chunks
-    char type_nondynamic_nesting[4]{0, 0, 0, 0};
+    const db2DynArray<int32_t> *end_types = nullptr;
 
     const std::type_info *info;
 
@@ -128,10 +128,10 @@ private:
     db2Reflector *child{nullptr};
 
 public:
-    db2Reflector *get_child(char *type)
+    db2Reflector *get_child(const char *type)
     {
         if (type && this->is_dynamic_nesting)
-            if (reinterpret_cast<int32_t &>(this->type_nondynamic_nesting) != *reinterpret_cast<int32_t *>(type))
+            if (!this->end_types->has(*reinterpret_cast<const int32_t *>(type)))
                 return this;
 
         return this->child;
@@ -170,7 +170,7 @@ public:
         {
             assert(this->parent != nullptr);
             this->is_dynamic_nesting = true;
-            reinterpret_cast<int32_t &>(this->type_nondynamic_nesting) = reinterpret_cast<int32_t &>(CK_T::type_nondynamic_nesting);
+            this->end_types = &CK_T::end_types;
         }
 
         // prefix
@@ -196,7 +196,7 @@ public:
             // ref type
             DB2_DEPRECATED // this->type_ref[0] = this->type_ref[0] - 64;
 
-            if constexpr (!has_value_type_v<value_type>)
+                if constexpr (!has_value_type_v<value_type>)
             {
                 this->value = new pack_info();
                 Reflect_POD<value_type>(this->value);

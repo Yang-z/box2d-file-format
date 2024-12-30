@@ -23,6 +23,7 @@ struct db2DictElement
     uint32_t value{UINT32_MAX};
 
 } DB2_NOTE(sizeof(db2DictElement) == 12);
+static_assert(std::is_trivially_copyable_v<db2DictElement>);
 
 struct db2Dict : public db2Chunk<db2DictElement>
 {

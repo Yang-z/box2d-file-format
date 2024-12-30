@@ -7,14 +7,34 @@ DB2_PRAGMA_PACK_ON
 template <typename T, typename T_pfx>
 struct db2Tree : public db2Chunk<T, T_pfx>
 {
+public:
     using type_type = int32_t;
     using flag_dynamic_nesting = void;
-    static constexpr const int32_t type_nondynamic_nesting{0};
+    static constexpr const db2DynArray<int32_t> end_types{0};
 
+public:
+    bool is_end() const { return this->reflector->end_types.has(this->type_i()); }
+
+    auto get_node_list() const -> db2Tree<db2Tree<T, T_pfx>, T_pfx>&
+    {
+        if (this->is_end())
+            return nullval;
+        else
+            return reinterpret_cast<db2Tree<db2Tree<T, T_pfx>, T_pfx> &>(*this);
+    }
+
+    auto get_value_list() const -> db2Tree<T, T_pfx>&
+    {
+        if (this->is_end())
+            return *this;
+        else
+            nullval;
+    }
+
+public:
     auto init(const int32_t type) -> void { std::memcpy(this->type, &type, 4); }
-    bool is_end() { return reinterpret_cast<int32_t &>(this->type) == db2Tree::type_nondynamic_nesting; }
 
-public: // node
+public: // sub-node
     auto at_node(uint32_t index) -> db2Tree &
     {
         assert(!this->is_end());
@@ -53,7 +73,6 @@ public: // end value
         assert(this->is_end());
         return this->db2Chunk::emplace_back(std::forward<Args>(args)...);
     }
-
 };
 
 DB2_PRAGMA_PACK_OFF

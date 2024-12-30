@@ -19,7 +19,7 @@ to make it still functioning even when it's downgraded to db2Chunk<char>.
 
 #define DEF_IN_BASE(def) /* defined in base */
 
-template <typename T, typename T_pfx = void>
+template <trivialC_or_db2Chunk T, typename T_pfx = void>
 class db2Chunk;
 
 template <typename T, typename T_pfx = void>
@@ -29,15 +29,16 @@ class db2Chunks;
 
 #define DB2_CHUNK_CONSTRUCTORS(CLS)                                                \
     CLS() = default;                                                               \
-    CLS(const CLS &other) = delete;                                                \
+    CLS(const CLS &other) { this->copy(other); }                                   \
     CLS(CLS &&other) = delete;                                                     \
     CLS(const std::initializer_list<typename CLS::value_type> &arg_list) = delete; \
-    CLS &operator=(const CLS &other) = delete;                                     \
+    virtual ~CLS() { this->clear(); }                                              \
+    CLS &operator=(const CLS &other) { return this->copy(other), *this; }          \
     CLS &operator=(CLS &&other) = delete;                                          \
     bool operator==(const CLS &other) const = delete;                              \
     bool operator!=(const CLS &other) const = delete;
 
-template <typename T, typename T_pfx>
+template <trivialC_or_db2Chunk T, typename T_pfx>
 class db2Chunk : public db2DynArrayWithPrefix<T, T_pfx>
 {
 public:
@@ -100,12 +101,10 @@ public:
     }
 
 public:
-    ENDIAN_SENSITIVE DEF_IN_BASE(uint32_t length{0});
-    char type[4]{0, 0, 0, 0};
+    ENDIAN_SENSITIVE uint32_t length_chunk{0};
+    ENDIAN_SENSITIVE alignas(4) char type[4]{0, 0, 0, 0};
     ENDIAN_SENSITIVE DEF_IN_BASE(T *data{nullptr});
     ENDIAN_SENSITIVE uint32_t crc{};
-
-    ENDIAN_SENSITIVE uint32_t length_chunk{0};
 
     // const bool isLittleEndian{HardwareDifference::IsLittleEndian()};
     db2Reflector *reflector{nullptr};
@@ -113,22 +112,11 @@ public:
 
     void *runtime = nullptr;
 
-public: // Constructors
+    int32_t &type_i() { return reinterpret_cast<int32_t &>(this->type); }
+
+public: // constructors and initiators
     TYPE_IRRELATIVE DB2_CHUNK_CONSTRUCTORS(db2Chunk);
 
-    // only clear up reflected types with the innermost value-types of flat data structures
-    // further work is required?
-    TYPE_IRRELATIVE virtual ~db2Chunk() override
-    {
-        if (this->data && this->reflector && this->reflector->get_child(this->type))
-        {
-            auto &self = *(db2Chunk<db2Chunk<char>> *)this;
-            for (auto i = 0; i < self.size(); ++i)
-                self[i].~db2Chunk();
-        }
-    }
-
-public: // initializer
     TYPE_IRRELATIVE auto pre_init(db2Reflector *reflector, db2Chunks *root) -> void
     {
         this->root = root;
@@ -136,12 +124,72 @@ public: // initializer
 
         if (this->reflector)
             std::memcpy(this->type, this->reflector->type, sizeof(this->type));
-            // for (int i = 0; i < 4; ++i)
-            //     if (this->reflector->type[i] != '\0' && this->type[i] == '\0')
-            //         this->type[i] = this->reflector->type[i];
+        // for (int i = 0; i < 4; ++i)
+        //     if (this->reflector->type[i] != '\0' && this->type[i] == '\0')
+        //         this->type[i] = this->reflector->type[i];
     }
 
     TYPE_IRRELATIVE virtual auto init() -> void {}
+
+    TYPE_IRRELATIVE auto clear() -> void
+    {
+        if (!this->data)
+            return; // length should be 0
+
+        // clear base
+        if (this->reflector && this->reflector->get_child(this->type))
+        {
+            // clear sub-chunks (only for reflected types)
+            auto this_ = reinterpret_cast<db2Chunk<db2Chunk<char, char>, char> *>(this);
+            this_->db2DynArrayWithPrefix<db2Chunk<char, char>, char>::clear();
+        }
+        else
+        {
+            auto this_ = reinterpret_cast<db2Chunk<char, char> *>(this);
+            this_->db2DynArrayWithPrefix<char, char>::clear();
+        }
+
+        // clear derived data
+        this->length_chunk = 0;
+        this->type_i() = 0;
+        this->crc = 0;
+
+        this->reflector = nullptr;
+        this->root = nullptr;
+        this->runtime = nullptr;
+    }
+
+    TYPE_IRRELATIVE auto copy(const db2Chunk &other) -> void
+    {
+        this->length_chunk = 0;
+        if (this->type_i())
+            assert(this->type_i() == other.type_i());
+        else
+            this->type_i() = other.type_i();
+        this->crc = 0;
+
+        if (this->reflector)
+            assert(this->reflector == other.reflector);
+        else
+            this->reflector = other.reflector;
+        this->root = other.root;
+        this->runtime = nullptr;
+
+        // copy base
+        if (this->reflector && this->reflector->get_child(this->type))
+        {
+            // copy sub-chunks (only for reflected types)
+            auto &this_ = reinterpret_cast<db2Chunk<db2Chunk<char, char>, char> &>(*this);
+            auto &other_ = reinterpret_cast<const db2Chunk<db2Chunk<char, char>, char> &>(other);
+            this_.db2DynArrayWithPrefix<db2Chunk<char, char>, char>::copy(other_);
+        }
+        else
+        {
+            auto &this_ = reinterpret_cast<db2Chunk<char, char> &>(*this);
+            auto &other_ = reinterpret_cast<const db2Chunk<char, char> &>(other);
+            this_.db2DynArrayWithPrefix<char, char>::copy(other_);
+        }
+    }
 
 public:
     TYPE_IRRELATIVE auto read(std::ifstream &fs, const bool isLittleEndian, boost::crc_32_type *CRC = nullptr) -> void
@@ -271,7 +319,7 @@ public:
         {
             auto &element = this->db2DynArray<T>::emplace(index);
             // element.pre_init(this->reflector->get_child(this->type), this->root);
-            reinterpret_cast<db2Chunk<char> &>(element).pre_init(this->reflector->get_child(this->type), this->root);
+            reinterpret_cast<db2Chunk<char, char> &>(element).pre_init(this->reflector->get_child(this->type), this->root);
             element.init(std::forward<Args>(args)...);
             return element;
         }
@@ -288,7 +336,7 @@ public:
         {
             auto &element = this->db2DynArray<T>::emplace_back();
             // element.pre_init(this->reflector->get_child(this->type), this->root);
-            reinterpret_cast<db2Chunk<char> &>(element).pre_init(this->reflector->get_child(this->type), this->root);
+            reinterpret_cast<db2Chunk<char, char> &>(element).pre_init(this->reflector->get_child(this->type), this->root);
             element.init(std::forward<Args>(args)...);
             return element;
         }

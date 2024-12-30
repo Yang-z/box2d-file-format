@@ -5,7 +5,6 @@
 #include <cstdlib> // std::malloc std::free std::realloc
 #include <cmath>   // std::log2 std::pow
 
-#include <type_traits> // std::enable_if
 #include <functional>
 
 #include "common/db2_settings.h"
@@ -53,12 +52,37 @@ public: // constructors and initiators
 
     virtual auto init(uint32_t size, bool initialize = true) -> void { this->expand(size, initialize); }
 
+    auto clear() -> void
+    {
+        if (!this->data)
+            return; // length should be 0
+
+        if constexpr (!std::is_trivially_destructible_v<T>)
+            for (int32_t i = 0; i < this->size(); ++i)
+                (this->data + i)->~T();
+
+        std::free(this->data);
+        this->data = nullptr;
+        this->length = 0;
+        this->length_mem = 0;
+    }
+
     auto copy(const db2DynArray &other) -> void
     {
-        this->clear();
-        this->reserve_mem(other.length, false);
-        std::memcpy(this->data, other.data, other.length);
-        this->length = other.length;
+        this->reserve_mem(this->length + other.length, false);
+
+        if constexpr (std::is_trivially_copyable_v<T>)
+        {
+            std::memcpy(this->data, other.data, other.length);
+        }
+        else
+        {
+            auto ptr = this->data + this->size();
+            for (uint32_t i = 0; i < other.size(); ++i)
+                ::new (ptr + i) T(other.data[i]);
+        }
+
+        this->length += other.length;
     };
 
     auto move(db2DynArray &&other) -> void
@@ -78,7 +102,7 @@ public: // Element access
     /**/
     auto operator[](const uint32_t index) const -> T & // no bounds checking
     {
-        return *(T *)(this->data + index);
+        return *(this->data + index);
         // return *reinterpret_cast<U *>(this->data + index);
     }
 
@@ -182,7 +206,7 @@ public: // Modifiers
 
     /*
     template <typename U = T, typename... Args>
-    auto append(Args &&...args) -> void
+    auto append(Args &&...args) -> void // pass one arg for one U
     {
         // (this->emplace_back<U>(std::forward<Args>(args)), ...); // one arg for one U
 
@@ -212,7 +236,7 @@ public: // Modifiers
 
         auto ptr = this->data + size_old;
         for (const auto &arg : arg_list)
-            ::new (ptr++) U(std::move(arg)); // forced move?
+            ::new (ptr++) U(std::move(arg)); // forced move? Yes, initializer_list always do deep copy
 
         this->length += sizeof(U) * size_append;
     }
@@ -257,20 +281,6 @@ public: // Modifiers
     {
         this->expand(size);
         this->shrink(size);
-    }
-
-    auto virtual clear() -> void
-    {
-        if (!this->data)
-            return; // assume length == 0
-
-        for (int32_t i = 0; i < this->size(); ++i)
-            (this->data + i)->~T();
-
-        std::free(this->data);
-        this->data = nullptr;
-        this->length = 0;
-        this->length_mem = 0;
     }
 
 public:
@@ -327,7 +337,7 @@ public:
     }
 };
 
-template <typename T, typename T_pfx = void>
+template <typename T, trivialC_or_void T_pfx = void>
 class db2DynArrayWithPrefix : public db2DynArray<T>
 {
 
@@ -341,14 +351,38 @@ public:
 public: // constructors and initiators
     DB2_DYNARRAY_CONSTRUCTORS(db2DynArrayWithPrefix)
 
+    auto clear() -> void
+    {
+        // clear derived (pfx)
+        if constexpr (!std::is_void_v<T_pfx>)
+        {
+            if (this->prefix)
+            {
+                // this->prefix->~T_pfx();
+                std::free(this->prefix);
+                this->prefix = nullptr;
+                this->length_pfx = 0;
+            }
+        }
+
+        // clear base
+        this->db2DynArray<T>::clear();
+    }
+
     auto copy(const db2DynArrayWithPrefix &other) -> void
     {
+        // copy base
         this->db2DynArray<T>::copy(other);
 
-        this->clear_pfx();
-        this->reserve_pfx_mem(other.length_pfx);
-        std::memcpy(this->prefix, other.prefix, other.length_pfx);
-        this->length_pfx = other.length_pfx;
+        // copy derived (pfx)
+        if constexpr (!std::is_void_v<T_pfx>)
+        {
+            // if(this->prefix) this->prefix->~T_pfx();
+            this->reserve_pfx_mem(other.length_pfx);
+            std::memcpy(this->prefix, other.prefix, other.length_pfx);
+            // ::new (this->prefix) T_pfx(other);
+            this->length_pfx = other.length_pfx;
+        }
     }
 
     auto move(db2DynArrayWithPrefix &&other) -> void
@@ -366,7 +400,7 @@ public: // constructors and initiators
     }
 
 public:
-    auto virtual clear_pfx() -> void
+    auto clear_pfx() -> void
     {
         if constexpr (!std::is_void_v<T_pfx>)
         {
@@ -380,13 +414,6 @@ public:
         }
     }
 
-    auto virtual clear() -> void
-    {
-        this->clear_pfx();
-        this->db2DynArray<T>::clear();
-    }
-
-public:
     template <typename... Args>
     auto emplace_pfx(Args &&...args) -> default_ref_t<T_pfx>
     {

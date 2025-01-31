@@ -11,16 +11,66 @@
 
 // #include "stdio.h"
 
+struct db2PackInfo
+{
+public: // static
+    static db2DynArray<db2PackInfo *> pack_infos;
+
+    template <typename T>
+    static auto Reflect_POD(const char *type) -> db2PackInfo *
+    {
+        return db2PackInfo::pack_infos.push_back(new db2PackInfo())->reflect_pod<T>(type);
+    }
+
+    static auto ClearPackInfos() -> void
+    {
+        for (int i = 0; i < db2PackInfo::pack_infos.size(); ++i)
+            delete db2PackInfo::pack_infos[i];
+    }
+
+    static auto GetPackInfo(const char *type) -> db2PackInfo *
+    {
+        for (int i = 0; i < db2PackInfo::pack_infos.size(); ++i)
+        {
+            auto &pack_info = db2PackInfo::pack_infos[i];
+            if (std::equal(type, type + 4, pack_info->type))
+                return pack_info;
+        }
+        return nullptr;
+    }
+
+public: // instance
+    alignas(4) char type[4]{0, 0, 0, 0};
+    uint8_t length{0};
+    db2DynArray<uint8_t> offsets{};
+    db2DynArray<uint8_t> lengths{};
+
+    template <typename T>
+    auto reflect_pod(const char *type) -> void
+    {
+        std::memcpy(this->type, type, 4);
+
+        this->length = sizeof(T);
+
+        // T shoud be of a POD (plain old data) type
+
+        static const T *const pt{nullptr};
+        static const T &vaule{*pt};
+
+        boost::pfr::for_each_field(
+            vaule,
+            [&](auto &field)
+            {
+                this->offsets.push_back((char *)&field - (char *)&vaule);
+                this->lengths.push_back(sizeof(field));
+            } //
+        );
+    }
+};
+
 class db2Reflector
 {
 public:
-    struct pack_info
-    {
-        uint8_t length{0};
-        db2DynArray<uint8_t> offsets{};
-        db2DynArray<uint8_t> lengths{};
-    };
-
 public: // static
     // A single linked library or executable file keeps only one copy of an inline static data menber,
     // but it can still cause multiple instances across different libraries.
@@ -36,26 +86,6 @@ public: // static
     //     printf("i = %d\n", i);
     //     return i;
     // }
-
-    template <typename T>
-    static auto Reflect_POD(pack_info *pack) -> void
-    {
-        pack->length = sizeof(T);
-
-        // T shoud be of a POD (plain old data) type
-
-        static const T *const pt{nullptr};
-        static const T &vaule{*pt};
-
-        boost::pfr::for_each_field(
-            vaule,
-            [&](auto &field)
-            {
-                pack->offsets.push_back((char *)&field - (char *)&vaule);
-                pack->lengths.push_back(sizeof(field));
-            } //
-        );
-    }
 
     template <typename CK_T>
     static auto Reflect(const char *type) -> void
@@ -113,14 +143,24 @@ public: // instance
     alignas(4) char type[4]{0, 0, 0, 0};
     DB2_DEPRECATED char type_ref[4]{0, 0, 0, 0};
 
-    bool is_type_int = false;        // int type is allowed for sub-chunks
-    bool is_dynamic_nesting = false; // dynamic nesting is allowed for sub-chunks
+    bool is_type_int = false; // int type is allowed for sub-chunks
+    bool is_dynamic = false;  // dynamic nesting is allowed for sub-chunks
     const db2DynArray<int32_t> *end_types = nullptr;
 
     const std::type_info *info;
 
-    pack_info *prefix{nullptr};
-    pack_info *value{nullptr};
+    db2PackInfo *prefix{nullptr};
+
+private:
+    db2PackInfo *value{nullptr};
+
+public:
+    db2PackInfo *get_value(const char *type)
+    {
+        if (type && this->is_dynamic)
+            return db2PackInfo::GetPackInfo(type);
+        return this->value;
+    }
 
     db2Reflector *parent{nullptr};
 
@@ -130,10 +170,9 @@ private:
 public:
     db2Reflector *get_child(const char *type)
     {
-        if (type && this->is_dynamic_nesting)
+        if (type && this->is_dynamic)
             if (!this->end_types->has(*reinterpret_cast<const int32_t *>(type)))
                 return this;
-
         return this->child;
     }
 
@@ -157,51 +196,51 @@ public:
         DB2_DEPRECATED std::memcpy(this->type_ref, type, 4);
         this->info = &typeid(CK_T);
 
-        // type_type
-        if constexpr (has_type_type_v<CK_T>)
-            if constexpr (std::is_same_v<typename CK_T::type_type, int32_t>)
+        if constexpr (!has_value_type_v<CK_T>) // POD
+        {
+            this->value = new db2PackInfo();
+            this->value->reflect_pod<CK_T>(type);
+        }
+        else // container
+        {
+            // type_type
+            if constexpr (has_type_type_v<CK_T>)
+                if constexpr (std::is_same_v<typename CK_T::type_type, int32_t>)
+                {
+                    assert(this->parent != nullptr);
+                    this->is_type_int = true;
+                }
+
+            // dynamic nesting
+            if constexpr (has_flag_dynamic_v<CK_T>)
             {
                 assert(this->parent != nullptr);
-                this->is_type_int = true;
+                this->is_dynamic = true;
+                this->end_types = &CK_T::end_types;
             }
 
-        // dynamic nesting
-        if constexpr (has_flag_dynamic_nesting_v<CK_T>)
-        {
-            assert(this->parent != nullptr);
-            this->is_dynamic_nesting = true;
-            this->end_types = &CK_T::end_types;
-        }
+            // prefix
+            if constexpr (has_prefix_type_v<CK_T>)
+                if constexpr (!std::is_void_v<typename CK_T::prefix_type>)
+                {
+                    this->prefix = new db2PackInfo();
+                    this->prefix->reflect_pod<typename CK_T::prefix_type>(type);
+                }
 
-        // prefix
-        if constexpr (has_prefix_type_v<CK_T>)
-            if constexpr (!std::is_void_v<typename CK_T::prefix_type>)
-            {
-                this->prefix = new pack_info();
-                Reflect_POD<CK_T::prefix_type>(this->prefix);
-            }
-
-        // value
-        if constexpr (!has_value_type_v<CK_T>)
-        {
-            this->value = new pack_info();
-            Reflect_POD<CK_T>(this->value);
-        }
-        else
-        {
+            // value
             using value_type = typename CK_T::value_type;
             this->type[2] = !has_value_type_v<value_type> ? std::toupper(this->type[2]) : std::tolower(this->type[2]);
             // this->type[3] = this->parent ? 0 : this->type[3];
 
             // ref type
-            DB2_DEPRECATED // this->type_ref[0] = this->type_ref[0] - 64;
+            DB2_DEPRECATED; // this->type_ref[0] = this->type_ref[0] - 64;
 
-                if constexpr (!has_value_type_v<value_type>)
+            if constexpr (!has_value_type_v<value_type>) // value is POD
             {
-                this->value = new pack_info();
-                Reflect_POD<value_type>(this->value);
+                this->value = new db2PackInfo();
+                this->value->reflect_pod<value_type>(this->type);
             }
-            else
+            else // value is container
             {
                 this->child = new db2Reflector();
                 child->parent = this;

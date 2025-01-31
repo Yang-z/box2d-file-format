@@ -45,7 +45,7 @@ public:
     using flag_db2Chunk = void;
 
 public:
-    TYPE_IRRELATIVE static auto ReadBytes(char *data, const uint32_t length, std::ifstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReadBytes(char *data, const uint32_t length, std::ifstream &fs, const bool reverseEndian, db2PackInfo *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -59,7 +59,7 @@ public:
             db2Chunk::ReverseEndian(data, length, pack);
     }
 
-    TYPE_IRRELATIVE static auto WriteBytes(char *data, const uint32_t length, std::ofstream &fs, const bool reverseEndian, db2Reflector::pack_info *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
+    TYPE_IRRELATIVE static auto WriteBytes(char *data, const uint32_t length, std::ofstream &fs, const bool reverseEndian, db2PackInfo *pack = nullptr, boost::crc_32_type *CRC = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -82,7 +82,7 @@ public:
     }
 
     // type-irrelative, since reflector is adopted
-    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const uint32_t length, db2Reflector::pack_info *pack = nullptr) -> void
+    TYPE_IRRELATIVE static auto ReverseEndian(char *data, const uint32_t length, db2PackInfo *pack = nullptr) -> void
     {
         if (data == nullptr || length == 0)
             return;
@@ -196,7 +196,12 @@ public:
     {
         assert(this->length == 0);
 
-        const bool reverseEndian = HardwareDifference::IsLittleEndian() != isLittleEndian;
+        // length, (int)type , crc should be always big-endian in file
+        const bool reverseEndian = HardwareDifference::IsLittleEndian();
+        const bool reverseEndian_type = this->reflector != nullptr && this->reflector->is_type_int && reverseEndian;
+
+        // prefix and data could be either big-endian or little-endian in file
+        const bool reverseEndian_data = HardwareDifference::IsLittleEndian() != isLittleEndian;
 
         // length
         db2Chunk::ReadBytes((char *)&this->length_chunk, sizeof(this->length_chunk), fs, reverseEndian, nullptr, CRC);
@@ -206,7 +211,6 @@ public:
             CRC = new boost::crc_32_type{};
 
         // type
-        bool reverseEndian_type = this->reflector != nullptr && this->reflector->is_type_int && reverseEndian;
         db2Chunk::ReadBytes(this->type, sizeof(this->type), fs, reverseEndian_type, nullptr, CRC); // overwrite type with data from file
         if (this->reflector == nullptr)
             this->reflector = db2Reflector::GetReflector(this->type);
@@ -216,7 +220,7 @@ public:
         {
             this->length_pfx = this->reflector->prefix->length;
             this->reserve_pfx_mem(this->length_pfx);
-            db2Chunk::ReadBytes((char *)this->prefix, this->length_pfx, fs, reverseEndian, this->reflector->prefix, CRC);
+            db2Chunk::ReadBytes((char *)this->prefix, this->length_pfx, fs, reverseEndian_data, this->reflector->prefix, CRC);
         }
 
         // data
@@ -224,7 +228,7 @@ public:
         {
             this->length = this->length_chunk - this->length_pfx;
             this->reserve_mem(this->length, false);
-            db2Chunk::ReadBytes((char *)this->data, this->length, fs, reverseEndian, this->reflector->value, CRC);
+            db2Chunk::ReadBytes((char *)this->data, this->length, fs, reverseEndian_data, this->reflector->get_value(this->type), CRC);
         }
         else
         {
@@ -250,7 +254,12 @@ public:
 
     TYPE_IRRELATIVE auto write(std::ofstream &fs, const bool asLittleEndian, boost::crc_32_type *CRC = nullptr) -> void
     {
-        const bool reverseEndian = HardwareDifference::IsLittleEndian() != asLittleEndian;
+        // length, (int)type, crc should be always big-endian in file
+        const bool reverseEndian = HardwareDifference::IsLittleEndian();
+        const bool reverseEndian_type = this->reflector != nullptr && this->reflector->is_type_int && reverseEndian;
+
+        // prefix and data could be either big-endian or little-endian in file
+        const bool reverseEndian_data = HardwareDifference::IsLittleEndian() != asLittleEndian;
 
         if (this->reflector == nullptr || this->reflector->parent == nullptr)
             this->refresh_length_chunk();
@@ -263,16 +272,15 @@ public:
             CRC = new boost::crc_32_type{};
 
         // type
-        bool reverseEndian_type = this->reflector != nullptr && this->reflector->is_type_int && reverseEndian;
         db2Chunk::WriteBytes(this->type, sizeof(this->type), fs, reverseEndian_type, nullptr, CRC);
 
         // prefix
         if (this->reflector->prefix)
-            db2Chunk::WriteBytes((char *)this->prefix, this->length_pfx, fs, reverseEndian, this->reflector->prefix, CRC);
+            db2Chunk::WriteBytes((char *)this->prefix, this->length_pfx, fs, reverseEndian_data, this->reflector->prefix, CRC);
 
         // data
         if (this->reflector->get_child(this->type) == nullptr)
-            db2Chunk::WriteBytes(this->data, this->length, fs, reverseEndian, this->reflector->value, CRC);
+            db2Chunk::WriteBytes(this->data, this->length, fs, reverseEndian_data, this->reflector->get_value(this->type), CRC);
         else
         {
             auto &self = *(db2Chunk<db2Chunk<char>> *)this;

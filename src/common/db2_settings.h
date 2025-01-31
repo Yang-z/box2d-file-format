@@ -39,11 +39,11 @@ using float64_t = double;
     template <typename CK_T>                                                       \
     inline constexpr bool has_##FLAG_T##_v = has_##FLAG_T<CK_T>::value;
 
-HAS_TYPE(value_type)           // has_value_type_v
-HAS_TYPE(prefix_type)          // has_prefix_type_v
-HAS_TYPE(type_type)            // has_type_type_v
-HAS_TYPE(flag_db2Chunk)        // has_flag_db2Chunk_v
-HAS_TYPE(flag_dynamic_nesting) // has_flag_dynamic_nesting_v
+HAS_TYPE(value_type)    // has_value_type_v
+HAS_TYPE(prefix_type)   // has_prefix_type_v
+HAS_TYPE(type_type)     // has_type_type_v
+HAS_TYPE(flag_db2Chunk) // has_flag_db2Chunk_v
+HAS_TYPE(flag_dynamic)  // has_flag_dynamic_nesting_v
 
 template <typename T, typename = void>
 struct default_value
